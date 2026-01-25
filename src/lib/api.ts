@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://mycafeserver.sewabyapar.com ';
+const API_BASE_URL = 'https://mycafeserver.sewabyapar.com';
 
 interface ApiResponse<T> {
   data?: T;
