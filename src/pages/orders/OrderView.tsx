@@ -1,0 +1,226 @@
+import { useEffect, useState, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Edit, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { PageHeader } from '@/components/ui/page-header';
+import { DetailCard, DetailRow } from '@/components/ui/detail-card';
+import { StatusBadge, getOrderStatusVariant, getPaymentStatusVariant } from '@/components/ui/status-badge';
+import { DataTable } from '@/components/ui/data-table';
+import { api } from '@/lib/api';
+import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+
+interface OrderItem {
+  id: string;
+  price: number;
+  quantity: number;
+  total: number;
+  product: { name: string } | null;
+  product_variant: { 
+    price: number;
+    unit: { name: string; symbol: string } | null;
+  } | null;
+}
+
+interface Order {
+  id: string;
+  name: string;
+  phone: string;
+  table_no: string;
+  status: string;
+  payment_status: string;
+  total: number;
+  fcm_token: string | null;
+  created_at: string;
+  updated_at: string;
+  vendor: {
+    id: string;
+    name: string;
+    phone: string;
+    logo_url: string | null;
+  } | null;
+  order_items: OrderItem[];
+}
+
+export default function OrderView() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [order, setOrder] = useState<Order | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchOrder = useCallback(async () => {
+    if (!id) return;
+    
+    const response = await api.get<{ order: any }>(`/api/orders/${id}/`);
+    if (response.error || !response.data) {
+      toast.error('Order not found');
+      navigate('/orders');
+    } else {
+      const orderData = response.data.order;
+      setOrder({
+        ...orderData,
+        id: String(orderData.id),
+        total: Number(orderData.total),
+        vendor: orderData.vendor ? {
+          id: String(orderData.vendor.id),
+          name: orderData.vendor.name,
+          phone: orderData.vendor.phone,
+          logo_url: orderData.vendor.logo_url || null,
+        } : null,
+        order_items: (orderData.items || []).map((item: any) => ({
+          id: String(item.id),
+          price: Number(item.price),
+          quantity: item.quantity,
+          total: Number(item.total),
+          product: { name: item.product_name },
+          product_variant: {
+            price: Number(item.variant_info?.price || 0),
+            unit: {
+              name: item.variant_info?.unit_name || '',
+              symbol: item.variant_info?.unit_symbol || '',
+            },
+          },
+        })),
+      } as Order);
+    }
+    setLoading(false);
+  }, [id, navigate]);
+
+  useEffect(() => {
+    fetchOrder();
+  }, [fetchOrder]);
+
+  const handleDelete = useCallback(async () => {
+    if (!id) return;
+    
+    const response = await api.get(`/api/orders/${id}/delete/`);
+
+    if (response.error) {
+      toast.error('Failed to delete order');
+    } else {
+      toast.success('Order deleted');
+      navigate('/orders');
+    }
+  }, [id, navigate]);
+
+  if (loading || !order) {
+    return (
+      <DashboardLayout>
+        <PageHeader title="Loading..." backLink="/orders" />
+      </DashboardLayout>
+    );
+  }
+
+  const itemColumns = [
+    {
+      key: 'product',
+      label: 'Product',
+      render: (item: OrderItem) => item.product?.name || '—',
+    },
+    {
+      key: 'variant',
+      label: 'Variant',
+      render: (item: OrderItem) =>
+        item.product_variant?.unit
+          ? `${item.product_variant.unit.name} (${item.product_variant.unit.symbol})`
+          : '—',
+    },
+    {
+      key: 'price',
+      label: 'Price',
+      render: (item: OrderItem) => `₹${Number(item.price).toFixed(2)}`,
+    },
+    { key: 'quantity', label: 'Qty' },
+    {
+      key: 'total',
+      label: 'Total',
+      render: (item: OrderItem) => `₹${Number(item.total).toFixed(2)}`,
+    },
+  ];
+
+  return (
+    <DashboardLayout>
+      <PageHeader
+        title={`Order #${order.id}`}
+        backLink="/orders"
+        action={
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => navigate(`/orders/${id}/edit`)}>
+              <Edit className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive">
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Order</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        }
+      />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <DetailCard title="Order Details">
+          <DetailRow label="Order ID" value={order.id} />
+          <DetailRow label="Customer Name" value={order.name} />
+          <DetailRow label="Phone" value={order.phone} />
+          <DetailRow label="Table No" value={order.table_no} />
+          <DetailRow
+            label="Status"
+            value={<StatusBadge status={order.status} variant={getOrderStatusVariant(order.status)} />}
+          />
+          <DetailRow
+            label="Payment Status"
+            value={
+              <StatusBadge status={order.payment_status} variant={getPaymentStatusVariant(order.payment_status)} />
+            }
+          />
+          <DetailRow label="Total" value={`₹${Number(order.total).toFixed(2)}`} />
+          <DetailRow label="Created At" value={new Date(order.created_at).toLocaleString()} />
+          <DetailRow label="Updated At" value={new Date(order.updated_at).toLocaleString()} />
+        </DetailCard>
+
+        <DetailCard title="Vendor Details">
+          {order.vendor?.logo_url && (
+            <DetailRow
+              label="Logo"
+              value={<img src={order.vendor.logo_url} alt="" className="h-12 w-12 rounded object-cover" />}
+            />
+          )}
+          <DetailRow label="Vendor Name" value={order.vendor?.name} />
+          <DetailRow label="Vendor Phone" value={order.vendor?.phone} />
+        </DetailCard>
+      </div>
+
+      <div className="mt-6">
+        <h3 className="text-lg font-semibold mb-4">Order Items</h3>
+          <DataTable columns={itemColumns} data={order.order_items || []} emptyMessage="No items" />
+      </div>
+    </DashboardLayout>
+  );
+}
