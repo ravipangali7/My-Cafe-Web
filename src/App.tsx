@@ -3,8 +3,10 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { VendorProvider } from "@/contexts/VendorContext";
+import { api } from "@/lib/api";
 
 // Auth pages
 import Login from "./pages/Login";
@@ -47,6 +49,17 @@ import Settings from "./pages/Settings";
 // Reports
 import ReportsPage from "./pages/reports/ReportsPage";
 
+// KYC
+import KYCVerification from "./pages/kyc/KYCVerification";
+
+// Subscription
+import SubscriptionPlans from "./pages/subscription/SubscriptionPlans";
+
+// QR Stand Orders
+import QRStandOrdersList from "./pages/qr-stands/QRStandOrdersList";
+import QRStandOrderForm from "./pages/qr-stands/QRStandOrderForm";
+import QRStandOrderView from "./pages/qr-stands/QRStandOrderView";
+
 // Menu (public)
 import MenuPage from "./pages/menu/MenuPage";
 
@@ -56,8 +69,52 @@ const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+  const [kycStatus, setKycStatus] = useState<string | null>(null);
+  const [subscriptionState, setSubscriptionState] = useState<string | null>(null);
+  const [checking, setChecking] = useState(true);
 
-  if (loading) {
+  useEffect(() => {
+    const checkAccess = async () => {
+      if (!user || loading) {
+        setChecking(false);
+        return;
+      }
+
+      // Skip checks for superusers
+      if (user.is_superuser) {
+        setChecking(false);
+        return;
+      }
+
+      try {
+        // Check KYC status
+        const kycResponse = await api.get<{ kyc_status: string }>('/api/kyc/status/');
+        if (!kycResponse.error && kycResponse.data) {
+          setKycStatus(kycResponse.data.kyc_status);
+          
+          // If KYC not approved, redirect will happen below
+          if (kycResponse.data.kyc_status !== 'approved') {
+            setChecking(false);
+            return;
+          }
+
+          // Check subscription status if KYC is approved
+          const subResponse = await api.get<{ subscription_state: string }>('/api/subscription/status/');
+          if (!subResponse.error && subResponse.data) {
+            setSubscriptionState(subResponse.data.subscription_state);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking access:', error);
+      } finally {
+        setChecking(false);
+      }
+    };
+
+    checkAccess();
+  }, [user, loading]);
+
+  if (loading || checking) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-pulse text-muted-foreground">Loading...</div>
@@ -67,6 +124,24 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Skip checks for superusers
+  if (user.is_superuser) {
+    return <VendorProvider>{children}</VendorProvider>;
+  }
+
+  // Check KYC status
+  if (kycStatus !== 'approved' && kycStatus !== null) {
+    return <Navigate to="/kyc" replace />;
+  }
+
+  // Check subscription status
+  if (kycStatus === 'approved' && subscriptionState) {
+    if (subscriptionState === 'no_subscription' || subscriptionState === 'expired') {
+      return <Navigate to="/subscription" replace />;
+    }
+    // Allow access for active subscriptions or inactive_with_date (user needs to contact admin)
   }
 
   return <VendorProvider>{children}</VendorProvider>;
@@ -145,6 +220,18 @@ const App = () => (
 
             {/* Reports */}
             <Route path="/reports" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
+
+            {/* KYC */}
+            <Route path="/kyc" element={<ProtectedRoute><KYCVerification /></ProtectedRoute>} />
+
+            {/* Subscription */}
+            <Route path="/subscription" element={<ProtectedRoute><SubscriptionPlans /></ProtectedRoute>} />
+
+            {/* QR Stand Orders */}
+            <Route path="/qr-stands" element={<ProtectedRoute><QRStandOrdersList /></ProtectedRoute>} />
+            <Route path="/qr-stands/new" element={<ProtectedRoute><QRStandOrderForm /></ProtectedRoute>} />
+            <Route path="/qr-stands/:id" element={<ProtectedRoute><QRStandOrderView /></ProtectedRoute>} />
+            <Route path="/qr-stands/:id/edit" element={<ProtectedRoute><QRStandOrderForm /></ProtectedRoute>} />
 
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />

@@ -13,6 +13,8 @@ import { toast } from 'sonner';
 interface SuperSetting {
   id: number;
   expire_duration_month: number;
+  per_qr_stand_price: number;
+  subscription_fee_per_month: number;
   created_at: string;
   updated_at: string;
 }
@@ -22,6 +24,8 @@ export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [expireDuration, setExpireDuration] = useState('12');
+  const [perQrStandPrice, setPerQrStandPrice] = useState('0');
+  const [subscriptionFeePerMonth, setSubscriptionFeePerMonth] = useState('0');
   const [saving, setSaving] = useState(false);
 
   const fetchSettings = useCallback(async () => {
@@ -34,6 +38,8 @@ export default function Settings() {
       if (response.data.setting) {
         setSetting(response.data.setting);
         setExpireDuration(String(response.data.setting.expire_duration_month));
+        setPerQrStandPrice(String(response.data.setting.per_qr_stand_price || 0));
+        setSubscriptionFeePerMonth(String(response.data.setting.subscription_fee_per_month || 0));
         setIsEditing(false);
       } else {
         setIsEditing(true);
@@ -51,8 +57,33 @@ export default function Settings() {
     setSaving(true);
 
     try {
+      // Validate integer inputs
+      const expireDurationInt = parseInt(expireDuration);
+      const perQrStandPriceInt = parseInt(perQrStandPrice);
+      const subscriptionFeeInt = parseInt(subscriptionFeePerMonth);
+
+      if (isNaN(expireDurationInt) || expireDurationInt < 1) {
+        toast.error('Expire duration must be a positive integer');
+        setSaving(false);
+        return;
+      }
+
+      if (isNaN(perQrStandPriceInt) || perQrStandPriceInt < 0) {
+        toast.error('Per QR stand price must be a non-negative integer');
+        setSaving(false);
+        return;
+      }
+
+      if (isNaN(subscriptionFeeInt) || subscriptionFeeInt < 0) {
+        toast.error('Subscription fee per month must be a non-negative integer');
+        setSaving(false);
+        return;
+      }
+
       const response = await api.post('/api/settings/update/', {
-        expire_duration_month: parseInt(expireDuration) || 12,
+        expire_duration_month: expireDurationInt,
+        per_qr_stand_price: perQrStandPriceInt,
+        subscription_fee_per_month: subscriptionFeeInt,
       });
 
       if (response.error) {
@@ -105,11 +136,56 @@ export default function Settings() {
                 <Input
                   id="expireDuration"
                   type="number"
+                  step="1"
                   value={expireDuration}
-                  onChange={(e) => setExpireDuration(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Only allow positive integers
+                    if (value === '' || /^\d+$/.test(value)) {
+                      setExpireDuration(value);
+                    }
+                  }}
                   min="1"
                   required
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="perQrStandPrice">Per QR Stand Price (₹)</Label>
+                <Input
+                  id="perQrStandPrice"
+                  type="number"
+                  step="1"
+                  value={perQrStandPrice}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Only allow non-negative integers
+                    if (value === '' || /^\d+$/.test(value)) {
+                      setPerQrStandPrice(value);
+                    }
+                  }}
+                  min="0"
+                  required
+                />
+                <p className="text-xs text-muted-foreground">Integer only, no decimals</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="subscriptionFeePerMonth">Subscription Fee Per Month (₹)</Label>
+                <Input
+                  id="subscriptionFeePerMonth"
+                  type="number"
+                  step="1"
+                  value={subscriptionFeePerMonth}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Only allow non-negative integers
+                    if (value === '' || /^\d+$/.test(value)) {
+                      setSubscriptionFeePerMonth(value);
+                    }
+                  }}
+                  min="0"
+                  required
+                />
+                <p className="text-xs text-muted-foreground">Integer only, no decimals</p>
               </div>
               <div className="flex gap-3 pt-4">
                 <Button type="submit" disabled={saving}>
@@ -119,6 +195,8 @@ export default function Settings() {
                   setIsEditing(false);
                   if (setting) {
                     setExpireDuration(String(setting.expire_duration_month));
+                    setPerQrStandPrice(String(setting.per_qr_stand_price || 0));
+                    setSubscriptionFeePerMonth(String(setting.subscription_fee_per_month || 0));
                   }
                 }}>
                   Cancel
@@ -128,6 +206,8 @@ export default function Settings() {
           ) : (
             <div className="space-y-4">
               <DetailRow label="Expire Duration" value={`${setting?.expire_duration_month || 12} months`} />
+              <DetailRow label="Per QR Stand Price" value={`₹${setting?.per_qr_stand_price || 0}`} />
+              <DetailRow label="Subscription Fee Per Month" value={`₹${setting?.subscription_fee_per_month || 0}`} />
               {setting && (
                 <>
                   <DetailRow label="Created At" value={new Date(setting.created_at).toLocaleString()} />

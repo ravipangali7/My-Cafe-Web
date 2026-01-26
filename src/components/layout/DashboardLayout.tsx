@@ -13,7 +13,8 @@ import {
   X,
   LogOut,
   Coffee,
-  FileText
+  FileText,
+  QrCode
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,6 +32,7 @@ const allNavItems = [
   { path: '/categories', label: 'Categories', icon: FolderOpen, superuserOnly: false },
   { path: '/products', label: 'Products', icon: Package, superuserOnly: false },
   { path: '/orders', label: 'Orders', icon: ShoppingCart, superuserOnly: false },
+  { path: '/qr-stands', label: 'QR Stand Orders', icon: QrCode, superuserOnly: false },
   { path: '/transactions', label: 'Transactions', icon: Receipt, superuserOnly: false },
   { path: '/reports', label: 'Reports', icon: FileText, superuserOnly: false },
   { path: '/settings', label: 'Settings', icon: Settings, superuserOnly: true },

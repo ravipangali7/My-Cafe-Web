@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Edit, QrCode, Download } from 'lucide-react';
+import { Edit, QrCode, Download, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/ui/page-header';
@@ -10,6 +10,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import QRCode from 'react-qr-code';
 import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -165,6 +166,89 @@ export default function VendorView() {
     }
   };
 
+  const handleDownloadPDF = async () => {
+    if (!vendor) return;
+
+    try {
+      const pdf = new jsPDF('portrait', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 20;
+      const contentWidth = pageWidth - 2 * margin;
+
+      // Top: My Cafe Logo/Text
+      pdf.setFontSize(24);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('My Cafe', pageWidth / 2, margin + 10, { align: 'center' });
+
+      // Middle: QR Code
+      // Generate QR code as data URL
+      const qrCanvas = document.createElement('canvas');
+      const qrSize = 200;
+      qrCanvas.width = qrSize;
+      qrCanvas.height = qrSize;
+      const ctx = qrCanvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, qrSize, qrSize);
+      }
+
+      // Use html2canvas to capture QR code
+      const qrElement = document.querySelector('[data-qr-code]') as HTMLElement;
+      if (qrElement) {
+        const qrCanvasImg = await html2canvas(qrElement, {
+          backgroundColor: '#ffffff',
+          scale: 2,
+        });
+        const qrDataUrl = qrCanvasImg.toDataURL('image/png');
+        const qrWidth = 60;
+        const qrHeight = 60;
+        pdf.addImage(qrDataUrl, 'PNG', (pageWidth - qrWidth) / 2, margin + 30, qrWidth, qrHeight);
+      }
+
+      // Bottom: Vendor Logo and Name
+      let yPos = margin + 100;
+      
+      // Vendor Logo (if available)
+      if (vendor.logo_url) {
+        try {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.src = vendor.logo_url;
+          
+          await new Promise((resolve, reject) => {
+            img.onload = () => {
+              try {
+                const logoWidth = 20;
+                const logoHeight = 20;
+                pdf.addImage(vendor.logo_url, 'PNG', (pageWidth - logoWidth) / 2, yPos, logoWidth, logoHeight);
+                yPos += logoHeight + 5;
+                resolve(null);
+              } catch (error) {
+                reject(error);
+              }
+            };
+            img.onerror = reject;
+          });
+        } catch (error) {
+          console.warn('Failed to load vendor logo:', error);
+        }
+      }
+
+      // Vendor Name
+      pdf.setFontSize(16);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(vendor.name, pageWidth / 2, yPos + 10, { align: 'center' });
+
+      // Save PDF
+      pdf.save(`qr-code-${vendor.phone || 'menu'}.pdf`);
+      toast.success('QR code PDF downloaded');
+    } catch (error) {
+      console.error('Failed to generate PDF:', error);
+      toast.error('Failed to generate PDF');
+    }
+  };
+
   return (
     <DashboardLayout>
       <PageHeader
@@ -229,22 +313,53 @@ export default function VendorView() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center gap-4 py-4">
-            <div ref={qrCodeRef} className="p-4 bg-white rounded-lg">
-              <QRCode
-                value={menuUrl}
-                size={256}
-                level="H"
-                style={{ height: "auto", maxWidth: "100%", width: "100%" }}
-              />
+            {/* Branded QR Code Design */}
+            <div ref={qrCodeRef} className="p-6 bg-white rounded-lg border-2 border-gray-200 w-full max-w-sm">
+              {/* Top: My Cafe Logo/Text */}
+              <div className="text-center mb-4">
+                <h2 className="text-2xl font-bold text-gray-800">My Cafe</h2>
+              </div>
+              
+              {/* Middle: QR Code */}
+              <div className="flex justify-center mb-4" data-qr-code>
+                <QRCode
+                  value={menuUrl}
+                  size={256}
+                  level="H"
+                  style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                />
+              </div>
+              
+              {/* Bottom: Vendor Logo and Name */}
+              <div className="text-center">
+                {vendor.logo_url && (
+                  <div className="mb-2 flex justify-center">
+                    <img
+                      src={vendor.logo_url}
+                      alt={vendor.name}
+                      className="h-12 w-12 rounded-full object-cover border-2 border-gray-300"
+                    />
+                  </div>
+                )}
+                <p className="text-lg font-semibold text-gray-800">{vendor.name}</p>
+              </div>
             </div>
-            <div className="text-center">
+            
+            <div className="text-center w-full">
               <p className="text-sm text-muted-foreground mb-2">Menu URL:</p>
-              <p className="text-xs font-mono break-all">{menuUrl}</p>
+              <p className="text-xs font-mono break-all px-4">{menuUrl}</p>
             </div>
-            <Button onClick={handleDownloadQR} className="w-full">
-              <Download className="h-4 w-4 mr-2" />
-              Download QR Code
-            </Button>
+            
+            <div className="flex gap-2 w-full">
+              <Button onClick={handleDownloadQR} variant="outline" className="flex-1">
+                <Download className="h-4 w-4 mr-2" />
+                Download PNG
+              </Button>
+              <Button onClick={handleDownloadPDF} className="flex-1">
+                <FileDown className="h-4 w-4 mr-2" />
+                Download PDF
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
