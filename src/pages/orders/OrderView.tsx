@@ -10,6 +10,13 @@ import { DataTable } from '@/components/ui/data-table';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -58,6 +65,8 @@ export default function OrderView() {
   const navigate = useNavigate();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [updatingPaymentStatus, setUpdatingPaymentStatus] = useState(false);
 
   const fetchOrder = useCallback(async () => {
     if (!id) return;
@@ -113,6 +122,54 @@ export default function OrderView() {
       navigate('/orders');
     }
   }, [id, navigate]);
+
+  const handleStatusChange = useCallback(async (newStatus: string) => {
+    if (!id || !order) return;
+    
+    setUpdatingStatus(true);
+    try {
+      const formData = new FormData();
+      formData.append('status', newStatus);
+      
+      const response = await api.post(`/api/orders/${id}/edit/`, formData, true);
+      
+      if (response.error) {
+        toast.error('Failed to update order status');
+      } else {
+        toast.success('Order status updated');
+        // Refresh order data
+        await fetchOrder();
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update order status');
+    } finally {
+      setUpdatingStatus(false);
+    }
+  }, [id, order, fetchOrder]);
+
+  const handlePaymentStatusChange = useCallback(async (newPaymentStatus: string) => {
+    if (!id || !order) return;
+    
+    setUpdatingPaymentStatus(true);
+    try {
+      const formData = new FormData();
+      formData.append('payment_status', newPaymentStatus);
+      
+      const response = await api.post(`/api/orders/${id}/edit/`, formData, true);
+      
+      if (response.error) {
+        toast.error('Failed to update payment status');
+      } else {
+        toast.success('Payment status updated');
+        // Refresh order data
+        await fetchOrder();
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update payment status');
+    } finally {
+      setUpdatingPaymentStatus(false);
+    }
+  }, [id, order, fetchOrder]);
 
   if (loading || !order) {
     return (
@@ -192,12 +249,48 @@ export default function OrderView() {
           <DetailRow label="Table No" value={order.table_no} />
           <DetailRow
             label="Status"
-            value={<StatusBadge status={order.status} variant={getOrderStatusVariant(order.status)} />}
+            value={
+              <div className="flex items-center gap-2">
+                <Select 
+                  value={order.status} 
+                  onValueChange={handleStatusChange}
+                  disabled={updatingStatus}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="accepted">Accepted</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
+                <StatusBadge status={order.status} variant={getOrderStatusVariant(order.status)} />
+              </div>
+            }
           />
           <DetailRow
             label="Payment Status"
             value={
-              <StatusBadge status={order.payment_status} variant={getPaymentStatusVariant(order.payment_status)} />
+              <div className="flex items-center gap-2">
+                <Select 
+                  value={order.payment_status} 
+                  onValueChange={handlePaymentStatusChange}
+                  disabled={updatingPaymentStatus}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="paid">Paid</SelectItem>
+                    <SelectItem value="failed">Failed</SelectItem>
+                    <SelectItem value="refunded">Refunded</SelectItem>
+                  </SelectContent>
+                </Select>
+                <StatusBadge status={order.payment_status} variant={getPaymentStatusVariant(order.payment_status)} />
+              </div>
             }
           />
           <DetailRow label="Total" value={`₹${Number(order.total).toFixed(2)}`} />
