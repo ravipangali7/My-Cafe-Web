@@ -127,7 +127,6 @@ export default function VendorForm() {
         if (token) {
           formData.append('token', token);
         }
-        formData.append('is_active', isActive.toString());
         formData.append('is_superuser', isSuperuser.toString());
 
         const response = await api.post<{ vendor: any; message: string }>('/api/vendors/create/', formData, true);
@@ -152,7 +151,7 @@ export default function VendorForm() {
         if (logoFile) {
           formData.append('logo', logoFile);
         }
-        // Only send expire_date, token, and is_active if superuser or creating
+        // Only send expire_date and token if superuser or creating
         if (isCreateMode || user.is_superuser) {
           if (expireDate) {
             formData.append('expire_date', expireDate);
@@ -160,7 +159,6 @@ export default function VendorForm() {
           if (token) {
             formData.append('token', token);
           }
-          formData.append('is_active', isActive.toString());
         }
         
         // Only superusers can change is_superuser
@@ -305,10 +303,6 @@ export default function VendorForm() {
                     onChange={(e) => setToken(e.target.value)}
                     placeholder="API Token"
                   />
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch id="isActive" checked={isActive} onCheckedChange={setIsActive} />
-                  <Label htmlFor="isActive">Active</Label>
                 </div>
               </>
             )}

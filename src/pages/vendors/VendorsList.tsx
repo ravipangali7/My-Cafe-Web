@@ -8,6 +8,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { StatusBadge, getActiveStatusVariant } from '@/components/ui/status-badge';
 import { FilterBar } from '@/components/ui/filter-bar';
 import { StatsCards } from '@/components/ui/stats-cards';
+import { Switch } from '@/components/ui/switch';
 import { api, fetchPaginated, PaginatedResponse } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -152,6 +153,51 @@ export default function VendorsList() {
     setPage(1);
   };
 
+  const handleToggleActive = useCallback(async (vendorId: number, currentStatus: boolean) => {
+    if (!user?.is_superuser) return;
+
+    const newStatus = !currentStatus;
+    
+    // Optimistically update the UI
+    setVendors(prevVendors =>
+      prevVendors.map(vendor =>
+        vendor.id === vendorId ? { ...vendor, is_active: newStatus } : vendor
+      )
+    );
+
+    try {
+      const formData = new FormData();
+      formData.append('is_active', newStatus.toString());
+
+      const response = await api.put<{ vendor: any; message: string }>(
+        `/api/vendors/${vendorId}/edit/`,
+        formData,
+        true
+      );
+
+      if (response.error) {
+        // Revert on error
+        setVendors(prevVendors =>
+          prevVendors.map(vendor =>
+            vendor.id === vendorId ? { ...vendor, is_active: currentStatus } : vendor
+          )
+        );
+        toast.error(response.error || 'Failed to update status');
+      } else {
+        toast.success(`Vendor ${newStatus ? 'activated' : 'deactivated'} successfully`);
+        fetchStats(); // Refresh stats
+      }
+    } catch (error) {
+      // Revert on error
+      setVendors(prevVendors =>
+        prevVendors.map(vendor =>
+          vendor.id === vendorId ? { ...vendor, is_active: currentStatus } : vendor
+        )
+      );
+      toast.error('Failed to update status');
+    }
+  }, [user, fetchStats]);
+
   const columns = [
     {
       key: 'logo',
@@ -187,12 +233,28 @@ export default function VendorsList() {
     {
       key: 'is_active',
       label: 'Status',
-      render: (item: Vendor) => (
-        <StatusBadge
-          status={item.is_active ? 'Active' : 'Inactive'}
-          variant={getActiveStatusVariant(item.is_active)}
-        />
-      ),
+      render: (item: Vendor) => {
+        // Show editable switch for super admin, badge for others
+        if (user?.is_superuser) {
+          return (
+            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+              <Switch
+                checked={item.is_active}
+                onCheckedChange={() => handleToggleActive(item.id, item.is_active)}
+              />
+              <span className="text-sm text-muted-foreground">
+                {item.is_active ? 'Active' : 'Inactive'}
+              </span>
+            </div>
+          );
+        }
+        return (
+          <StatusBadge
+            status={item.is_active ? 'Active' : 'Inactive'}
+            variant={getActiveStatusVariant(item.is_active)}
+          />
+        );
+      },
     },
     {
       key: 'actions',
