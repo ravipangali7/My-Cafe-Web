@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Edit, QrCode, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -34,6 +34,7 @@ interface Vendor {
 
 export default function VendorView() {
   const navigate = useNavigate();
+  const { id } = useParams();
   const { user } = useAuth();
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [fcmTokens, setFcmTokens] = useState<FcmToken[]>([]);
@@ -47,18 +48,64 @@ export default function VendorView() {
       return;
     }
     
-    const response = await api.get<{ user: Vendor }>('/api/auth/user/');
-    if (response.error || !response.data) {
+    try {
+      let response;
+      // If id exists in params and user is superuser, fetch that vendor
+      // If id matches logged-in user, use auth endpoint
+      // If no id, use auth endpoint (own profile)
+      if (id && user.is_superuser && parseInt(id) !== user.id) {
+        // Superuser viewing another vendor
+        response = await api.get<{ vendor: Vendor }>(`/api/vendors/${id}/`);
+        if (response.error || !response.data) {
+          toast.error('Failed to fetch vendor profile');
+          navigate('/vendors');
+          setLoading(false);
+          return;
+        }
+        setVendor(response.data.vendor);
+      } else if (id && parseInt(id) === user.id) {
+        // Viewing own profile with id in URL
+        response = await api.get<{ user: Vendor }>('/api/auth/user/');
+        if (response.error || !response.data) {
+          toast.error('Failed to fetch vendor profile');
+          navigate('/vendors');
+          setLoading(false);
+          return;
+        }
+        setVendor(response.data.user);
+      } else if (!id) {
+        // No id, viewing own profile
+        response = await api.get<{ user: Vendor }>('/api/auth/user/');
+        if (response.error || !response.data) {
+          toast.error('Failed to fetch vendor profile');
+          navigate('/vendors');
+          setLoading(false);
+          return;
+        }
+        setVendor(response.data.user);
+      } else {
+        // Regular user trying to view another vendor - not allowed
+        toast.error('You can only view your own profile');
+        navigate('/vendors');
+        setLoading(false);
+        return;
+      }
+    } catch (error) {
       toast.error('Failed to fetch vendor profile');
       navigate('/vendors');
-    } else {
-      setVendor(response.data.user);
     }
     setLoading(false);
-  }, [user, navigate]);
+  }, [user, id, navigate]);
 
   const fetchFcmTokens = useCallback(async () => {
     if (!user) return;
+    
+    // Only fetch FCM tokens when viewing own profile
+    const viewingOwnProfile = !id || (id && parseInt(id) === user.id);
+    if (!viewingOwnProfile) {
+      setFcmTokens([]);
+      return;
+    }
     
     const response = await api.get<{ fcm_tokens: FcmToken[] }>('/api/auth/user/fcm-tokens/');
     if (response.error) {
@@ -66,14 +113,14 @@ export default function VendorView() {
     } else if (response.data) {
       setFcmTokens(response.data.fcm_tokens);
     }
-  }, [user]);
+  }, [user, id]);
 
   useEffect(() => {
     if (user) {
       fetchVendor();
       fetchFcmTokens();
     }
-  }, [user, fetchVendor, fetchFcmTokens]);
+  }, [user, id, fetchVendor, fetchFcmTokens]);
 
   if (loading || !vendor) {
     return (
@@ -129,7 +176,7 @@ export default function VendorView() {
               <QrCode className="h-4 w-4 mr-2" />
               Generate QR
             </Button>
-            <Button variant="outline" onClick={() => navigate('/vendors/edit')}>
+            <Button variant="outline" onClick={() => navigate(id ? `/vendors/${id}/edit` : '/vendors/edit')}>
               <Edit className="h-4 w-4 mr-2" />
               Edit
             </Button>
@@ -165,10 +212,12 @@ export default function VendorView() {
           <DetailRow label="Updated At" value={new Date(vendor.updated_at).toLocaleString()} />
         </DetailCard>
 
-        <div>
-          <h3 className="text-lg font-semibold mb-4">FCM Tokens</h3>
-          <DataTable columns={fcmColumns} data={fcmTokens} emptyMessage="No FCM tokens" />
-        </div>
+        {(!id || (id && parseInt(id) === user?.id)) && (
+          <div>
+            <h3 className="text-lg font-semibold mb-4">FCM Tokens</h3>
+            <DataTable columns={fcmColumns} data={fcmTokens} emptyMessage="No FCM tokens" />
+          </div>
+        )}
       </div>
 
       <Dialog open={qrModalOpen} onOpenChange={setQrModalOpen}>

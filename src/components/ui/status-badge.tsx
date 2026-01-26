@@ -28,10 +28,9 @@ export function getOrderStatusVariant(status: string): StatusBadgeProps['variant
   switch (status) {
     case 'completed':
       return 'success';
-    case 'preparing':
-    case 'ready':
+    case 'accepted':
       return 'warning';
-    case 'cancelled':
+    case 'rejected':
       return 'destructive';
     default:
       return 'secondary';

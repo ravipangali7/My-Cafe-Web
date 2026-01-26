@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -59,6 +60,7 @@ export default function OrderForm() {
   const [tableNo, setTableNo] = useState('');
   const [status, setStatus] = useState<string>('pending');
   const [paymentStatus, setPaymentStatus] = useState<string>('pending');
+  const [rejectReason, setRejectReason] = useState<string>('');
   const [items, setItems] = useState<OrderItemInput[]>([{ ...emptyItem }]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
@@ -119,6 +121,7 @@ export default function OrderForm() {
       setTableNo(orderData.table_no);
       setStatus(orderData.status);
       setPaymentStatus(orderData.payment_status);
+      setRejectReason(orderData.reject_reason || '');
       if (orderData.items?.length) {
         // Store variant info from order for variants that might not be in product list
         const variantMap: OrderVariantInfo = {};
@@ -198,6 +201,11 @@ export default function OrderForm() {
       formData.append('status', status);
       formData.append('payment_status', paymentStatus);
       formData.append('total', String(total));
+      if (status === 'rejected') {
+        formData.append('reject_reason', rejectReason);
+      } else {
+        formData.append('reject_reason', '');
+      }
       formData.append('items', JSON.stringify(validItems.map((item) => ({
         product_id: parseInt(item.product_id),
         product_variant_id: parseInt(item.product_variant_id),
@@ -329,10 +337,9 @@ export default function OrderForm() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="preparing">Preparing</SelectItem>
-                    <SelectItem value="ready">Ready</SelectItem>
+                    <SelectItem value="accepted">Accepted</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -351,6 +358,19 @@ export default function OrderForm() {
                 </Select>
               </div>
             </div>
+
+            {status === 'rejected' && (
+              <div className="space-y-2">
+                <Label htmlFor="rejectReason">Rejection Reason</Label>
+                <Textarea
+                  id="rejectReason"
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  placeholder="Enter reason for rejection..."
+                  rows={3}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
 
