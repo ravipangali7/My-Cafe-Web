@@ -33,8 +33,32 @@ let messaging: Messaging | null = null;
 let serviceWorkerRegistration: ServiceWorkerRegistration | null = null;
 
 /**
+ * Detect if running in a Flutter webview environment
+ */
+function isFlutterWebView(): boolean {
+  if (typeof window === 'undefined') return false;
+  
+  const userAgent = navigator.userAgent || '';
+  // Flutter webview often has specific user agent patterns
+  const isWebView = /wv|WebView/i.test(userAgent) || 
+                    /Android.*wv/i.test(userAgent) ||
+                    // Check for Flutter-specific indicators
+                    (window as any).flutter_inappwebview !== undefined;
+  
+  return isWebView;
+}
+
+/**
+ * Wait for a specified amount of time
+ */
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
  * Register the service worker for Firebase Messaging
  * This must be called before getFCMToken()
+ * Includes retry logic for webview environments
  */
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   if (serviceWorkerRegistration) {
@@ -42,44 +66,95 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
   }
 
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
-    console.warn('Service workers are not supported in this browser.');
+    const isWebViewEnv = isFlutterWebView();
+    console.warn(
+      isWebViewEnv 
+        ? 'Service workers may not be supported in this webview environment. FCM token retrieval may fail.'
+        : 'Service workers are not supported in this browser.'
+    );
     return null;
   }
 
-  try {
-    // Register the service worker
-    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
-      scope: '/',
-    });
+  const isWebViewEnv = isFlutterWebView();
+  const maxRetries = isWebViewEnv ? 3 : 1;
+  const retryDelay = 1000; // 1 second
 
-    // Wait for the service worker to be ready
-    await navigator.serviceWorker.ready;
-    
-    serviceWorkerRegistration = registration;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      if (isWebViewEnv && attempt > 1) {
+        console.log(`[WebView] Service worker registration attempt ${attempt}/${maxRetries}`);
+        await delay(retryDelay * attempt); // Exponential backoff
+      }
 
-    // Send Firebase config to service worker
-    if (registration.active) {
-      registration.active.postMessage({
-        type: 'FIREBASE_CONFIG',
-        config: firebaseConfig,
+      // Register the service worker
+      const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+        scope: '/',
       });
-    } else if (registration.installing) {
-      // Wait for service worker to become active
-      registration.installing.addEventListener('statechange', () => {
+
+      // Wait for the service worker to be ready with timeout
+      const readyPromise = navigator.serviceWorker.ready;
+      const timeoutPromise = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('Service worker ready timeout')), 10000)
+      );
+
+      await Promise.race([readyPromise, timeoutPromise]);
+      
+      serviceWorkerRegistration = registration;
+
+      // Send Firebase config to service worker
+      const sendConfig = () => {
         if (registration.active) {
           registration.active.postMessage({
             type: 'FIREBASE_CONFIG',
             config: firebaseConfig,
           });
+        } else if (registration.installing) {
+          // Wait for service worker to become active
+          registration.installing.addEventListener('statechange', () => {
+            if (registration.active) {
+              registration.active.postMessage({
+                type: 'FIREBASE_CONFIG',
+                config: firebaseConfig,
+              });
+            }
+          });
+        } else if (registration.waiting) {
+          registration.waiting.postMessage({
+            type: 'FIREBASE_CONFIG',
+            config: firebaseConfig,
+          });
         }
-      });
-    }
+      };
 
-    return registration;
-  } catch (error) {
-    console.error('Service worker registration failed:', error);
-    return null;
+      sendConfig();
+
+      if (isWebViewEnv) {
+        console.log('[WebView] Service worker registered successfully');
+      }
+
+      return registration;
+    } catch (error: any) {
+      const errorMessage = error?.message || String(error);
+      console.error(
+        isWebViewEnv
+          ? `[WebView] Service worker registration failed (attempt ${attempt}/${maxRetries}):`
+          : 'Service worker registration failed:',
+        errorMessage
+      );
+
+      if (attempt === maxRetries) {
+        if (isWebViewEnv) {
+          console.error(
+            '[WebView] All service worker registration attempts failed. ' +
+            'This may be due to webview limitations. FCM token retrieval will not work.'
+          );
+        }
+        return null;
+      }
+    }
   }
+
+  return null;
 }
 
 export function initializeFirebase(): FirebaseApp | null {
@@ -176,15 +251,34 @@ export function getFirebaseMessaging(): Messaging | null {
 }
 
 export async function getFCMToken(): Promise<string | null> {
+  const isWebViewEnv = isFlutterWebView();
+  
   // First, ensure service worker is registered
   const registration = await registerServiceWorker();
   if (!registration) {
-    console.warn('Service worker not registered. Cannot get FCM token.');
+    const message = isWebViewEnv
+      ? '[WebView] Service worker not registered. FCM token cannot be retrieved. This may be a webview limitation.'
+      : 'Service worker not registered. Cannot get FCM token.';
+    console.warn(message);
     return null;
   }
 
-  // Wait for service worker to be ready
-  await navigator.serviceWorker.ready;
+  // Wait for service worker to be ready with timeout
+  try {
+    const readyPromise = navigator.serviceWorker.ready;
+    const timeoutPromise = new Promise<never>((_, reject) => 
+      setTimeout(() => reject(new Error('Service worker ready timeout')), 10000)
+    );
+    await Promise.race([readyPromise, timeoutPromise]);
+  } catch (error) {
+    console.error(
+      isWebViewEnv
+        ? '[WebView] Service worker did not become ready in time.'
+        : 'Service worker did not become ready in time.',
+      error
+    );
+    return null;
+  }
 
   const messagingInstance = getFirebaseMessaging();
   if (!messagingInstance) {
@@ -197,33 +291,70 @@ export async function getFCMToken(): Promise<string | null> {
     return null;
   }
 
-  try {
-    const token = await getToken(messagingInstance, { vapidKey });
-    if (token) {
-      return token;
-    } else {
-      console.warn('No FCM token available. User may need to grant notification permission.');
-      return null;
-    }
-  } catch (error: any) {
-    // Handle specific Firebase errors
-    if (error?.code === 'messaging/notifications-blocked') {
-      console.warn('Notifications are blocked by the browser. Please enable notifications in browser settings.');
-    } else if (error?.code === 'messaging/permission-default') {
-      console.warn('Notification permission not yet granted. User needs to allow notifications.');
-    } else if (error?.code === 'messaging/failed-service-worker-registration') {
-      console.error('Service worker registration failed. Make sure firebase-messaging-sw.js exists in the public directory and is accessible.');
-      console.error('Error details:', error.message);
-    } else if (error?.code === 'messaging/unsupported-browser') {
-      console.warn('This browser does not support Firebase Cloud Messaging.');
-    } else {
-      console.error('Error getting FCM token:', error);
-      if (error?.message) {
-        console.error('Error message:', error.message);
+  // Retry logic for webview environments
+  const maxRetries = isWebViewEnv ? 3 : 1;
+  const retryDelay = 1000;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      if (isWebViewEnv && attempt > 1) {
+        console.log(`[WebView] FCM token retrieval attempt ${attempt}/${maxRetries}`);
+        await delay(retryDelay * attempt);
+      }
+
+      const token = await getToken(messagingInstance, { vapidKey });
+      if (token) {
+        if (isWebViewEnv) {
+          console.log('[WebView] FCM token retrieved successfully');
+        }
+        return token;
+      } else {
+        console.warn('No FCM token available. User may need to grant notification permission.');
+        return null;
+      }
+    } catch (error: any) {
+      const errorMessage = error?.message || String(error);
+      const errorCode = error?.code;
+
+      // Handle specific Firebase errors
+      if (errorCode === 'messaging/notifications-blocked') {
+        console.warn('Notifications are blocked by the browser. Please enable notifications in browser settings.');
+        return null; // Don't retry for permission issues
+      } else if (errorCode === 'messaging/permission-default') {
+        console.warn('Notification permission not yet granted. User needs to allow notifications.');
+        return null; // Don't retry for permission issues
+      } else if (errorCode === 'messaging/failed-service-worker-registration') {
+        console.error('Service worker registration failed. Make sure firebase-messaging-sw.js exists in the public directory and is accessible.');
+        console.error('Error details:', errorMessage);
+        if (attempt === maxRetries) return null; // Don't retry if service worker registration failed
+      } else if (errorCode === 'messaging/unsupported-browser') {
+        console.warn('This browser does not support Firebase Cloud Messaging.');
+        return null; // Don't retry for unsupported browser
+      } else {
+        if (attempt === maxRetries) {
+          console.error(
+            isWebViewEnv
+              ? `[WebView] Error getting FCM token after ${maxRetries} attempts:`
+              : 'Error getting FCM token:',
+            errorMessage
+          );
+          if (error?.message) {
+            console.error('Error message:', error.message);
+          }
+          return null;
+        } else {
+          console.warn(
+            isWebViewEnv
+              ? `[WebView] FCM token retrieval failed (attempt ${attempt}/${maxRetries}), retrying...`
+              : 'FCM token retrieval failed, retrying...',
+            errorMessage
+          );
+        }
       }
     }
-    return null;
   }
+
+  return null;
 }
 
 export function onMessageListener(): Promise<any> {
