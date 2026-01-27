@@ -49,7 +49,6 @@ export async function getFCMTokenOnly(): Promise<string | null> {
       return null;
     }
 
-    console.log('FCM token obtained successfully');
     return token;
   } catch (error) {
     console.error('Error in getFCMTokenOnly:', error);
@@ -92,8 +91,6 @@ export async function getAndSaveFCMToken(): Promise<string | null> {
         if (response.status === 401) {
           console.warn('User not authenticated, token not saved to account');
         }
-      } else {
-        console.log('FCM token saved successfully to backend');
       }
     } catch (saveError) {
       // Log error but still return token

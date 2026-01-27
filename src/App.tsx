@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { VendorProvider } from "@/contexts/VendorContext";
@@ -46,11 +46,15 @@ import TransactionView from "./pages/transactions/TransactionView";
 // Settings
 import Settings from "./pages/Settings";
 
+// Profile
+import Profile from "./pages/Profile";
+
 // Reports
 import ReportsPage from "./pages/reports/ReportsPage";
 
 // KYC
 import KYCVerification from "./pages/kyc/KYCVerification";
+import KYCManagement from "./pages/kyc/KYCManagement";
 
 // Subscription
 import SubscriptionPlans from "./pages/subscription/SubscriptionPlans";
@@ -69,6 +73,7 @@ const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+  const location = useLocation();
   const [kycStatus, setKycStatus] = useState<string | null>(null);
   const [subscriptionState, setSubscriptionState] = useState<string | null>(null);
   const [checking, setChecking] = useState(true);
@@ -131,14 +136,14 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <VendorProvider>{children}</VendorProvider>;
   }
 
-  // Check KYC status
-  if (kycStatus !== 'approved' && kycStatus !== null) {
+  // Check KYC status - allow access to /kyc route even if not approved
+  if (kycStatus !== 'approved' && kycStatus !== null && location.pathname !== '/kyc') {
     return <Navigate to="/kyc" replace />;
   }
 
-  // Check subscription status
+  // Check subscription status - allow access to /subscription route even if not active
   if (kycStatus === 'approved' && subscriptionState) {
-    if (subscriptionState === 'no_subscription' || subscriptionState === 'expired') {
+    if ((subscriptionState === 'no_subscription' || subscriptionState === 'expired') && location.pathname !== '/subscription') {
       return <Navigate to="/subscription" replace />;
     }
     // Allow access for active subscriptions or inactive_with_date (user needs to contact admin)
@@ -218,11 +223,15 @@ const App = () => (
             {/* Settings */}
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
 
+            {/* Profile */}
+            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+
             {/* Reports */}
             <Route path="/reports" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
 
             {/* KYC */}
             <Route path="/kyc" element={<ProtectedRoute><KYCVerification /></ProtectedRoute>} />
+            <Route path="/kyc-management" element={<ProtectedRoute><KYCManagement /></ProtectedRoute>} />
 
             {/* Subscription */}
             <Route path="/subscription" element={<ProtectedRoute><SubscriptionPlans /></ProtectedRoute>} />
@@ -231,7 +240,6 @@ const App = () => (
             <Route path="/qr-stands" element={<ProtectedRoute><QRStandOrdersList /></ProtectedRoute>} />
             <Route path="/qr-stands/new" element={<ProtectedRoute><QRStandOrderForm /></ProtectedRoute>} />
             <Route path="/qr-stands/:id" element={<ProtectedRoute><QRStandOrderView /></ProtectedRoute>} />
-            <Route path="/qr-stands/:id/edit" element={<ProtectedRoute><QRStandOrderForm /></ProtectedRoute>} />
 
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />

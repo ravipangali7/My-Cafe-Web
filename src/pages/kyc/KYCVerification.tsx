@@ -15,6 +15,7 @@ interface KYCStatus {
   kyc_status: string;
   kyc_reject_reason: string | null;
   kyc_document_type: string | null;
+  has_document_submitted: boolean;
   user: {
     id: number;
     name: string;
@@ -215,15 +216,50 @@ export default function KYCVerification() {
               </div>
             )}
 
-            {/* Current Status */}
-            {kycStatus && (
-              <div className="space-y-2">
-                <Label>Current Status</Label>
-                <div className="flex items-center gap-2">
-                  {getStatusBadge(kycStatus.kyc_status)}
+            {/* Show submitted documents with Pending status if all required documents are submitted */}
+            {kycStatus && kycStatus.has_document_submitted && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Current Status</Label>
+                  <div className="flex items-center gap-2">
+                    {getStatusBadge(kycStatus.kyc_status)}
+                  </div>
                 </div>
+
+                {/* Submitted Document Display */}
+                <div className="space-y-2">
+                  <Label>Submitted Document</Label>
+                  <div className="border rounded-md p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">
+                          {kycStatus.kyc_document_type === 'aadhaar' ? 'Aadhaar Card' : 'Food License'}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Status: {kycStatus.kyc_status === 'pending' ? 'Pending Review' : kycStatus.kyc_status}
+                        </p>
+                      </div>
+                      {getStatusBadge(kycStatus.kyc_status)}
+                    </div>
+                    
+                    {kycStatus.user.kyc_document_url && (
+                      <div className="mt-2">
+                        <a
+                          href={kycStatus.user.kyc_document_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-primary hover:underline text-sm"
+                        >
+                          <FileText className="h-4 w-4" />
+                          View Document
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 {kycStatus.kyc_status === 'rejected' && kycStatus.kyc_reject_reason && (
-                  <div className="mt-2 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                  <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
                     <div className="flex items-start gap-2">
                       <XCircle className="h-5 w-5 text-destructive mt-0.5" />
                       <div>
@@ -233,8 +269,9 @@ export default function KYCVerification() {
                     </div>
                   </div>
                 )}
+
                 {kycStatus.kyc_status === 'pending' && (
-                  <div className="mt-2 p-3 bg-warning/10 border border-warning/20 rounded-md">
+                  <div className="p-3 bg-warning/10 border border-warning/20 rounded-md">
                     <div className="flex items-start gap-2">
                       <Clock className="h-5 w-5 text-warning mt-0.5" />
                       <div>
@@ -249,8 +286,8 @@ export default function KYCVerification() {
               </div>
             )}
 
-            {/* Document Upload Form - Show if status is null, rejected, or not pending */}
-            {(!kycStatus || kycStatus.kyc_status !== 'pending') && (
+            {/* Document Upload Form - Show if no document submitted or if rejected */}
+            {(!kycStatus || !kycStatus.has_document_submitted || kycStatus.kyc_status === 'rejected') && (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label>Document Type</Label>

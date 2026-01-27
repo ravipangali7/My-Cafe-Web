@@ -1,10 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Package, ShoppingCart, FolderOpen, Receipt, DollarSign, TrendingUp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/ui/page-header';
-import { StatsCards } from '@/components/ui/stats-cards';
-import { FilterBar } from '@/components/ui/filter-bar';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useVendor } from '@/contexts/VendorContext';
@@ -12,124 +11,171 @@ import { getAndSaveFCMToken } from '@/lib/fcm';
 import { getFirebaseMessaging } from '@/lib/firebase-config';
 import { onMessage } from 'firebase/messaging';
 import { toast } from 'sonner';
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from 'recharts';
+import { ViewToggle } from '@/components/dashboard/ViewToggle';
+import { SubscriptionSummary } from '@/components/dashboard/SubscriptionSummary';
+import { SubscriptionDetails } from '@/components/dashboard/SubscriptionDetails';
+import { TransactionHistoryTable } from '@/components/dashboard/TransactionHistoryTable';
+import { VendorDashboardStats } from '@/components/dashboard/VendorDashboardStats';
+import { VendorAnalytics } from '@/components/dashboard/VendorAnalytics';
+import { SuperAdminAnalytics } from '@/components/dashboard/SuperAdminAnalytics';
+import { ShoppingCart, QrCode, Eye } from 'lucide-react';
+import { DataTable } from '@/components/ui/data-table';
 
-interface DashboardStats {
-  products: number;
-  orders: number;
-  categories: number;
-  transactions: number;
-  total_revenue: string;
-  paid_revenue: string;
-  orders_by_status: Array<{ status: string; count: number }>;
-  recent_orders: Array<{
-    id: number;
-    name: string;
-    phone: string;
-    table_no: string;
+interface VendorDashboardData {
+  subscription: {
+    type: string | null;
+    start_date: string | null;
+    end_date: string | null;
+    amount_paid: string;
     status: string;
-    payment_status: string;
-    total: string;
-    created_at: string;
-  }>;
-  top_products: Array<{
-    product__name: string;
-    total_revenue: string;
-    total_quantity: number;
-  }>;
-  revenue_by_category: Array<{
-    product__category__name: string;
-    total_revenue: string;
-  }>;
-  sales_trends: Array<{
+  };
+  transactions: Array<any>;
+  pending_orders_count: number;
+  pending_qr_orders_count: number;
+  payment_status_breakdown: {
+    paid: number;
+    pending: number;
+    failed: number;
+  };
+  subscription_history: Array<{
     date: string;
-    orders: number;
-    revenue: string;
+    event: string;
+    amount?: string;
+    status?: string;
   }>;
+  total_orders?: number;
+  total_sales?: string;
+  total_revenue?: string;
+  finance_summary?: {
+    today: string;
+    week: string;
+    month: string;
+  };
+  best_selling_products?: Array<{
+    product_id: number;
+    product_name: string;
+    product_image: string | null;
+    total_quantity: number;
+    total_revenue: string;
+  }>;
+  order_trends?: {
+    daily: Array<{
+      date: string;
+      orders: number;
+      revenue: string;
+    }>;
+    monthly: Array<{
+      date: string;
+      orders: number;
+      revenue: string;
+    }>;
+  };
+  recent_orders?: Array<any>;
 }
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
-
-interface UserStats {
-  user: {
+interface SuperAdminDashboardData {
+  users: {
+    total: number;
+    active: number;
+    deactivated: number;
+  };
+  revenue: {
+    total: string;
+    trends: Array<{
+      date: string;
+      revenue: string;
+    }>;
+  };
+  pending_qr_orders: Array<any>;
+  pending_kyc_count: number;
+  transactions: Array<any>;
+  total_transactions?: number;
+  qr_earnings?: string;
+  subscription_earnings?: string;
+  pending_qr_orders_count?: number;
+  transactions_trend?: Array<{
+    date: string;
+    count: number;
+  }>;
+  users_overview?: Array<{
     id: number;
     name: string;
     phone: string;
-    logo_url: string | null;
     is_active: boolean;
-  };
-  stats: {
-    products: number;
-    orders: number;
-    categories: number;
-    transactions: number;
+    is_superuser: boolean;
+    total_orders: number;
     total_revenue: string;
-    paid_revenue: string;
-  };
+    kyc_status: string;
+  }>;
 }
 
 export default function Dashboard() {
   const { vendor } = useVendor();
   const { user } = useAuth();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState<number | null>(null);
-  const [appliedUserId, setAppliedUserId] = useState<number | null>(null);
-  const [selectedUserName, setSelectedUserName] = useState<string | null>(null);
-  const [usersStats, setUsersStats] = useState<UserStats[]>([]);
-  const [loadingUsersStats, setLoadingUsersStats] = useState(false);
+  const navigate = useNavigate();
+  
+  // View mode state (for super admins)
+  const [viewMode, setViewMode] = useState<'superAdmin' | 'vendor'>('vendor');
+  
+  // Vendor dashboard data
+  const [vendorData, setVendorData] = useState<VendorDashboardData | null>(null);
+  const [vendorLoading, setVendorLoading] = useState(true);
+  
+  // Super admin dashboard data
+  const [superAdminData, setSuperAdminData] = useState<SuperAdminDashboardData | null>(null);
+  const [superAdminLoading, setSuperAdminLoading] = useState(true);
 
-  const fetchStats = useCallback(async () => {
+  // Fetch vendor dashboard data
+  const fetchVendorData = useCallback(async () => {
     if (!user) return;
     
-    setLoading(true);
+    setVendorLoading(true);
     try {
-      const params: Record<string, string | number> = {};
-      if (appliedUserId && user.is_superuser) {
-        params.user_id = appliedUserId;
-      }
-      const queryString = api.buildQueryString(params);
-      const response = await api.get<{ stats: DashboardStats }>(`/api/dashboard/stats${queryString}`);
+      const response = await api.get<VendorDashboardData>('/api/dashboard/vendor-data/');
       if (response.data) {
-        setStats(response.data.stats);
+        setVendorData(response.data);
       }
     } catch (error) {
-      console.error('Failed to fetch dashboard stats:', error);
+      console.error('Failed to fetch vendor dashboard data:', error);
     } finally {
-      setLoading(false);
+      setVendorLoading(false);
     }
-  }, [user, appliedUserId]);
+  }, [user]);
+
+  // Fetch super admin dashboard data
+  const fetchSuperAdminData = useCallback(async () => {
+    if (!user || !user.is_superuser) return;
+    
+    setSuperAdminLoading(true);
+    try {
+      const response = await api.get<SuperAdminDashboardData>('/api/dashboard/super-admin-data/');
+      if (response.data) {
+        setSuperAdminData(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch super admin dashboard data:', error);
+    } finally {
+      setSuperAdminLoading(false);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (user) {
-      fetchStats();
+      fetchVendorData();
+      if (user.is_superuser) {
+        fetchSuperAdminData();
+      }
     }
-  }, [user, fetchStats]);
+  }, [user, fetchVendorData, fetchSuperAdminData]);
 
   // Request FCM token and save to backend when dashboard opens
   useEffect(() => {
     if (user) {
-      // Initialize Firebase and request FCM token
       getAndSaveFCMToken()
         .then((token) => {
           if (token) {
-            console.log('FCM token obtained and saved successfully');
+            // FCM token obtained and saved successfully
           } else {
-            // Only show warning if Firebase is configured (to avoid spam)
             const hasFirebaseConfig = import.meta.env.VITE_FIREBASE_API_KEY && import.meta.env.VITE_FIREBASE_VAPID_KEY;
             if (hasFirebaseConfig) {
               console.warn('FCM token not obtained. Check browser console for details.');
@@ -138,7 +184,6 @@ export default function Dashboard() {
         })
         .catch((error) => {
           console.error('Failed to get and save FCM token:', error);
-          // Don't show error toast as this is not critical for dashboard functionality
         });
     }
   }, [user]);
@@ -148,19 +193,14 @@ export default function Dashboard() {
     const messaging = getFirebaseMessaging();
     if (messaging) {
       const unsubscribe = onMessage(messaging, (payload) => {
-        console.log('Foreground message received:', payload);
-        
-        // Show browser notification when app is in foreground
         if (payload.notification) {
           const { title, body } = payload.notification;
           
-          // Show toast notification
           toast.info(title || 'New Notification', {
             description: body || '',
             duration: 5000,
           });
           
-          // Also show browser notification if permission is granted
           if (Notification.permission === 'granted') {
             new Notification(title || 'New Notification', {
               body: body || '',
@@ -179,103 +219,20 @@ export default function Dashboard() {
     }
   }, []);
 
-  // Fetch users stats for super admin
-  const fetchUsersStats = useCallback(async () => {
-    if (!user || !user.is_superuser) return;
-    
-    setLoadingUsersStats(true);
-    try {
-      const response = await api.get<{ users: UserStats[] }>('/api/dashboard/users-stats/');
-      if (response.data) {
-        setUsersStats(response.data.users);
-      }
-    } catch (error) {
-      console.error('Failed to fetch users stats:', error);
-    } finally {
-      setLoadingUsersStats(false);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (user?.is_superuser && !appliedUserId) {
-      fetchUsersStats();
-    }
-  }, [user, appliedUserId, fetchUsersStats]);
-
-  const handleApplyFilters = () => {
-    setAppliedUserId(userId);
-    // Fetch user name if filtering by specific user
-    if (userId && user?.is_superuser) {
-      api.get<{ data: Array<{ id: number; name: string; phone: string }> }>('/api/vendors/?page_size=1000')
-        .then((response) => {
-          if (response.data) {
-            const selectedUser = response.data.data.find((u) => u.id === userId);
-            setSelectedUserName(selectedUser?.name || null);
-          }
-        })
-        .catch(() => {
-          setSelectedUserName(null);
-        });
-    } else {
-      setSelectedUserName(null);
-    }
-  };
-
-  const handleClearFilters = () => {
-    setUserId(null);
-    setAppliedUserId(null);
-    setSelectedUserName(null);
-  };
-
-  const basicStatCards = stats ? [
-    { label: 'Products', value: stats.products, icon: Package, color: 'text-foreground' },
-    { label: 'Orders', value: stats.orders, icon: ShoppingCart, color: 'text-foreground' },
-    { label: 'Categories', value: stats.categories, icon: FolderOpen, color: 'text-foreground' },
-    { label: 'Transactions', value: stats.transactions, icon: Receipt, color: 'text-foreground' },
-  ] : [];
-
-  const revenueStatCards = stats ? [
-    { label: 'Total Revenue', value: `₹${parseFloat(stats.total_revenue || '0').toFixed(2)}`, icon: DollarSign, color: 'text-green-600' },
-    { label: 'Paid Revenue', value: `₹${parseFloat(stats.paid_revenue || '0').toFixed(2)}`, icon: TrendingUp, color: 'text-blue-600' },
-  ] : [];
-
-  // Prepare chart data
-  const salesTrendsData = stats?.sales_trends.map(item => ({
-    date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    orders: item.orders,
-    revenue: parseFloat(item.revenue || '0'),
-  })) || [];
-
-  const revenueByCategoryData = stats?.revenue_by_category.map(item => ({
-    name: item.product__category__name || 'Uncategorized',
-    value: parseFloat(item.total_revenue || '0'),
-  })) || [];
-
-  const ordersByStatusData = stats?.orders_by_status.map(item => ({
-    name: item.status.charAt(0).toUpperCase() + item.status.slice(1),
-    value: item.count,
-  })) || [];
-
-  const topProductsData = stats?.top_products.slice(0, 10).map(item => ({
-    name: item.product__name,
-    revenue: parseFloat(item.total_revenue || '0'),
-    quantity: item.total_quantity,
-  })) || [];
+  // Determine which view to show
+  const showSuperAdminView = user?.is_superuser && viewMode === 'superAdmin';
+  const showVendorView = !user?.is_superuser || viewMode === 'vendor';
 
   const getDashboardTitle = () => {
-    if (user?.is_superuser && appliedUserId && selectedUserName) {
-      return `Dashboard - ${selectedUserName}`;
-    } else if (user?.is_superuser && !appliedUserId) {
-      return 'Dashboard - All Users';
+    if (showSuperAdminView) {
+      return 'Super Admin Dashboard';
     }
     return `Welcome back, ${vendor?.name || 'User'}!`;
   };
 
   const getDashboardDescription = () => {
-    if (user?.is_superuser && appliedUserId) {
-      return `Statistics for ${selectedUserName || 'selected user'}`;
-    } else if (user?.is_superuser && !appliedUserId) {
-      return 'Aggregated statistics across all users';
+    if (showSuperAdminView) {
+      return 'System-wide analytics and management';
     }
     return "Here's an overview of your cafe";
   };
@@ -287,219 +244,201 @@ export default function Dashboard() {
         description={getDashboardDescription()}
       />
 
+      {/* View Toggle for Super Admins */}
       {user?.is_superuser && (
-        <FilterBar
-          search=""
-          onSearchChange={() => {}}
-          userId={userId}
-          onUserIdChange={setUserId}
-          onApply={handleApplyFilters}
-          onClear={handleClearFilters}
-          showUserFilter={true}
+        <div className="mb-6">
+          <ViewToggle
+            currentView={viewMode}
+            onViewChange={setViewMode}
+          />
+        </div>
+      )}
+
+      {/* Super Admin View */}
+      {showSuperAdminView && superAdminData && (
+        <SuperAdminAnalytics
+          users={superAdminData.users}
+          revenue={superAdminData.revenue}
+          pendingQrOrders={superAdminData.pending_qr_orders}
+          pendingKycCount={superAdminData.pending_kyc_count}
+          transactions={superAdminData.transactions}
+          totalTransactions={superAdminData.total_transactions}
+          qrEarnings={superAdminData.qr_earnings}
+          subscriptionEarnings={superAdminData.subscription_earnings}
+          pendingQrOrdersCount={superAdminData.pending_qr_orders_count}
+          transactionsTrend={superAdminData.transactions_trend}
+          usersOverview={superAdminData.users_overview}
+          loading={superAdminLoading}
         />
       )}
 
-      <StatsCards stats={basicStatCards} loading={loading} />
-      
-      {stats && (
-        <>
-          <StatsCards stats={revenueStatCards} loading={loading} />
+      {/* Vendor View */}
+      {showVendorView && (
+        <div className="space-y-6">
+          {/* Subscription Summary Card (Compact) */}
+          {vendorData && (
+            <SubscriptionSummary subscription={vendorData.subscription} />
+          )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-            {/* Sales Trends Chart */}
+          {/* Enhanced Stats Cards */}
+          {vendorData && (
+            <VendorDashboardStats
+              totalOrders={vendorData.total_orders || 0}
+              totalSales={vendorData.total_sales || '0'}
+              totalRevenue={vendorData.total_revenue || '0'}
+              financeSummary={vendorData.finance_summary || { today: '0', week: '0', month: '0' }}
+              loading={vendorLoading}
+            />
+          )}
+
+          {/* Pending Orders and QR Stand Orders */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Sales Trends</CardTitle>
-                <CardDescription>Orders and revenue over time</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Pending Orders</CardTitle>
+                    <CardDescription>Orders awaiting processing</CardDescription>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate('/orders?status=pending')}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    View
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={salesTrendsData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis yAxisId="left" />
-                    <YAxis yAxisId="right" orientation="right" />
-                    <Tooltip />
-                    <Legend />
-                    <Line yAxisId="left" type="monotone" dataKey="orders" stroke="#8884d8" name="Orders" />
-                    <Line yAxisId="right" type="monotone" dataKey="revenue" stroke="#82ca9d" name="Revenue (₹)" />
-                  </LineChart>
-                </ResponsiveContainer>
+                <div className="text-center py-8">
+                  <ShoppingCart className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-3xl font-bold text-foreground">
+                    {vendorData?.pending_orders_count || 0}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">Pending orders</p>
+                </div>
               </CardContent>
             </Card>
 
-            {/* Order Status Distribution */}
             <Card>
               <CardHeader>
-                <CardTitle>Order Status Distribution</CardTitle>
-                <CardDescription>Orders by status</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Pending QR Stand Orders</CardTitle>
+                    <CardDescription>QR stand orders awaiting processing</CardDescription>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate('/qr-stands?order_status=pending')}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    View
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={ordersByStatusData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {ordersByStatusData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            {/* Revenue by Category */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Revenue by Category</CardTitle>
-                <CardDescription>Total revenue per category</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={revenueByCategoryData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip formatter={(value: number) => `₹${value.toFixed(2)}`} />
-                    <Bar dataKey="value" fill="#8884d8" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            {/* Top Products */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Top Products by Revenue</CardTitle>
-                <CardDescription>Best performing products</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={topProductsData} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" />
-                    <YAxis dataKey="name" type="category" width={150} />
-                    <Tooltip formatter={(value: number) => `₹${value.toFixed(2)}`} />
-                    <Bar dataKey="revenue" fill="#82ca9d" />
-                  </BarChart>
-                </ResponsiveContainer>
+                <div className="text-center py-8">
+                  <QrCode className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-3xl font-bold text-foreground">
+                    {vendorData?.pending_qr_orders_count || 0}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">Pending QR stand orders</p>
+                </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Users Overview Table - Super Admin Only */}
-          {user?.is_superuser && !appliedUserId && (
-            <Card className="mt-6">
+          {/* Vendor Analytics with Enhanced Charts */}
+          {vendorData && (
+            <VendorAnalytics
+              subscription={vendorData.subscription}
+              paymentStatusBreakdown={vendorData.payment_status_breakdown}
+              subscriptionHistory={vendorData.subscription_history}
+              totalOrders={vendorData.total_orders}
+              bestSellingProducts={vendorData.best_selling_products}
+              orderTrends={vendorData.order_trends}
+            />
+          )}
+
+          {/* Recent Orders Table */}
+          {vendorData && vendorData.recent_orders && vendorData.recent_orders.length > 0 && (
+            <Card>
               <CardHeader>
-                <CardTitle>Users Overview</CardTitle>
-                <CardDescription>Individual statistics for each user</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Recent Orders</CardTitle>
+                    <CardDescription>Latest orders from your cafe</CardDescription>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate('/orders')}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    View All
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
-                {loadingUsersStats ? (
-                  <div className="text-center py-8 text-muted-foreground">Loading users...</div>
-                ) : usersStats.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left p-2">User</th>
-                          <th className="text-left p-2">Products</th>
-                          <th className="text-left p-2">Orders</th>
-                          <th className="text-left p-2">Categories</th>
-                          <th className="text-left p-2">Transactions</th>
-                          <th className="text-right p-2">Total Revenue</th>
-                          <th className="text-right p-2">Paid Revenue</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {usersStats.map((item) => (
-                          <tr key={item.user.id} className="border-b">
-                            <td className="p-2">
-                              <div className="flex items-center gap-2">
-                                {item.user.logo_url ? (
-                                  <img 
-                                    src={item.user.logo_url} 
-                                    alt={item.user.name} 
-                                    className="h-8 w-8 rounded-full object-cover"
-                                  />
-                                ) : (
-                                  <div className="h-8 w-8 rounded-full bg-accent flex items-center justify-center">
-                                    {item.user.name.charAt(0).toUpperCase()}
-                                  </div>
-                                )}
-                                <div>
-                                  <div className="font-medium">{item.user.name}</div>
-                                  <div className="text-sm text-muted-foreground">{item.user.phone}</div>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="p-2">{item.stats.products}</td>
-                            <td className="p-2">{item.stats.orders}</td>
-                            <td className="p-2">{item.stats.categories}</td>
-                            <td className="p-2">{item.stats.transactions}</td>
-                            <td className="p-2 text-right">₹{parseFloat(item.stats.total_revenue || '0').toFixed(2)}</td>
-                            <td className="p-2 text-right">₹{parseFloat(item.stats.paid_revenue || '0').toFixed(2)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">No users found</div>
-                )}
+                <DataTable
+                  columns={[
+                    {
+                      key: 'id',
+                      label: 'Order ID',
+                      render: (item: any) => `#${item.id}`,
+                    },
+                    {
+                      key: 'name',
+                      label: 'Customer',
+                      render: (item: any) => item.name || 'N/A',
+                    },
+                    {
+                      key: 'table_no',
+                      label: 'Table',
+                      render: (item: any) => item.table_no || 'N/A',
+                    },
+                    {
+                      key: 'status',
+                      label: 'Status',
+                      render: (item: any) => (
+                        <span className={`px-2 py-1 rounded text-xs ${
+                          item.status === 'completed' ? 'bg-green-100 text-green-800' :
+                          item.status === 'accepted' ? 'bg-blue-100 text-blue-800' :
+                          item.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {item.status}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: 'total',
+                      label: 'Total',
+                      render: (item: any) => `₹${parseFloat(item.total || '0').toFixed(2)}`,
+                    },
+                    {
+                      key: 'created_at',
+                      label: 'Date',
+                      render: (item: any) => new Date(item.created_at).toLocaleDateString(),
+                    },
+                  ]}
+                  data={vendorData.recent_orders.slice(0, 10)}
+                  loading={vendorLoading}
+                />
               </CardContent>
             </Card>
           )}
 
-          {/* Recent Orders Table */}
-          {stats.recent_orders && stats.recent_orders.length > 0 && (
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle>Recent Orders</CardTitle>
-                <CardDescription>Latest orders</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left p-2">ID</th>
-                        <th className="text-left p-2">Customer</th>
-                        <th className="text-left p-2">Table</th>
-                        <th className="text-left p-2">Status</th>
-                        <th className="text-left p-2">Payment</th>
-                        <th className="text-right p-2">Total</th>
-                        <th className="text-left p-2">Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {stats.recent_orders.map((order) => (
-                        <tr key={order.id} className="border-b">
-                          <td className="p-2">#{order.id}</td>
-                          <td className="p-2">{order.name}</td>
-                          <td className="p-2">{order.table_no}</td>
-                          <td className="p-2">{order.status}</td>
-                          <td className="p-2">{order.payment_status}</td>
-                          <td className="p-2 text-right">₹{parseFloat(order.total).toFixed(2)}</td>
-                          <td className="p-2">{new Date(order.created_at).toLocaleDateString()}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Transaction History Table */}
+          {vendorData && (
+            <TransactionHistoryTable
+              transactions={vendorData.transactions}
+              loading={vendorLoading}
+            />
           )}
-        </>
+        </div>
       )}
     </DashboardLayout>
   );

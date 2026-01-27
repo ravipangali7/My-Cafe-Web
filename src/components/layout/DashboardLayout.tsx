@@ -14,12 +14,15 @@ import {
   LogOut,
   Coffee,
   FileText,
-  QrCode
+  QrCode,
+  ShieldCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useVendor } from '@/contexts/VendorContext';
 import { cn } from '@/lib/utils';
+import { BottomNavigation } from './BottomNavigation';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -35,6 +38,7 @@ const allNavItems = [
   { path: '/qr-stands', label: 'QR Stand Orders', icon: QrCode, superuserOnly: false },
   { path: '/transactions', label: 'Transactions', icon: Receipt, superuserOnly: false },
   { path: '/reports', label: 'Reports', icon: FileText, superuserOnly: false },
+  { path: '/kyc-management', label: 'KYC Management', icon: ShieldCheck, superuserOnly: true },
   { path: '/settings', label: 'Settings', icon: Settings, superuserOnly: true },
 ];
 
@@ -44,6 +48,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
   const { vendor } = useVendor();
+  const isMobile = useIsMobile();
 
   // Filter nav items based on superuser status
   const navItems = useMemo(() => {
@@ -70,10 +75,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - Hidden on mobile, shown on desktop */}
       <aside className={cn(
-        "fixed top-0 left-0 z-50 h-full w-64 bg-card border-r border-border transform transition-transform duration-200 ease-in-out lg:translate-x-0",
-        sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        "fixed top-0 left-0 z-50 h-full w-64 bg-card border-r border-border transform transition-transform duration-200 ease-in-out",
+        isMobile ? (sidebarOpen ? "translate-x-0" : "-translate-x-full") : "translate-x-0"
       )}>
         <div className="flex flex-col h-full">
           {/* Logo */}
@@ -137,24 +142,40 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       </aside>
 
       {/* Main content */}
-      <div className="lg:pl-64">
+      <div className={cn(
+        "transition-all duration-200",
+        isMobile ? "pl-0" : "lg:pl-64"
+      )}>
         {/* Top bar */}
         <header className="sticky top-0 z-30 h-16 bg-card border-b border-border flex items-center px-4 lg:px-6">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="lg:hidden"
-            onClick={() => setSidebarOpen(true)}
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
+          {isMobile && (
+            <>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setSidebarOpen(true)}
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+              <Link to="/dashboard" className="flex items-center gap-2 ml-2">
+                <Coffee className="h-6 w-6 text-foreground" />
+                <span className="text-lg font-semibold text-foreground">My Cafe</span>
+              </Link>
+            </>
+          )}
         </header>
 
-        {/* Page content */}
-        <main className="p-4 lg:p-6">
+        {/* Page content - Add bottom padding on mobile for bottom navigation */}
+        <main className={cn(
+          "p-4 lg:p-6",
+          isMobile && "pb-24"
+        )}>
           {children}
         </main>
       </div>
+
+      {/* Bottom Navigation - Mobile only */}
+      <BottomNavigation />
     </div>
   );
 }

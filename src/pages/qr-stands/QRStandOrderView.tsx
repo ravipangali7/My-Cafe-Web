@@ -1,11 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Edit, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/ui/page-header';
 import { DetailCard, DetailRow } from '@/components/ui/detail-card';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -33,6 +33,7 @@ export default function QRStandOrderView() {
   const { user } = useAuth();
   const [order, setOrder] = useState<QRStandOrder | null>(null);
   const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
 
   const fetchOrder = useCallback(async () => {
     if (!user || !id) {
@@ -90,6 +91,29 @@ export default function QRStandOrderView() {
     }
   };
 
+  const handleStatusChange = async (field: 'order_status' | 'payment_status', value: string) => {
+    if (!order || !user?.is_superuser || updating) return;
+
+    setUpdating(true);
+    try {
+      const response = await api.put(`/api/qr-stands/orders/${id}/update/`, {
+        [field]: value,
+      });
+
+      if (response.error) {
+        toast.error(response.error || 'Failed to update order');
+      } else {
+        toast.success('Order updated successfully');
+        // Update local state
+        setOrder(prev => prev ? { ...prev, [field]: value } : null);
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update order');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   if (loading || !order) {
     return (
       <DashboardLayout>
@@ -103,12 +127,6 @@ export default function QRStandOrderView() {
       <PageHeader
         title={`QR Stand Order #${order.id}`}
         backLink="/qr-stands"
-        action={
-          <Button variant="outline" onClick={() => navigate(`/qr-stands/${id}/edit`)}>
-            <Edit className="h-4 w-4 mr-2" />
-            Edit
-          </Button>
-        }
       />
 
       <div className="space-y-6">
@@ -141,19 +159,54 @@ export default function QRStandOrderView() {
           <DetailRow
             label="Order Status"
             value={
-              <StatusBadge
-                status={order.order_status}
-                variant={getOrderStatusVariant(order.order_status)}
-              />
+              user?.is_superuser ? (
+                <Select
+                  value={order.order_status}
+                  onValueChange={(value) => handleStatusChange('order_status', value)}
+                  disabled={updating}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="accepted">Accepted</SelectItem>
+                    <SelectItem value="saved">Saved</SelectItem>
+                    <SelectItem value="delivered">Delivered</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <StatusBadge
+                  status={order.order_status}
+                  variant={getOrderStatusVariant(order.order_status)}
+                />
+              )
             }
           />
           <DetailRow
             label="Payment Status"
             value={
-              <StatusBadge
-                status={order.payment_status}
-                variant={getPaymentStatusVariant(order.payment_status)}
-              />
+              user?.is_superuser ? (
+                <Select
+                  value={order.payment_status}
+                  onValueChange={(value) => handleStatusChange('payment_status', value)}
+                  disabled={updating}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="paid">Paid</SelectItem>
+                    <SelectItem value="failed">Failed</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <StatusBadge
+                  status={order.payment_status}
+                  variant={getPaymentStatusVariant(order.payment_status)}
+                />
+              )
             }
           />
           <DetailRow

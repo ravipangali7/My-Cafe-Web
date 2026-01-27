@@ -36,6 +36,14 @@ export default function QRStandOrderForm() {
   const isCreateMode = !id || id === 'new';
   const isEditMode = !isCreateMode;
 
+  // Redirect if trying to access edit mode (edit page is disabled)
+  useEffect(() => {
+    if (isEditMode) {
+      toast.error('Edit page is not available. Please use the view page to update order status.');
+      navigate('/qr-stands');
+    }
+  }, [isEditMode, navigate]);
+
   const [vendorId, setVendorId] = useState<number | null>(null);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [quantity, setQuantity] = useState('');

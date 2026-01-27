@@ -8,8 +8,10 @@ import { DataTable } from '@/components/ui/data-table';
 import { FilterBar } from '@/components/ui/filter-bar';
 import { StatsCards } from '@/components/ui/stats-cards';
 import { SimplePagination } from '@/components/ui/simple-pagination';
+import { Card, CardContent } from '@/components/ui/card';
 import { api, fetchPaginated, PaginatedResponse } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -38,6 +40,7 @@ interface Unit {
 export default function UnitsList() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [units, setUnits] = useState<Unit[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -183,23 +186,6 @@ export default function UnitsList() {
       label: 'Created',
       render: (item: Unit) => new Date(item.created_at).toLocaleDateString(),
     },
-    {
-      key: 'actions',
-      label: 'Actions',
-      render: (item: Unit) => (
-        <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-          <Button size="sm" variant="ghost" onClick={() => navigate(`/units/${item.id}`)}>
-            <Eye className="h-4 w-4" />
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => navigate(`/units/${item.id}/edit`)}>
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button size="sm" variant="ghost" className="text-destructive" onClick={() => setDeleteId(item.id)}>
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      ),
-    },
   ];
 
   const statCards = [
@@ -231,7 +217,40 @@ export default function UnitsList() {
         showUserFilter={user?.is_superuser}
       />
 
-      <DataTable columns={columns} data={units} loading={loading} emptyMessage="No units found" />
+      {isMobile ? (
+        <div className="grid grid-cols-1 gap-4">
+          {loading ? (
+            <div className="text-center py-8 text-muted-foreground">Loading units...</div>
+          ) : units.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">No units found</div>
+          ) : (
+            units.map((unit) => (
+              <Card
+                key={unit.id}
+                className="cursor-pointer hover:bg-accent transition-colors"
+                onClick={() => navigate(`/units/${unit.id}`)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <div className="font-medium text-base">{unit.name}</div>
+                      <div className="text-sm text-muted-foreground">Symbol: {unit.symbol}</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+      ) : (
+        <DataTable 
+          columns={columns} 
+          data={units} 
+          loading={loading} 
+          emptyMessage="No units found"
+          onRowClick={(item) => navigate(`/units/${item.id}`)}
+        />
+      )}
 
       {count > pageSize && (
         <div className="mt-4">

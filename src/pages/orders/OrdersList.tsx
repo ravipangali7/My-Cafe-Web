@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Eye, Edit, Trash2, ShoppingCart, DollarSign } from 'lucide-react';
+import { Plus, Eye, Edit, Trash2, ShoppingCart, DollarSign, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/ui/page-header';
@@ -9,8 +9,11 @@ import { StatusBadge, getOrderStatusVariant, getPaymentStatusVariant } from '@/c
 import { FilterBar } from '@/components/ui/filter-bar';
 import { StatsCards } from '@/components/ui/stats-cards';
 import { SimplePagination } from '@/components/ui/simple-pagination';
-import { api, fetchPaginated, PaginatedResponse } from '@/lib/api';
+import { Card, CardContent } from '@/components/ui/card';
+import { api, fetchPaginated, PaginatedResponse, downloadOrderInvoice } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { canEditItem, canDeleteItem } from '@/lib/permissions';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -22,6 +25,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface Order {
   id: number;
@@ -43,9 +59,12 @@ interface Order {
 export default function OrdersList() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<number | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
   const [userId, setUserId] = useState<number | null>(null);
@@ -93,6 +112,40 @@ export default function OrdersList() {
       setLoading(false);
     }
   }, [user, page, pageSize, appliedSearch, appliedUserId]);
+
+  const handleDownloadInvoice = useCallback(async (orderId: number, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation(); // Prevent row click navigation
+    }
+    setDownloadingInvoiceId(orderId);
+    try {
+      await downloadOrderInvoice(orderId);
+      toast.success('Invoice downloaded successfully');
+      setSelectedOrderId(null); // Close dialog if open
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to download invoice');
+    } finally {
+      setDownloadingInvoiceId(null);
+    }
+  }, []);
+
+  const handleViewOrder = useCallback((orderId: number) => {
+    setSelectedOrderId(null); // Close dialog
+    navigate(`/orders/${orderId}`);
+  }, [navigate]);
+
+  const handleEditOrder = useCallback((orderId: number) => {
+    setSelectedOrderId(null); // Close dialog
+    navigate(`/orders/${orderId}/edit`);
+  }, [navigate]);
+
+  const handleDeleteClick = useCallback((orderId: number, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    setSelectedOrderId(null); // Close dialog if open
+    setDeleteId(orderId);
+  }, []);
 
   const fetchStats = useCallback(async () => {
     if (!user) return;
@@ -217,19 +270,79 @@ export default function OrdersList() {
     {
       key: 'actions',
       label: 'Actions',
-      render: (item: Order) => (
-        <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-          <Button size="sm" variant="ghost" onClick={() => navigate(`/orders/${item.id}`)}>
-            <Eye className="h-4 w-4" />
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => navigate(`/orders/${item.id}/edit`)}>
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button size="sm" variant="ghost" className="text-destructive" onClick={() => setDeleteId(item.id)}>
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      ),
+      render: (item: Order) => {
+        const canEdit = canEditItem(user, item);
+        const canDelete = canDeleteItem(user, item);
+        
+        return (
+          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => handleDownloadInvoice(item.id, e)}
+                    disabled={downloadingInvoiceId === item.id}
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Download PDF Bill</TooltipContent>
+              </Tooltip>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleViewOrder(item.id);
+                    }}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>View Order</TooltipContent>
+              </Tooltip>
+              
+              {canEdit && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditOrder(item.id);
+                      }}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Edit Order</TooltipContent>
+                </Tooltip>
+              )}
+              
+              {canDelete && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => handleDeleteClick(item.id, e)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Delete Order</TooltipContent>
+                </Tooltip>
+              )}
+            </TooltipProvider>
+          </div>
+        );
+      },
     },
   ];
 
@@ -237,6 +350,11 @@ export default function OrdersList() {
     { label: 'Total Orders', value: stats.total, icon: ShoppingCart, color: 'text-foreground' },
     { label: 'Total Revenue', value: `₹${parseFloat(stats.revenue || '0').toFixed(2)}`, icon: DollarSign, color: 'text-green-600' },
   ];
+
+  // Get selected order for mobile dialog
+  const selectedOrder = selectedOrderId ? orders.find(o => o.id === selectedOrderId) : null;
+  const canEditSelected = selectedOrder ? canEditItem(user, selectedOrder) : false;
+  const canDeleteSelected = selectedOrder ? canDeleteItem(user, selectedOrder) : false;
 
   return (
     <DashboardLayout>
@@ -263,7 +381,56 @@ export default function OrdersList() {
         showUserFilter={user?.is_superuser}
       />
 
-      <DataTable columns={columns} data={orders} loading={loading} emptyMessage="No orders found" />
+      {isMobile ? (
+        <div className="grid grid-cols-1 gap-4">
+          {loading ? (
+            <div className="text-center py-8 text-muted-foreground">Loading orders...</div>
+          ) : orders.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">No orders found</div>
+          ) : (
+            orders.map((order) => {
+              const canEdit = canEditItem(user, order);
+              const canDelete = canDeleteItem(user, order);
+              
+              return (
+                <Card
+                  key={order.id}
+                  className="cursor-pointer hover:bg-accent transition-colors"
+                  onClick={() => setSelectedOrderId(order.id)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <div className="font-medium text-base">Order #{order.id}</div>
+                        <div className="text-sm text-muted-foreground">{order.name}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-semibold text-base">₹{Number(order.total).toFixed(2)}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {new Date(order.created_at).toLocaleDateString()}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap mt-2">
+                      <StatusBadge status={order.status} variant={getOrderStatusVariant(order.status)} />
+                      <StatusBadge status={order.payment_status} variant={getPaymentStatusVariant(order.payment_status)} />
+                      <span className="text-sm text-muted-foreground">Table: {order.table_no}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
+        </div>
+      ) : (
+        <DataTable 
+          columns={columns} 
+          data={orders} 
+          loading={loading} 
+          emptyMessage="No orders found"
+          onRowClick={(item) => navigate(`/orders/${item.id}`)}
+        />
+      )}
 
       {count > pageSize && (
         <div className="mt-4">
@@ -275,12 +442,69 @@ export default function OrdersList() {
         </div>
       )}
 
+      {/* Mobile Actions Dialog */}
+      {selectedOrder && (
+        <Dialog open={!!selectedOrderId} onOpenChange={(open) => !open && setSelectedOrderId(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Order #{selectedOrder.id}</DialogTitle>
+              <DialogDescription>
+                {selectedOrder.name} • ₹{Number(selectedOrder.total).toFixed(2)}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-2 py-4">
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => handleViewOrder(selectedOrder.id)}
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                View Order
+              </Button>
+              
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => handleDownloadInvoice(selectedOrder.id)}
+                disabled={downloadingInvoiceId === selectedOrder.id}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                {downloadingInvoiceId === selectedOrder.id ? 'Downloading...' : 'Download PDF Bill'}
+              </Button>
+              
+              {canEditSelected && (
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => handleEditOrder(selectedOrder.id)}
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Order
+                </Button>
+              )}
+              
+              {canDeleteSelected && (
+                <Button
+                  variant="destructive"
+                  className="w-full justify-start"
+                  onClick={() => handleDeleteClick(selectedOrder.id)}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Order
+                </Button>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Order</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone.
+              This action cannot be undone. This will permanently delete the order.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -6,6 +6,8 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/ui/page-header';
 import { DetailCard, DetailRow } from '@/components/ui/detail-card';
 import { api } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { canEditItem, canDeleteItem } from '@/lib/permissions';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -30,6 +32,7 @@ interface Unit {
 export default function UnitView() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [unit, setUnit] = useState<Unit | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -71,38 +74,47 @@ export default function UnitView() {
     );
   }
 
+  const canEdit = unit ? canEditItem(user, unit) : false;
+  const canDelete = unit ? canDeleteItem(user, unit) : false;
+
   return (
     <DashboardLayout>
       <PageHeader
         title={unit.name}
         backLink="/units"
         action={
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate(`/units/${id}/edit`)}>
-              <Edit className="h-4 w-4 mr-2" />
-              Edit
-            </Button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
+          (canEdit || canDelete) && (
+            <div className="flex gap-2">
+              {canEdit && (
+                <Button variant="outline" onClick={() => navigate(`/units/${id}/edit`)}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit
                 </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete Unit</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
+              )}
+              {canDelete && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Unit</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
+          )
         }
       />
 

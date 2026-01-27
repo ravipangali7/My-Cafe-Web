@@ -256,27 +256,6 @@ export default function VendorsList() {
         );
       },
     },
-    {
-      key: 'actions',
-      label: 'Actions',
-      render: (item: Vendor) => (
-        <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-          <Button size="sm" variant="ghost" onClick={() => navigate(`/vendors/${item.id}`)}>
-            <Eye className="h-4 w-4" />
-          </Button>
-          {(user?.is_superuser || item.id === user?.id) && (
-            <Button size="sm" variant="ghost" onClick={() => navigate(`/vendors/${item.id}/edit`)}>
-              <Edit className="h-4 w-4" />
-            </Button>
-          )}
-          {user?.is_superuser && item.id !== user?.id && (
-            <Button size="sm" variant="ghost" className="text-destructive" onClick={() => setDeleteId(item.id)}>
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
-      ),
-    },
   ];
 
   const statCards = user?.is_superuser ? [
@@ -325,7 +304,8 @@ export default function VendorsList() {
         columns={columns} 
         data={vendors} 
         loading={loading} 
-        emptyMessage="No vendors found" 
+        emptyMessage="No vendors found"
+        onRowClick={(item) => navigate(`/vendors/${item.id}`)}
       />
 
       {count > pageSize && (

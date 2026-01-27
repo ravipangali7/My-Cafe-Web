@@ -97,8 +97,6 @@ export default function MenuPage() {
     const messaging = getFirebaseMessaging();
     if (messaging) {
       const unsubscribe = onMessage(messaging, (payload) => {
-        console.log('Foreground message received:', payload);
-        
         // Show browser notification when app is in foreground
         if (payload.notification) {
           const { title, body } = payload.notification;

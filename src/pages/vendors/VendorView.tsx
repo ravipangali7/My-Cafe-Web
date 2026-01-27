@@ -201,56 +201,54 @@ export default function VendorView() {
   };
 
   const handleDownloadPDF = async () => {
-    if (!vendor) return;
+    if (!vendor || !qrCodeRef.current) return;
 
     try {
+      // Capture the entire QR code container (includes logo, name, QR code, and My Cafe text)
+      const qrContainer = qrCodeRef.current;
+      
+      // Wait a bit to ensure all images are loaded
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const canvas = await html2canvas(qrContainer, {
+        backgroundColor: '#ffffff',
+        scale: 3, // Higher scale for better quality
+        useCORS: true,
+        logging: false,
+        allowTaint: false,
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      
+      // Create PDF
       const pdf = new jsPDF('portrait', 'mm', 'a4');
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
+      
+      // Calculate dimensions to fit the image while maintaining aspect ratio
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = imgWidth / imgHeight;
+      
+      // Fit to page with margins
       const margin = 20;
-      let yPos = margin;
-
-      // Top: Vendor Name + Logo
-      if (vendor.logo_url) {
-        try {
-          const logoDataUrl = await imageUrlToDataUrl(vendor.logo_url);
-          const logoWidth = 20;
-          const logoHeight = 20;
-          pdf.addImage(logoDataUrl, 'PNG', (pageWidth - logoWidth) / 2, yPos, logoWidth, logoHeight);
-          yPos += logoHeight + 5;
-        } catch (error) {
-          console.warn('Failed to load vendor logo:', error);
-        }
+      const maxWidth = pageWidth - (margin * 2);
+      const maxHeight = pageHeight - (margin * 2);
+      
+      let pdfWidth = maxWidth;
+      let pdfHeight = maxWidth / ratio;
+      
+      if (pdfHeight > maxHeight) {
+        pdfHeight = maxHeight;
+        pdfWidth = maxHeight * ratio;
       }
-
-      // Vendor Name
-      pdf.setFontSize(18);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text(vendor.name, pageWidth / 2, yPos + 8, { align: 'center' });
-      yPos += 15;
-
-      // Center: QR Code (high contrast)
-      const qrElement = document.querySelector('[data-qr-code]') as HTMLElement;
-      if (qrElement) {
-        const qrCanvasImg = await html2canvas(qrElement, {
-          backgroundColor: '#ffffff',
-          scale: 3, // Higher scale for better quality
-          useCORS: true,
-        });
-        const qrDataUrl = qrCanvasImg.toDataURL('image/png');
-        const qrWidth = 70;
-        const qrHeight = 70;
-        const qrX = (pageWidth - qrWidth) / 2;
-        const qrY = yPos;
-        pdf.addImage(qrDataUrl, 'PNG', qrX, qrY, qrWidth, qrHeight);
-        yPos += qrHeight + 15;
-      }
-
-      // Bottom: My Cafe Logo + Name
-      pdf.setFontSize(24);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('My Cafe', pageWidth / 2, yPos + 10, { align: 'center' });
-
+      
+      // Center the image on the page
+      const xPos = (pageWidth - pdfWidth) / 2;
+      const yPos = (pageHeight - pdfHeight) / 2;
+      
+      pdf.addImage(imgData, 'PNG', xPos, yPos, pdfWidth, pdfHeight);
+      
       // Save PDF
       pdf.save(`qr-code-${vendor.phone || 'menu'}.pdf`);
       toast.success('QR code PDF downloaded');
@@ -267,14 +265,18 @@ export default function VendorView() {
         backLink="/vendors"
         action={
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setQrModalOpen(true)}>
-              <QrCode className="h-4 w-4 mr-2" />
-              Generate QR
-            </Button>
-            <Button variant="outline" onClick={() => navigate(id ? `/vendors/${id}/edit` : '/vendors/edit')}>
-              <Edit className="h-4 w-4 mr-2" />
-              Edit
-            </Button>
+            {(!id || (id && parseInt(id) === user?.id)) && (
+              <Button variant="outline" onClick={() => setQrModalOpen(true)}>
+                <QrCode className="h-4 w-4 mr-2" />
+                Generate QR
+              </Button>
+            )}
+            {(user?.is_superuser || !id || (id && parseInt(id) === user?.id)) && (
+              <Button variant="outline" onClick={() => navigate(id ? `/vendors/${id}/edit` : '/vendors/edit')}>
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+            )}
           </div>
         }
       />

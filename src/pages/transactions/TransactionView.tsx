@@ -105,19 +105,21 @@ export default function TransactionView() {
           <DetailRow label="Updated At" value={new Date(transaction.updated_at).toLocaleString()} />
         </DetailCard>
 
-        <div className="space-y-6">
-          <DetailCard title="Order Details">
-            <DetailRow label="Order ID" value={transaction.order?.id} />
-            <DetailRow label="Customer Name" value={transaction.order?.name} />
-            <DetailRow label="Customer Phone" value={transaction.order?.phone} />
-            <DetailRow label="Table No" value={transaction.order?.table_no} />
-          </DetailCard>
+        {transaction.order && (
+          <div className="space-y-6">
+            <DetailCard title="Order Details">
+              <DetailRow label="Order ID" value={transaction.order?.id} />
+              <DetailRow label="Customer Name" value={transaction.order?.name} />
+              <DetailRow label="Customer Phone" value={transaction.order?.phone} />
+              <DetailRow label="Table No" value={transaction.order?.table_no} />
+            </DetailCard>
 
-          <DetailCard title="Vendor Details">
-            <DetailRow label="Vendor Name" value={transaction.vendor?.name} />
-            <DetailRow label="Vendor Phone" value={transaction.vendor?.phone} />
-          </DetailCard>
-        </div>
+            <DetailCard title="Vendor Details">
+              <DetailRow label="Vendor Name" value={transaction.vendor?.name} />
+              <DetailRow label="Vendor Phone" value={transaction.vendor?.phone} />
+            </DetailCard>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );

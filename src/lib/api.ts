@@ -1,4 +1,5 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://mycafeserver.sewabyapar.com';
+// Use relative path if VITE_API_BASE_URL is empty (for Vite proxy), otherwise use the configured URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 interface ApiResponse<T> {
   data?: T;
@@ -184,4 +185,55 @@ export async function fetchPaginated<T>(
 ): Promise<ApiResponse<PaginatedResponse<T>>> {
   const queryString = api.buildQueryString(params);
   return api.get<PaginatedResponse<T>>(`${endpoint}${queryString}`);
+}
+
+// Invoice API functions
+export async function generateOrderInvoice(orderId: number): Promise<ApiResponse<{
+  invoice: {
+    id: number;
+    invoice_number: string;
+    order_id: number;
+    total_amount: string;
+    pdf_url: string;
+    generated_at: string;
+    created: boolean;
+  };
+}>> {
+  return api.post(`/api/orders/${orderId}/invoice/generate/`);
+}
+
+export async function downloadOrderInvoice(orderId: number): Promise<void> {
+  const url = `${API_BASE_URL}/api/orders/${orderId}/invoice/download/`;
+  
+  const headers: HeadersInit = {};
+  
+  const config: RequestInit = {
+    method: 'GET',
+    headers,
+    credentials: 'include',
+  };
+
+  try {
+    const response = await fetch(url, config);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to download invoice: ${response.statusText}`);
+    }
+
+    // Get the blob from the response
+    const blob = await response.blob();
+    
+    // Create a download link
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `invoice_order_${orderId}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(downloadUrl);
+  } catch (error) {
+    throw error;
+  }
 }

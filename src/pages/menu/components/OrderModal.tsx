@@ -82,7 +82,6 @@ export function OrderModal({
         .then((token) => {
           if (token) {
             setFcmToken(token);
-            console.log('FCM token obtained for order notification');
           } else {
             console.warn('FCM token not obtained. Order notifications may not work.');
           }

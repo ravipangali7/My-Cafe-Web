@@ -8,6 +8,8 @@ import { DetailCard, DetailRow } from '@/components/ui/detail-card';
 import { StatusBadge, getActiveStatusVariant } from '@/components/ui/status-badge';
 import { DataTable } from '@/components/ui/data-table';
 import { api } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { canEditItem, canDeleteItem } from '@/lib/permissions';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -45,6 +47,7 @@ interface Product {
 export default function ProductView() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -107,38 +110,47 @@ export default function ProductView() {
     },
   ];
 
+  const canEdit = product ? canEditItem(user, product) : false;
+  const canDelete = product ? canDeleteItem(user, product) : false;
+
   return (
     <DashboardLayout>
       <PageHeader
         title={product.name}
         backLink="/products"
         action={
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate(`/products/${id}/edit`)}>
-              <Edit className="h-4 w-4 mr-2" />
-              Edit
-            </Button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
+          (canEdit || canDelete) && (
+            <div className="flex gap-2">
+              {canEdit && (
+                <Button variant="outline" onClick={() => navigate(`/products/${id}/edit`)}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit
                 </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete Product</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will delete the product and all its variants.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
+              )}
+              {canDelete && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Product</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will delete the product and all its variants.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
+          )
         }
       />
 

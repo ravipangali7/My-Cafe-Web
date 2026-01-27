@@ -8,8 +8,10 @@ import { DataTable } from '@/components/ui/data-table';
 import { FilterBar } from '@/components/ui/filter-bar';
 import { StatsCards } from '@/components/ui/stats-cards';
 import { SimplePagination } from '@/components/ui/simple-pagination';
+import { Card, CardContent } from '@/components/ui/card';
 import { api, fetchPaginated, PaginatedResponse } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -38,6 +40,7 @@ interface Category {
 export default function CategoriesList() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -192,23 +195,6 @@ export default function CategoriesList() {
       label: 'Created',
       render: (item: Category) => new Date(item.created_at).toLocaleDateString(),
     },
-    {
-      key: 'actions',
-      label: 'Actions',
-      render: (item: Category) => (
-        <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-          <Button size="sm" variant="ghost" onClick={() => navigate(`/categories/${item.id}`)}>
-            <Eye className="h-4 w-4" />
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => navigate(`/categories/${item.id}/edit`)}>
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button size="sm" variant="ghost" className="text-destructive" onClick={() => setDeleteId(item.id)}>
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      ),
-    },
   ];
 
   const statCards = [
@@ -240,7 +226,53 @@ export default function CategoriesList() {
         showUserFilter={user?.is_superuser}
       />
 
-      <DataTable columns={columns} data={categories} loading={loading} emptyMessage="No categories found" />
+      {isMobile ? (
+        <div className="grid grid-cols-1 gap-4">
+          {loading ? (
+            <div className="text-center py-8 text-muted-foreground">Loading categories...</div>
+          ) : categories.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">No categories found</div>
+          ) : (
+            categories.map((category) => (
+              <Card
+                key={category.id}
+                className="cursor-pointer hover:bg-accent transition-colors"
+                onClick={() => navigate(`/categories/${category.id}`)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex gap-4">
+                    {category.image_url ? (
+                      <img
+                        src={category.image_url}
+                        alt={category.name}
+                        className="h-16 w-16 rounded object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="h-16 w-16 rounded bg-accent flex items-center justify-center flex-shrink-0">
+                        <FolderOpen className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-base mb-1">{category.name}</div>
+                      <div className="text-sm text-muted-foreground">
+                        Created {new Date(category.created_at).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+      ) : (
+        <DataTable 
+          columns={columns} 
+          data={categories} 
+          loading={loading} 
+          emptyMessage="No categories found"
+          onRowClick={(item) => navigate(`/categories/${item.id}`)}
+        />
+      )}
 
       {count > pageSize && (
         <div className="mt-4">

@@ -1,11 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Eye, Edit, Trash2, QrCode } from 'lucide-react';
+import { Plus, Eye, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/ui/page-header';
 import { DataTable } from '@/components/ui/data-table';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FilterBar } from '@/components/ui/filter-bar';
 import { SimplePagination } from '@/components/ui/simple-pagination';
 import { api, fetchPaginated, PaginatedResponse } from '@/lib/api';
@@ -51,6 +52,7 @@ export default function QRStandOrdersList() {
   const [pageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [count, setCount] = useState(0);
+  const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null);
 
   const fetchOrders = useCallback(async () => {
     if (!user) return;
@@ -132,6 +134,31 @@ export default function QRStandOrdersList() {
     }
   };
 
+  const handleStatusChange = async (orderId: number, field: 'order_status' | 'payment_status', value: string) => {
+    if (!user?.is_superuser || updatingOrderId) return;
+
+    setUpdatingOrderId(orderId);
+    try {
+      const response = await api.put(`/api/qr-stands/orders/${orderId}/update/`, {
+        [field]: value,
+      });
+
+      if (response.error) {
+        toast.error(response.error || 'Failed to update order');
+      } else {
+        toast.success('Order updated successfully');
+        // Update local state
+        setOrders(prev => prev.map(order => 
+          order.id === orderId ? { ...order, [field]: value } : order
+        ));
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update order');
+    } finally {
+      setUpdatingOrderId(null);
+    }
+  };
+
   const columns = [
     {
       key: 'id',
@@ -157,51 +184,55 @@ export default function QRStandOrdersList() {
       key: 'order_status',
       label: 'Order Status',
       render: (item: QRStandOrder) => (
-        <StatusBadge status={item.order_status} variant={getOrderStatusVariant(item.order_status)} />
+        user?.is_superuser ? (
+          <Select
+            value={item.order_status}
+            onValueChange={(value) => handleStatusChange(item.id, 'order_status', value)}
+            disabled={updatingOrderId === item.id}
+          >
+            <SelectTrigger className="w-[140px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="accepted">Accepted</SelectItem>
+              <SelectItem value="saved">Saved</SelectItem>
+              <SelectItem value="delivered">Delivered</SelectItem>
+            </SelectContent>
+          </Select>
+        ) : (
+          <StatusBadge status={item.order_status} variant={getOrderStatusVariant(item.order_status)} />
+        )
       ),
     },
     {
       key: 'payment_status',
       label: 'Payment Status',
       render: (item: QRStandOrder) => (
-        <StatusBadge status={item.payment_status} variant={getPaymentStatusVariant(item.payment_status)} />
+        user?.is_superuser ? (
+          <Select
+            value={item.payment_status}
+            onValueChange={(value) => handleStatusChange(item.id, 'payment_status', value)}
+            disabled={updatingOrderId === item.id}
+          >
+            <SelectTrigger className="w-[140px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="paid">Paid</SelectItem>
+              <SelectItem value="failed">Failed</SelectItem>
+            </SelectContent>
+          </Select>
+        ) : (
+          <StatusBadge status={item.payment_status} variant={getPaymentStatusVariant(item.payment_status)} />
+        )
       ),
     },
     {
       key: 'created_at',
       label: 'Created',
       render: (item: QRStandOrder) => new Date(item.created_at).toLocaleDateString(),
-    },
-    {
-      key: 'actions',
-      label: 'Actions',
-      render: (item: QRStandOrder) => (
-        <div className="flex gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate(`/qr-stands/${item.id}`)}
-          >
-            <Eye className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate(`/qr-stands/${item.id}/edit`)}
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-          {user?.is_superuser && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setDeleteId(item.id)}
-            >
-              <Trash2 className="h-4 w-4 text-destructive" />
-            </Button>
-          )}
-        </div>
-      ),
     },
   ];
 
@@ -237,7 +268,8 @@ export default function QRStandOrdersList() {
         columns={columns} 
         data={orders} 
         loading={loading} 
-        emptyMessage="No QR stand orders found" 
+        emptyMessage="No QR stand orders found"
+        onRowClick={(item) => navigate(`/qr-stands/${item.id}`)}
       />
 
       {count > pageSize && (

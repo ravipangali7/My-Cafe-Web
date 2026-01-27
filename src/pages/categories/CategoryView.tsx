@@ -6,6 +6,8 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/ui/page-header';
 import { DetailCard, DetailRow } from '@/components/ui/detail-card';
 import { api } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { canEditItem, canDeleteItem } from '@/lib/permissions';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -30,6 +32,7 @@ interface Category {
 export default function CategoryView() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [category, setCategory] = useState<Category | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -71,38 +74,47 @@ export default function CategoryView() {
     );
   }
 
+  const canEdit = category ? canEditItem(user, category) : false;
+  const canDelete = category ? canDeleteItem(user, category) : false;
+
   return (
     <DashboardLayout>
       <PageHeader
         title={category.name}
         backLink="/categories"
         action={
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate(`/categories/${id}/edit`)}>
-              <Edit className="h-4 w-4 mr-2" />
-              Edit
-            </Button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
+          (canEdit || canDelete) && (
+            <div className="flex gap-2">
+              {canEdit && (
+                <Button variant="outline" onClick={() => navigate(`/categories/${id}/edit`)}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit
                 </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete Category</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will also delete all products in this category.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
+              )}
+              {canDelete && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Category</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will also delete all products in this category.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
+          )
         }
       />
 

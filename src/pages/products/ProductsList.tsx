@@ -9,8 +9,10 @@ import { StatusBadge, getActiveStatusVariant } from '@/components/ui/status-badg
 import { FilterBar } from '@/components/ui/filter-bar';
 import { StatsCards } from '@/components/ui/stats-cards';
 import { SimplePagination } from '@/components/ui/simple-pagination';
+import { Card, CardContent } from '@/components/ui/card';
 import { api, fetchPaginated, PaginatedResponse } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -42,6 +44,7 @@ interface Product {
 export default function ProductsList() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -217,23 +220,6 @@ export default function ProductsList() {
         />
       ),
     },
-    {
-      key: 'actions',
-      label: 'Actions',
-      render: (item: Product) => (
-        <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-          <Button size="sm" variant="ghost" onClick={() => navigate(`/products/${item.id}`)}>
-            <Eye className="h-4 w-4" />
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => navigate(`/products/${item.id}/edit`)}>
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button size="sm" variant="ghost" className="text-destructive" onClick={() => setDeleteId(item.id)}>
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      ),
-    },
   ];
 
   const statCards = [
@@ -267,7 +253,63 @@ export default function ProductsList() {
         showUserFilter={user?.is_superuser}
       />
 
-      <DataTable columns={columns} data={products} loading={loading} emptyMessage="No products found" />
+      {isMobile ? (
+        <div className="grid grid-cols-1 gap-4">
+          {loading ? (
+            <div className="text-center py-8 text-muted-foreground">Loading products...</div>
+          ) : products.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">No products found</div>
+          ) : (
+            products.map((product) => (
+              <Card
+                key={product.id}
+                className="cursor-pointer hover:bg-accent transition-colors"
+                onClick={() => navigate(`/products/${product.id}`)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex gap-4">
+                    {product.image_url ? (
+                      <img
+                        src={product.image_url}
+                        alt={product.name}
+                        className="h-16 w-16 rounded object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="h-16 w-16 rounded bg-accent flex items-center justify-center flex-shrink-0">
+                        <Package className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-base mb-1 truncate">{product.name}</div>
+                      <div className="text-sm text-muted-foreground mb-2">
+                        {product.category_name || 'No category'}
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <StatusBadge
+                          status={product.type}
+                          variant={product.type === 'veg' ? 'success' : 'destructive'}
+                        />
+                        <StatusBadge
+                          status={product.is_active ? 'Active' : 'Inactive'}
+                          variant={getActiveStatusVariant(product.is_active)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+      ) : (
+        <DataTable 
+          columns={columns} 
+          data={products} 
+          loading={loading} 
+          emptyMessage="No products found"
+          onRowClick={(item) => navigate(`/products/${item.id}`)}
+        />
+      )}
 
       {count > pageSize && (
         <div className="mt-4">

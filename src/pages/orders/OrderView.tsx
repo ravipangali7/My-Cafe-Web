@@ -1,13 +1,15 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Edit, Trash2 } from 'lucide-react';
+import { Edit, Trash2, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/ui/page-header';
 import { DetailCard, DetailRow } from '@/components/ui/detail-card';
 import { StatusBadge, getOrderStatusVariant, getPaymentStatusVariant } from '@/components/ui/status-badge';
 import { DataTable } from '@/components/ui/data-table';
-import { api } from '@/lib/api';
+import { api, downloadOrderInvoice } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { canEditItem, canDeleteItem } from '@/lib/permissions';
 import { toast } from 'sonner';
 import {
   Select,
@@ -63,10 +65,12 @@ interface Order {
 export default function OrderView() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [updatingPaymentStatus, setUpdatingPaymentStatus] = useState(false);
+  const [downloadingInvoice, setDownloadingInvoice] = useState(false);
 
   const fetchOrder = useCallback(async () => {
     if (!id) return;
@@ -171,6 +175,20 @@ export default function OrderView() {
     }
   }, [id, order, fetchOrder]);
 
+  const handleDownloadInvoice = useCallback(async () => {
+    if (!id) return;
+    
+    setDownloadingInvoice(true);
+    try {
+      await downloadOrderInvoice(Number(id));
+      toast.success('Invoice downloaded successfully');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to download invoice');
+    } finally {
+      setDownloadingInvoice(false);
+    }
+  }, [id]);
+
   if (loading || !order) {
     return (
       <DashboardLayout>
@@ -206,6 +224,9 @@ export default function OrderView() {
     },
   ];
 
+  const canEdit = order ? canEditItem(user, order) : false;
+  const canDelete = order ? canDeleteItem(user, order) : false;
+
   return (
     <DashboardLayout>
       <PageHeader
@@ -213,30 +234,46 @@ export default function OrderView() {
         backLink="/orders"
         action={
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate(`/orders/${id}/edit`)}>
-              <Edit className="h-4 w-4 mr-2" />
-              Edit
+            <Button 
+              variant="default" 
+              onClick={handleDownloadInvoice}
+              disabled={downloadingInvoice}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              {downloadingInvoice ? 'Downloading...' : 'Download PDF Bill'}
             </Button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete Order</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            {(canEdit || canDelete) && (
+              <>
+                {canEdit && (
+                  <Button variant="outline" onClick={() => navigate(`/orders/${id}/edit`)}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit
+                  </Button>
+                )}
+                {canDelete && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive">
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Order</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </>
+            )}
           </div>
         }
       />

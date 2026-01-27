@@ -56,7 +56,6 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
     await navigator.serviceWorker.ready;
     
     serviceWorkerRegistration = registration;
-    console.log('Service worker registered successfully:', registration.scope);
 
     // Send Firebase config to service worker
     if (registration.active) {
@@ -99,7 +98,6 @@ export function initializeFirebase(): FirebaseApp | null {
     const apps = getApps();
     if (apps.length === 0) {
       app = initializeApp(firebaseConfig);
-      console.log('Firebase initialized successfully');
     } else {
       app = apps[0];
     }
@@ -202,7 +200,6 @@ export async function getFCMToken(): Promise<string | null> {
   try {
     const token = await getToken(messagingInstance, { vapidKey });
     if (token) {
-      console.log('FCM token obtained successfully');
       return token;
     } else {
       console.warn('No FCM token available. User may need to grant notification permission.');

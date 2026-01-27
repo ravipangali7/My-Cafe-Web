@@ -9,8 +9,10 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { FilterBar } from '@/components/ui/filter-bar';
 import { StatsCards } from '@/components/ui/stats-cards';
 import { SimplePagination } from '@/components/ui/simple-pagination';
+import { Card, CardContent } from '@/components/ui/card';
 import { api, fetchPaginated, PaginatedResponse } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 
 interface Transaction {
@@ -33,6 +35,7 @@ interface Transaction {
 export default function TransactionsList() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -208,15 +211,6 @@ export default function TransactionsList() {
       label: 'Created',
       render: (item: Transaction) => new Date(item.created_at).toLocaleString(),
     },
-    {
-      key: 'actions',
-      label: 'Actions',
-      render: (item: Transaction) => (
-        <Button size="sm" variant="ghost" onClick={() => navigate(`/transactions/${item.id}`)}>
-          <Eye className="h-4 w-4" />
-        </Button>
-      ),
-    },
   ];
 
   const statCards = [
@@ -240,7 +234,54 @@ export default function TransactionsList() {
         showUserFilter={user?.is_superuser}
       />
 
-      <DataTable columns={columns} data={transactions} loading={loading} emptyMessage="No transactions found" />
+      {isMobile ? (
+        <div className="grid grid-cols-1 gap-4">
+          {loading ? (
+            <div className="text-center py-8 text-muted-foreground">Loading transactions...</div>
+          ) : transactions.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">No transactions found</div>
+          ) : (
+            transactions.map((transaction) => (
+              <Card
+                key={transaction.id}
+                className="cursor-pointer hover:bg-accent transition-colors"
+                onClick={() => navigate(`/transactions/${transaction.id}`)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <div className="font-medium text-base">Transaction #{transaction.id}</div>
+                      {transaction.order_id && (
+                        <div className="text-sm text-muted-foreground">Order #{transaction.order_id}</div>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <div className="font-semibold text-base">₹{Number(transaction.amount).toFixed(2)}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {new Date(transaction.created_at).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap mt-2">
+                    <StatusBadge status={transaction.status} variant={getStatusVariant(transaction.status)} />
+                    {transaction.payer_name && (
+                      <span className="text-sm text-muted-foreground">Payer: {transaction.payer_name}</span>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+      ) : (
+        <DataTable 
+          columns={columns} 
+          data={transactions} 
+          loading={loading} 
+          emptyMessage="No transactions found"
+          onRowClick={(item) => navigate(`/transactions/${item.id}`)}
+        />
+      )}
 
       {count > pageSize && (
         <div className="mt-4">
