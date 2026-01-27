@@ -28,7 +28,7 @@ interface KYCStatus {
 
 export default function KYCVerification() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [kycStatus, setKycStatus] = useState<KYCStatus | null>(null);
@@ -38,6 +38,11 @@ export default function KYCVerification() {
   const [documentPreview, setDocumentPreview] = useState<string | null>(null);
 
   const fetchKYCStatus = useCallback(async () => {
+    // Wait for auth to finish loading before proceeding
+    if (authLoading) {
+      return;
+    }
+
     if (!user) {
       setLoading(false);
       return;
@@ -69,13 +74,21 @@ export default function KYCVerification() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, authLoading]);
 
   useEffect(() => {
+    // Wait for auth to finish loading before fetching KYC status
+    if (authLoading) {
+      return;
+    }
+
     if (user) {
       fetchKYCStatus();
+    } else {
+      // If auth is done loading and user is null, stop loading
+      setLoading(false);
     }
-  }, [user, fetchKYCStatus]);
+  }, [user, authLoading, fetchKYCStatus]);
 
   const handleDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -154,7 +167,8 @@ export default function KYCVerification() {
     }
   };
 
-  if (loading) {
+  // Show loading while auth is initializing or KYC data is being fetched
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-pulse text-muted-foreground">Loading...</div>
@@ -162,6 +176,7 @@ export default function KYCVerification() {
     );
   }
 
+  // Only check user after auth has finished loading
   if (!user) {
     navigate('/login');
     return null;
