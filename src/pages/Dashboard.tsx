@@ -191,46 +191,70 @@ export default function Dashboard() {
   // Expose user phone to Flutter webview
   useEffect(() => {
     if (!user || !user.phone) {
+      console.log('[React] User or phone not available, skipping phone exposure');
       return;
     }
 
-    // Store phone in window for easy access
+    console.log('[React] Setting up phone exposure for Flutter. User phone:', user.phone);
+
+    // Store phone in window for easy access (immediate)
     (window as any).__REACT_USER_PHONE__ = user.phone;
+    console.log('[React] ✅ Phone stored in window.__REACT_USER_PHONE__:', user.phone);
 
     // Create a global function that Flutter can call to get user phone
     (window as any).getUserPhoneForFlutter = () => {
       if (user && user.phone) {
-        console.log('[React] Flutter requested user phone, sending:', user.phone);
+        console.log('[React] 📞 Flutter requested user phone, sending:', user.phone);
         // Send phone to Flutter via JavaScript channel
         // Flutter listens on 'GetUserPhone' channel
         try {
-          // For webview_flutter, the channel is available as a global object
-          // Try multiple methods to ensure compatibility
+          let sent = false;
+          
+          // Method 1: Try webview_flutter channel (most common)
           if ((window as any).GetUserPhone && typeof (window as any).GetUserPhone.postMessage === 'function') {
+            console.log('[React] Sending phone via GetUserPhone.postMessage');
             (window as any).GetUserPhone.postMessage(user.phone);
-          } else if ((window as any).flutter_inappwebview) {
-            // For flutter_inappwebview (if used)
+            sent = true;
+          }
+          
+          // Method 2: Try flutter_inappwebview (if used)
+          if (!sent && (window as any).flutter_inappwebview) {
+            console.log('[React] Sending phone via flutter_inappwebview.callHandler');
             (window as any).flutter_inappwebview.callHandler('GetUserPhone', user.phone);
-          } else {
-            // Fallback: dispatch custom event
-            window.dispatchEvent(new CustomEvent('flutterGetUserPhone', { detail: user.phone }));
-            // Also try to call channel via eval (for webview_flutter)
+            sent = true;
+          }
+          
+          // Method 3: Try eval as fallback
+          if (!sent) {
             try {
+              console.log('[React] Trying to send phone via eval');
               eval(`if (typeof GetUserPhone !== 'undefined' && GetUserPhone.postMessage) { GetUserPhone.postMessage('${user.phone}'); }`);
+              sent = true;
             } catch (e) {
               console.warn('[React] Could not send phone via eval:', e);
             }
           }
+          
+          // Method 4: Dispatch custom event as last resort
+          if (!sent) {
+            console.log('[React] Dispatching custom event as fallback');
+            window.dispatchEvent(new CustomEvent('flutterGetUserPhone', { detail: user.phone }));
+          }
+          
+          console.log('[React] ✅ Phone sent to Flutter via available method');
         } catch (e) {
-          console.error('[React] Error sending phone to Flutter:', e);
+          console.error('[React] ❌ Error sending phone to Flutter:', e);
         }
       } else {
-        console.warn('[React] User not logged in or phone not available');
+        console.warn('[React] ⚠️ User not logged in or phone not available when Flutter requested');
       }
     };
 
+    console.log('[React] ✅ getUserPhoneForFlutter function created and ready');
+
     // Cleanup function
     return () => {
+      console.log('[React] Cleaning up phone exposure functions');
       delete (window as any).getUserPhoneForFlutter;
       delete (window as any).__REACT_USER_PHONE__;
     };
