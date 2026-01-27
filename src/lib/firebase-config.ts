@@ -184,6 +184,33 @@ export function initializeFirebase(): FirebaseApp | null {
   return app;
 }
 
+/**
+ * Check if required APIs are available for Firebase Messaging
+ */
+function checkMessagingSupport(): { supported: boolean; reason?: string } {
+  if (typeof window === 'undefined') {
+    return { supported: false, reason: 'Window object not available' };
+  }
+
+  // Check for Notification API
+  if (typeof Notification === 'undefined') {
+    return { supported: false, reason: 'Notification API not available' };
+  }
+
+  // Check for service worker support
+  if (!('serviceWorker' in navigator)) {
+    return { supported: false, reason: 'Service Worker API not available' };
+  }
+
+  // Check for Push API (required for FCM)
+  if (!('PushManager' in window)) {
+    // PushManager might be available through service worker registration
+    // So we'll allow this and check later
+  }
+
+  return { supported: true };
+}
+
 export function getFirebaseMessaging(): Messaging | null {
   if (messaging) {
     return messaging;
@@ -194,12 +221,32 @@ export function getFirebaseMessaging(): Messaging | null {
     return null;
   }
 
+  const isWebViewEnv = isFlutterWebView();
+  
+  // Check if messaging is supported before initializing
+  const supportCheck = checkMessagingSupport();
+  if (!supportCheck.supported) {
+    const message = isWebViewEnv
+      ? `[WebView] Firebase Messaging not supported: ${supportCheck.reason}. This is a known limitation in some Android WebViews.`
+      : `Firebase Messaging not supported: ${supportCheck.reason}`;
+    console.warn(message);
+    
+    // In webview, try to wait a bit and check again (APIs might load asynchronously)
+    if (isWebViewEnv) {
+      console.log('[WebView] Waiting for APIs to become available...');
+      // Don't return null immediately in webview - let the error handling in getFCMToken deal with it
+    } else {
+      return null;
+    }
+  }
+
   const app = initializeFirebase();
   if (!app) {
     return null;
   }
 
   try {
+    // Try to initialize messaging
     messaging = getMessaging(app);
     
     // Send Firebase config to service worker for background message handling
@@ -238,13 +285,40 @@ export function getFirebaseMessaging(): Messaging | null {
       });
     }
     
+    if (isWebViewEnv) {
+      console.log('[WebView] Firebase Messaging initialized successfully');
+    }
+    
     return messaging;
   } catch (error: any) {
+    const errorCode = error?.code;
+    const errorMessage = error?.message || String(error);
+    
     // Handle service worker registration errors specifically
-    if (error?.code === 'messaging/failed-service-worker-registration') {
-      console.error('Failed to register service worker. Make sure firebase-messaging-sw.js exists in the public directory.');
+    if (errorCode === 'messaging/failed-service-worker-registration') {
+      const message = isWebViewEnv
+        ? '[WebView] Failed to register service worker. Make sure firebase-messaging-sw.js exists in the public directory.'
+        : 'Failed to register service worker. Make sure firebase-messaging-sw.js exists in the public directory.';
+      console.error(message);
+    } else if (errorCode === 'messaging/unsupported-browser') {
+      const message = isWebViewEnv
+        ? '[WebView] Firebase Messaging detected unsupported browser. This may be due to missing Notification API or Push API support in the WebView. The WebView may need to be updated or configured differently.'
+        : 'Firebase Messaging detected unsupported browser.';
+      console.error(message);
+      console.error('[WebView] Error details:', errorMessage);
+      
+      // In webview, provide more helpful information
+      if (isWebViewEnv) {
+        console.warn('[WebView] Attempting to work around browser limitations...');
+        console.warn('[WebView] Notification API available:', typeof Notification !== 'undefined');
+        console.warn('[WebView] Service Worker available:', 'serviceWorker' in navigator);
+        console.warn('[WebView] PushManager available:', 'PushManager' in window);
+      }
     } else {
-      console.error('Failed to initialize Firebase Messaging:', error);
+      const message = isWebViewEnv
+        ? '[WebView] Failed to initialize Firebase Messaging:'
+        : 'Failed to initialize Firebase Messaging:';
+      console.error(message, errorMessage);
     }
     return null;
   }
@@ -252,6 +326,12 @@ export function getFirebaseMessaging(): Messaging | null {
 
 export async function getFCMToken(): Promise<string | null> {
   const isWebViewEnv = isFlutterWebView();
+  
+  // In webview, wait a bit for polyfills to initialize
+  if (isWebViewEnv) {
+    console.log('[WebView] Waiting for APIs to initialize...');
+    await delay(500); // Give polyfills time to load
+  }
   
   // First, ensure service worker is registered
   const registration = await registerServiceWorker();
@@ -280,9 +360,21 @@ export async function getFCMToken(): Promise<string | null> {
     return null;
   }
 
+  // Check API availability before getting messaging instance
+  if (isWebViewEnv) {
+    const supportCheck = checkMessagingSupport();
+    if (!supportCheck.supported) {
+      console.warn(`[WebView] Required APIs not available: ${supportCheck.reason}`);
+      console.warn('[WebView] Attempting to proceed anyway...');
+    }
+  }
+
   const messagingInstance = getFirebaseMessaging();
   if (!messagingInstance) {
-    console.warn('Firebase Messaging not available. Check Firebase configuration.');
+    const message = isWebViewEnv
+      ? '[WebView] Firebase Messaging not available. This may be due to webview limitations. Check console for details.'
+      : 'Firebase Messaging not available. Check Firebase configuration.';
+    console.warn(message);
     return null;
   }
 

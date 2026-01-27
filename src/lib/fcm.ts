@@ -29,26 +29,83 @@ function delay(ms: number): Promise<void> {
 
 /**
  * Request notification permission from the user
+ * Enhanced for webview environments
  * @returns Promise<boolean> - true if permission granted, false otherwise
  */
 export async function requestNotificationPermission(): Promise<boolean> {
+  const isWebViewEnv = isFlutterWebView();
+  
   if (!('Notification' in window)) {
-    console.warn('This browser does not support notifications');
+    const message = isWebViewEnv
+      ? '[WebView] Notification API not available. This may be a webview limitation.'
+      : 'This browser does not support notifications';
+    console.warn(message);
     return false;
   }
 
+  // Check current permission status
   if (Notification.permission === 'granted') {
+    if (isWebViewEnv) {
+      console.log('[WebView] Notification permission already granted');
+    }
     return true;
   }
 
   if (Notification.permission === 'denied') {
-    console.warn('Notification permission has been denied');
+    const message = isWebViewEnv
+      ? '[WebView] Notification permission has been denied. User needs to enable it in app settings.'
+      : 'Notification permission has been denied';
+    console.warn(message);
     return false;
   }
 
   // Permission is 'default' - request it
-  const permission = await Notification.requestPermission();
-  return permission === 'granted';
+  // In webview, add a small delay to ensure APIs are ready
+  if (isWebViewEnv) {
+    console.log('[WebView] Requesting notification permission...');
+    await delay(300); // Small delay for webview
+  }
+
+  try {
+    // Ensure requestPermission returns a Promise
+    let permissionPromise: Promise<NotificationPermission>;
+    
+    if (typeof Notification.requestPermission === 'function') {
+      const result = Notification.requestPermission();
+      if (result instanceof Promise) {
+        permissionPromise = result;
+      } else {
+        // Some browsers return a string directly
+        permissionPromise = Promise.resolve(result as NotificationPermission);
+      }
+    } else {
+      // Fallback: try using the callback-based API
+      permissionPromise = new Promise<NotificationPermission>((resolve) => {
+        const result = Notification.requestPermission((permission) => {
+          resolve(permission);
+        });
+        if (result !== undefined) {
+          resolve(result as NotificationPermission);
+        }
+      });
+    }
+
+    const permission = await permissionPromise;
+    const granted = permission === 'granted';
+    
+    if (isWebViewEnv) {
+      console.log(`[WebView] Notification permission result: ${permission}`);
+    }
+    
+    return granted;
+  } catch (error: any) {
+    const errorMessage = error?.message || String(error);
+    const logMessage = isWebViewEnv
+      ? `[WebView] Error requesting notification permission: ${errorMessage}`
+      : `Error requesting notification permission: ${errorMessage}`;
+    console.error(logMessage);
+    return false;
+  }
 }
 
 /**
