@@ -188,6 +188,54 @@ export default function Dashboard() {
     }
   }, [user]);
 
+  // Expose user phone to Flutter webview
+  useEffect(() => {
+    if (!user || !user.phone) {
+      return;
+    }
+
+    // Store phone in window for easy access
+    (window as any).__REACT_USER_PHONE__ = user.phone;
+
+    // Create a global function that Flutter can call to get user phone
+    (window as any).getUserPhoneForFlutter = () => {
+      if (user && user.phone) {
+        console.log('[React] Flutter requested user phone, sending:', user.phone);
+        // Send phone to Flutter via JavaScript channel
+        // Flutter listens on 'GetUserPhone' channel
+        try {
+          // For webview_flutter, the channel is available as a global object
+          // Try multiple methods to ensure compatibility
+          if ((window as any).GetUserPhone && typeof (window as any).GetUserPhone.postMessage === 'function') {
+            (window as any).GetUserPhone.postMessage(user.phone);
+          } else if ((window as any).flutter_inappwebview) {
+            // For flutter_inappwebview (if used)
+            (window as any).flutter_inappwebview.callHandler('GetUserPhone', user.phone);
+          } else {
+            // Fallback: dispatch custom event
+            window.dispatchEvent(new CustomEvent('flutterGetUserPhone', { detail: user.phone }));
+            // Also try to call channel via eval (for webview_flutter)
+            try {
+              eval(`if (typeof GetUserPhone !== 'undefined' && GetUserPhone.postMessage) { GetUserPhone.postMessage('${user.phone}'); }`);
+            } catch (e) {
+              console.warn('[React] Could not send phone via eval:', e);
+            }
+          }
+        } catch (e) {
+          console.error('[React] Error sending phone to Flutter:', e);
+        }
+      } else {
+        console.warn('[React] User not logged in or phone not available');
+      }
+    };
+
+    // Cleanup function
+    return () => {
+      delete (window as any).getUserPhoneForFlutter;
+      delete (window as any).__REACT_USER_PHONE__;
+    };
+  }, [user]);
+
   // Set up foreground message handler for FCM notifications
   useEffect(() => {
     const messaging = getFirebaseMessaging();
