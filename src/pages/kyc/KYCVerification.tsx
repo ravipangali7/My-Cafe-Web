@@ -32,6 +32,7 @@ export default function KYCVerification() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [kycStatus, setKycStatus] = useState<KYCStatus | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [documentType, setDocumentType] = useState<string>('');
   const [documentFile, setDocumentFile] = useState<File | null>(null);
   const [documentPreview, setDocumentPreview] = useState<string | null>(null);
@@ -45,22 +46,26 @@ export default function KYCVerification() {
     try {
       const response = await api.get<KYCStatus>('/api/kyc/status/');
       if (response.error) {
-        toast.error('Failed to fetch KYC status');
+        setFetchError(response.error);
+        // Don't show toast here - we'll show it in the UI
         setLoading(false);
         return;
       }
 
       if (response.data) {
         setKycStatus(response.data);
+        setFetchError(null);
         if (response.data.user.kyc_document_type) {
           setDocumentType(response.data.user.kyc_document_type);
         }
         if (response.data.user.kyc_document_url) {
           setDocumentPreview(response.data.user.kyc_document_url);
         }
+      } else {
+        setFetchError('No KYC data received');
       }
     } catch (error) {
-      toast.error('Failed to fetch KYC status');
+      setFetchError('Failed to fetch KYC status. Please try submitting your documents.');
     } finally {
       setLoading(false);
     }
@@ -127,6 +132,7 @@ export default function KYCVerification() {
         toast.error(response.error || 'Failed to submit KYC documents');
       } else {
         toast.success('KYC documents submitted successfully. Waiting for approval.');
+        setFetchError(null);
         await fetchKYCStatus();
       }
     } catch (error: any) {
@@ -178,6 +184,22 @@ export default function KYCVerification() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Error message if fetch failed */}
+            {fetchError && (
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                <div className="flex items-start gap-2">
+                  <XCircle className="h-5 w-5 text-destructive mt-0.5" />
+                  <div>
+                    <p className="font-semibold text-destructive">Error Loading KYC Status</p>
+                    <p className="text-sm text-muted-foreground">{fetchError}</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      You can still submit your KYC documents below.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Current Status */}
             {kycStatus && (
               <div className="space-y-2">
@@ -212,8 +234,8 @@ export default function KYCVerification() {
               </div>
             )}
 
-            {/* Document Upload Form - Only show if not approved and not pending */}
-            {kycStatus?.kyc_status !== 'pending' && (
+            {/* Document Upload Form - Show if status is null, rejected, or not pending */}
+            {(!kycStatus || kycStatus.kyc_status !== 'pending') && (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label>Document Type</Label>
