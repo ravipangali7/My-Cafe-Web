@@ -188,75 +188,79 @@ export default function Dashboard() {
     }
   }, [user]);
 
-  // Expose user phone to Flutter webview
+  // Receive FCM token from Flutter and send to Django
   useEffect(() => {
     if (!user || !user.phone) {
-      console.log('[React] User or phone not available, skipping phone exposure');
+      console.log('[React] User or phone not available, skipping FCM token handler setup');
       return;
     }
 
-    console.log('[React] Setting up phone exposure for Flutter. User phone:', user.phone);
+    console.log('[React] Setting up FCM token receiver from Flutter. User phone:', user.phone);
 
-    // Store phone in window for easy access (immediate)
-    (window as any).__REACT_USER_PHONE__ = user.phone;
-    console.log('[React] ✅ Phone stored in window.__REACT_USER_PHONE__:', user.phone);
+    // Function to send FCM token to Django
+    const sendFCMTokenToDjango = async (fcmToken: string) => {
+      if (!user || !user.phone) {
+        console.warn('[React] ⚠️ User not logged in or phone not available');
+        return;
+      }
 
-    // Create a global function that Flutter can call to get user phone
-    (window as any).getUserPhoneForFlutter = () => {
-      if (user && user.phone) {
-        console.log('[React] 📞 Flutter requested user phone, sending:', user.phone);
-        // Send phone to Flutter via JavaScript channel
-        // Flutter listens on 'GetUserPhone' channel
-        try {
-          let sent = false;
-          
-          // Method 1: Try webview_flutter channel (most common)
-          if ((window as any).GetUserPhone && typeof (window as any).GetUserPhone.postMessage === 'function') {
-            console.log('[React] Sending phone via GetUserPhone.postMessage');
-            (window as any).GetUserPhone.postMessage(user.phone);
-            sent = true;
-          }
-          
-          // Method 2: Try flutter_inappwebview (if used)
-          if (!sent && (window as any).flutter_inappwebview) {
-            console.log('[React] Sending phone via flutter_inappwebview.callHandler');
-            (window as any).flutter_inappwebview.callHandler('GetUserPhone', user.phone);
-            sent = true;
-          }
-          
-          // Method 3: Try eval as fallback
-          if (!sent) {
-            try {
-              console.log('[React] Trying to send phone via eval');
-              eval(`if (typeof GetUserPhone !== 'undefined' && GetUserPhone.postMessage) { GetUserPhone.postMessage('${user.phone}'); }`);
-              sent = true;
-            } catch (e) {
-              console.warn('[React] Could not send phone via eval:', e);
-            }
-          }
-          
-          // Method 4: Dispatch custom event as last resort
-          if (!sent) {
-            console.log('[React] Dispatching custom event as fallback');
-            window.dispatchEvent(new CustomEvent('flutterGetUserPhone', { detail: user.phone }));
-          }
-          
-          console.log('[React] ✅ Phone sent to Flutter via available method');
-        } catch (e) {
-          console.error('[React] ❌ Error sending phone to Flutter:', e);
+      try {
+        console.log('[React] Sending FCM token to Django API...');
+        console.log('[React] Phone:', user.phone);
+        console.log('[React] Token:', fcmToken.substring(0, 30) + '...');
+
+        const response = await api.post('/api/fcm-token-by-phone/', {
+          phone: user.phone,
+          fcm_token: fcmToken,
+        });
+
+        if (response.data) {
+          console.log('[React] ✅ FCM token saved successfully:', response.data);
+        } else if (response.error) {
+          console.error('[React] ❌ Failed to save FCM token:', response.error);
         }
-      } else {
-        console.warn('[React] ⚠️ User not logged in or phone not available when Flutter requested');
+      } catch (error) {
+        console.error('[React] ❌ Error sending FCM token to Django:', error);
       }
     };
 
-    console.log('[React] ✅ getUserPhoneForFlutter function created and ready');
+    // Create global function that Flutter can call
+    (window as any).receiveFCMTokenFromFlutter = (fcmToken: string) => {
+      if (!fcmToken || fcmToken.trim() === '') {
+        console.warn('[React] ⚠️ Received empty FCM token from Flutter');
+        return;
+      }
+
+      console.log('[React] 📱 Received FCM token from Flutter');
+      sendFCMTokenToDjango(fcmToken);
+    };
+
+    // Check if token is already in window object (Flutter might have set it before React loaded)
+    const checkForExistingToken = () => {
+      const existingToken = (window as any).__FLUTTER_FCM_TOKEN__;
+      if (existingToken && typeof existingToken === 'string' && existingToken.trim() !== '') {
+        console.log('[React] Found existing FCM token in window object, processing...');
+        sendFCMTokenToDjango(existingToken);
+        // Clear it to avoid duplicate sends
+        delete (window as any).__FLUTTER_FCM_TOKEN__;
+      }
+    };
+
+    // Check immediately
+    checkForExistingToken();
+
+    // Also set up a listener for when token is set
+    const tokenCheckInterval = setInterval(() => {
+      checkForExistingToken();
+    }, 2000); // Check every 2 seconds
+
+    console.log('[React] ✅ receiveFCMTokenFromFlutter function created and ready');
 
     // Cleanup function
     return () => {
-      console.log('[React] Cleaning up phone exposure functions');
-      delete (window as any).getUserPhoneForFlutter;
-      delete (window as any).__REACT_USER_PHONE__;
+      console.log('[React] Cleaning up FCM token receiver functions');
+      clearInterval(tokenCheckInterval);
+      delete (window as any).receiveFCMTokenFromFlutter;
     };
   }, [user]);
 
