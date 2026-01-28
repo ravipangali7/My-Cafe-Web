@@ -9,7 +9,7 @@ import { StatusBadge, getOrderStatusVariant, getPaymentStatusVariant } from '@/c
 import { DataTable } from '@/components/ui/data-table';
 import { api, downloadOrderInvoice } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { canEditItem, canDeleteItem } from '@/lib/permissions';
+import { canEditItem, canDeleteOrder } from '@/lib/permissions';
 import { toast } from 'sonner';
 import {
   Select,
@@ -225,8 +225,7 @@ export default function OrderView() {
   ];
 
   const canEdit = order ? canEditItem(user, order) : false;
-  // const canDelete = order ? canDeleteItem(user, order) : false;
-  const canDelete = true;
+  const canDelete = canDeleteOrder(user);
 
   return (
     <DashboardLayout>

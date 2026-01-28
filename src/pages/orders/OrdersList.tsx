@@ -13,7 +13,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { api, fetchPaginated, PaginatedResponse, downloadOrderInvoice } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { canEditItem, canDeleteItem } from '@/lib/permissions';
+import { canEditItem, canDeleteOrder } from '@/lib/permissions';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -272,7 +272,7 @@ export default function OrdersList() {
       label: 'Actions',
       render: (item: Order) => {
         const canEdit = canEditItem(user, item);
-        const canDelete = canDeleteItem(user, item);
+        const canDelete = canDeleteOrder(user);
         
         return (
           <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
@@ -354,7 +354,7 @@ export default function OrdersList() {
   // Get selected order for mobile dialog
   const selectedOrder = selectedOrderId ? orders.find(o => o.id === selectedOrderId) : null;
   const canEditSelected = selectedOrder ? canEditItem(user, selectedOrder) : false;
-  const canDeleteSelected = selectedOrder ? canDeleteItem(user, selectedOrder) : false;
+  const canDeleteSelected = canDeleteOrder(user);
 
   return (
     <DashboardLayout>
@@ -390,7 +390,7 @@ export default function OrdersList() {
           ) : (
             orders.map((order) => {
               const canEdit = canEditItem(user, order);
-              const canDelete = canDeleteItem(user, order);
+              const canDelete = canDeleteOrder(user);
               
               return (
                 <Card

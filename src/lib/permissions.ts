@@ -21,3 +21,8 @@ export function canEditItem(user: any, item: any): boolean {
 export function canDeleteItem(user: any, item: any): boolean {
   return canEditItem(user, item);
 }
+
+/** Only superusers can delete orders; vendors cannot. */
+export function canDeleteOrder(user: any): boolean {
+  return Boolean(user?.is_superuser);
+}
