@@ -12,6 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { api, fetchPaginated, PaginatedResponse } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { canEditItem, canDeleteItem } from '@/lib/permissions';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -23,6 +24,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface Unit {
   id: number;
@@ -44,6 +52,7 @@ export default function UnitsList() {
   const [units, setUnits] = useState<Unit[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [selectedUnitId, setSelectedUnitId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
   const [userId, setUserId] = useState<number | null>(null);
@@ -192,6 +201,10 @@ export default function UnitsList() {
     { label: 'Total Units', value: stats.total, icon: Scale, color: 'text-foreground' },
   ];
 
+  const selectedUnit = selectedUnitId ? units.find((u) => u.id === selectedUnitId) : null;
+  const canEditSelected = selectedUnit ? canEditItem(user, selectedUnit) : false;
+  const canDeleteSelected = selectedUnit ? canDeleteItem(user, selectedUnit) : false;
+
   return (
     <DashboardLayout>
       <PageHeader
@@ -228,7 +241,7 @@ export default function UnitsList() {
               <Card
                 key={unit.id}
                 className="cursor-pointer hover:bg-accent transition-colors"
-                onClick={() => navigate(`/units/${unit.id}`)}
+                onClick={() => setSelectedUnitId(unit.id)}
               >
                 <CardContent className="p-4">
                   <div className="flex justify-between items-center">
@@ -260,6 +273,56 @@ export default function UnitsList() {
             onPageChange={setPage}
           />
         </div>
+      )}
+
+      {selectedUnit && (
+        <Dialog open={!!selectedUnitId} onOpenChange={(open) => !open && setSelectedUnitId(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>{selectedUnit.name}</DialogTitle>
+              <DialogDescription>Symbol: {selectedUnit.symbol}</DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-2 py-4">
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => {
+                  setSelectedUnitId(null);
+                  navigate(`/units/${selectedUnit.id}`);
+                }}
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                View
+              </Button>
+              {canEditSelected && (
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setSelectedUnitId(null);
+                    navigate(`/units/${selectedUnit.id}/edit`);
+                  }}
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+              )}
+              {canDeleteSelected && (
+                <Button
+                  variant="destructive"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setSelectedUnitId(null);
+                    setDeleteId(selectedUnit.id);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>

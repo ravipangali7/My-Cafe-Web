@@ -7,8 +7,6 @@ import { PageHeader } from '@/components/ui/page-header';
 import { DetailCard, DetailRow } from '@/components/ui/detail-card';
 import { StatusBadge, getActiveStatusVariant } from '@/components/ui/status-badge';
 import { DataTable } from '@/components/ui/data-table';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { MenuQRCode } from '@/components/dashboard/MenuQRCode';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -38,7 +36,6 @@ export default function VendorView() {
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [fcmTokens, setFcmTokens] = useState<FcmToken[]>([]);
   const [loading, setLoading] = useState(true);
-  const [qrModalOpen, setQrModalOpen] = useState(false);
 
   const fetchVendor = useCallback(async () => {
     if (!user) {
@@ -149,7 +146,7 @@ export default function VendorView() {
         action={
           <div className="flex gap-2">
             {(!id || (id && parseInt(id) === user?.id)) && (
-              <Button variant="outline" onClick={() => setQrModalOpen(true)}>
+              <Button variant="outline" onClick={() => navigate(`/qr/${vendor.phone}`)}>
                 <QrCode className="h-4 w-4 mr-2" />
                 Generate QR
               </Button>
@@ -199,20 +196,6 @@ export default function VendorView() {
           </div>
         )}
       </div>
-
-      <Dialog open={qrModalOpen} onOpenChange={setQrModalOpen}>
-        <DialogContent className="max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-auto">
-          <DialogHeader>
-            <DialogTitle>Menu QR Code</DialogTitle>
-            <DialogDescription>
-              Scan this QR code to access the menu for {vendor.name}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-3 sm:py-4">
-            <MenuQRCode vendor={vendor} />
-          </div>
-        </DialogContent>
-      </Dialog>
     </DashboardLayout>
   );
 }

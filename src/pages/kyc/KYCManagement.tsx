@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,7 +31,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { SimplePagination } from '@/components/ui/simple-pagination';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileText, CheckCircle, XCircle, Eye } from 'lucide-react';
+import { FileText, CheckCircle, XCircle, Eye, QrCode } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
 interface KYCItem {
@@ -55,6 +56,7 @@ interface KYCListResponse {
 
 export default function KYCManagement() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [kycList, setKycList] = useState<KYCItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -70,7 +72,6 @@ export default function KYCManagement() {
   const [approveId, setApproveId] = useState<number | null>(null);
   const [rejectId, setRejectId] = useState<number | null>(null);
   const [rejectReason, setRejectReason] = useState('');
-  const [viewDocumentId, setViewDocumentId] = useState<number | null>(null);
   const [processing, setProcessing] = useState(false);
 
   const fetchKYCList = useCallback(async () => {
@@ -216,16 +217,32 @@ export default function KYCManagement() {
       label: 'Actions',
       render: (item: KYCItem) => (
         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate(`/kyc-management/${item.id}`)}
+          >
+            <Eye className="h-4 w-4 mr-1" />
+            View
+          </Button>
           {item.kyc_document_url && (
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setViewDocumentId(item.id)}
+              onClick={() => navigate(`/kyc-management/${item.id}/document`)}
             >
-              <Eye className="h-4 w-4 mr-1" />
-              View
+              <FileText className="h-4 w-4 mr-1" />
+              Document
             </Button>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate(`/qr/${item.phone}`)}
+          >
+            <QrCode className="h-4 w-4 mr-1" />
+            QR View
+          </Button>
           {item.kyc_status === 'pending' && (
             <>
               <Button
@@ -266,8 +283,6 @@ export default function KYCManagement() {
       </DashboardLayout>
     );
   }
-
-  const selectedKYC = viewDocumentId ? kycList.find(k => k.id === viewDocumentId) : null;
 
   return (
     <DashboardLayout>
@@ -390,60 +405,6 @@ export default function KYCManagement() {
               disabled={processing || !rejectReason.trim()}
             >
               {processing ? 'Rejecting...' : 'Reject'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* View Document Dialog */}
-      <Dialog open={!!viewDocumentId} onOpenChange={() => setViewDocumentId(null)}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>View KYC Document</DialogTitle>
-            <DialogDescription>
-              {selectedKYC && (
-                <>
-                  {selectedKYC.name} - {getDocumentTypeLabel(selectedKYC.kyc_document_type)}
-                </>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            {selectedKYC?.kyc_document_url ? (
-              <div className="border rounded-md p-4">
-                {selectedKYC.kyc_document_url.match(/\.(jpg|jpeg|png|gif)$/i) ? (
-                  <img
-                    src={selectedKYC.kyc_document_url}
-                    alt="KYC Document"
-                    className="max-w-full h-auto mx-auto"
-                  />
-                ) : (
-                  <div className="flex flex-col items-center justify-center p-8">
-                    <FileText className="h-16 w-16 text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground mb-4">Document Preview Not Available</p>
-                    <Button
-                      variant="outline"
-                      onClick={() => window.open(selectedKYC.kyc_document_url!, '_blank')}
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      Open Document
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <p className="text-muted-foreground text-center">No document available</p>
-            )}
-            {selectedKYC?.kyc_reject_reason && (
-              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
-                <p className="font-semibold text-destructive mb-1">Rejection Reason:</p>
-                <p className="text-sm text-muted-foreground">{selectedKYC.kyc_reject_reason}</p>
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setViewDocumentId(null)}>
-              Close
             </Button>
           </DialogFooter>
         </DialogContent>

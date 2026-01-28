@@ -55,6 +55,8 @@ import ReportsPage from "./pages/reports/ReportsPage";
 // KYC
 import KYCVerification from "./pages/kyc/KYCVerification";
 import KYCManagement from "./pages/kyc/KYCManagement";
+import KYCViewPage from "./pages/kyc/KYCViewPage";
+import KYCDocumentPage from "./pages/kyc/KYCDocumentPage";
 
 // Subscription
 import SubscriptionPlans from "./pages/subscription/SubscriptionPlans";
@@ -66,6 +68,9 @@ import QRStandOrderView from "./pages/qr-stands/QRStandOrderView";
 
 // Menu (public)
 import MenuPage from "./pages/menu/MenuPage";
+
+// QR page (public - no auth)
+import QRPage from "./pages/qr/QRPage";
 
 import NotFound from "./pages/NotFound";
 import Index from "./pages/Index";
@@ -211,6 +216,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/menu/:vendorPhone" element={<MenuPage />} />
+            <Route path="/qr/:vendorPhone" element={<QRPage />} />
 
             {/* Protected routes */}
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
@@ -261,6 +267,8 @@ const App = () => (
             {/* KYC */}
             <Route path="/kyc" element={<ProtectedRoute><KYCVerification /></ProtectedRoute>} />
             <Route path="/kyc-management" element={<ProtectedRoute><KYCManagement /></ProtectedRoute>} />
+            <Route path="/kyc-management/:id" element={<ProtectedRoute><KYCViewPage /></ProtectedRoute>} />
+            <Route path="/kyc-management/:id/document" element={<ProtectedRoute><KYCDocumentPage /></ProtectedRoute>} />
 
             {/* Subscription */}
             <Route path="/subscription" element={<ProtectedRoute><SubscriptionPlans /></ProtectedRoute>} />

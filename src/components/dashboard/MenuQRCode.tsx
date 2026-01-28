@@ -5,6 +5,7 @@ import jsPDF from 'jspdf';
 import { Download, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { isWebView } from '@/lib/api';
 
 export interface MenuQRCodeVendor {
   id: number;
@@ -78,6 +79,16 @@ export function MenuQRCode({
     return Boolean(w?.SaveFile?.postMessage);
   };
 
+  const openInBrowser = (url: string) => {
+    const w = typeof window !== 'undefined' ? (window as Window & { OpenInBrowser?: { postMessage?: (msg: string) => void } }) : null;
+    if (w?.OpenInBrowser?.postMessage) {
+      w.OpenInBrowser.postMessage(url);
+      toast.success('Opening in browser to download');
+    } else {
+      window.open(url, '_blank');
+    }
+  };
+
   const sendFileToFlutter = (dataUrl: string, filename: string, mimeType: string) => {
     const w = typeof window !== 'undefined' ? (window as Window & { SaveFile?: { postMessage?: (msg: string) => void } }) : null;
     if (w?.SaveFile?.postMessage) {
@@ -86,9 +97,16 @@ export function MenuQRCode({
   };
 
   const handleDownloadPNG = async () => {
+    if (isWebView()) {
+      openInBrowser(window.location.href);
+      return;
+    }
     if (!qrCodeRef.current) return;
     const filename = `qr-code-${vendor?.phone || 'menu'}.png`;
     try {
+      if (vendor?.logo_url && !logoDataUrl) {
+        await new Promise((resolve) => setTimeout(resolve, 400));
+      }
       const canvas = await html2canvas(qrCodeRef.current, {
         backgroundColor: '#0a0a0a',
         scale: 2,
@@ -113,9 +131,16 @@ export function MenuQRCode({
   };
 
   const handleDownloadPDF = async () => {
+    if (isWebView()) {
+      openInBrowser(window.location.href);
+      return;
+    }
     if (!vendor || !qrCodeRef.current) return;
     const filename = `qr-code-${vendor.phone || 'menu'}.pdf`;
     try {
+      if (vendor.logo_url && !logoDataUrl) {
+        await new Promise((resolve) => setTimeout(resolve, 400));
+      }
       await new Promise((resolve) => setTimeout(resolve, 150));
       const canvas = await html2canvas(qrCodeRef.current, {
         backgroundColor: '#0a0a0a',
@@ -158,7 +183,8 @@ export function MenuQRCode({
   const gold = '#c9a227';
   const black = '#0a0a0a';
 
-  const showLogoImage = vendor.logo_url && !logoLoadError;
+  /* Use only logoDataUrl in the ref so html2canvas captures the logo (same-origin); never use vendor.logo_url directly in the capture block. */
+  const showLogoImage = Boolean(vendor.logo_url && logoDataUrl && !logoLoadError);
   const initials = vendor?.name ? getInitials(vendor.name) : '?';
   const fallbackBg = vendor?.name ? colorFromName(vendor.name) : gold;
 
@@ -173,7 +199,7 @@ export function MenuQRCode({
           boxSizing: 'border-box',
         }}
       >
-        {/* Circular logo with gold ring */}
+        {/* Circular logo with gold ring - img uses only logoDataUrl so download includes logo */}
         <div
           className="flex items-center justify-center rounded-full flex-shrink-0 mb-4"
           style={{
@@ -186,12 +212,10 @@ export function MenuQRCode({
         >
           {showLogoImage ? (
             <img
-              src={logoDataUrl || vendor.logo_url!}
+              src={logoDataUrl!}
               alt={vendor.name}
-              crossOrigin="anonymous"
               className="w-full h-full object-cover"
               style={{ width: '100%', height: '100%' }}
-              onError={() => setLogoLoadError(true)}
             />
           ) : (
             <div

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Eye, Trash2 } from 'lucide-react';
+import { Plus, Eye, Edit, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/ui/page-header';
@@ -9,8 +9,10 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FilterBar } from '@/components/ui/filter-bar';
 import { SimplePagination } from '@/components/ui/simple-pagination';
+import { Card, CardContent } from '@/components/ui/card';
 import { api, fetchPaginated, PaginatedResponse } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -22,6 +24,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface QRStandOrder {
   id: number;
@@ -43,9 +52,11 @@ interface QRStandOrder {
 export default function QRStandOrdersList() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [orders, setOrders] = useState<QRStandOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -236,6 +247,8 @@ export default function QRStandOrdersList() {
     },
   ];
 
+  const selectedOrder = selectedOrderId ? orders.find((o) => o.id === selectedOrderId) : null;
+
   return (
     <DashboardLayout>
       <PageHeader
@@ -264,13 +277,52 @@ export default function QRStandOrdersList() {
         showUserFilter={false}
       />
 
-      <DataTable 
-        columns={columns} 
-        data={orders} 
-        loading={loading} 
-        emptyMessage="No QR stand orders found"
-        onRowClick={(item) => navigate(`/qr-stands/${item.id}`)}
-      />
+      {isMobile ? (
+        <div className="grid grid-cols-1 gap-4">
+          {loading ? (
+            <div className="text-center py-8 text-muted-foreground">Loading orders...</div>
+          ) : orders.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">No QR stand orders found</div>
+          ) : (
+            orders.map((order) => (
+              <Card
+                key={order.id}
+                className="cursor-pointer hover:bg-accent transition-colors"
+                onClick={() => setSelectedOrderId(order.id)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <div className="font-medium text-base">Order #{order.id}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {order.vendor_info?.name || `Vendor #${order.vendor}`}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-semibold text-base">₹{parseFloat(order.total_price).toFixed(2)}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {new Date(order.created_at).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap mt-2">
+                    <StatusBadge status={order.order_status} variant={getOrderStatusVariant(order.order_status)} />
+                    <StatusBadge status={order.payment_status} variant={getPaymentStatusVariant(order.payment_status)} />
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+      ) : (
+        <DataTable 
+          columns={columns} 
+          data={orders} 
+          loading={loading} 
+          emptyMessage="No QR stand orders found"
+          onRowClick={(item) => navigate(`/qr-stands/${item.id}`)}
+        />
+      )}
 
       {count > pageSize && (
         <div className="mt-4">
@@ -280,6 +332,58 @@ export default function QRStandOrdersList() {
             onPageChange={setPage}
           />
         </div>
+      )}
+
+      {selectedOrder && (
+        <Dialog open={!!selectedOrderId} onOpenChange={(open) => !open && setSelectedOrderId(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>QR Stand Order #{selectedOrder.id}</DialogTitle>
+              <DialogDescription>
+                {selectedOrder.vendor_info?.name || `Vendor #${selectedOrder.vendor}`} • ₹{parseFloat(selectedOrder.total_price).toFixed(2)}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-2 py-4">
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => {
+                  setSelectedOrderId(null);
+                  navigate(`/qr-stands/${selectedOrder.id}`);
+                }}
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                View
+              </Button>
+              {user?.is_superuser && (
+                <>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => {
+                      setSelectedOrderId(null);
+                      navigate(`/qr-stands/${selectedOrder.id}`);
+                    }}
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    className="w-full justify-start"
+                    onClick={() => {
+                      setSelectedOrderId(null);
+                      setDeleteId(selectedOrder.id);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </Button>
+                </>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>

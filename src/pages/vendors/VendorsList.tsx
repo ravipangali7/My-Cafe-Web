@@ -11,6 +11,7 @@ import { StatsCards } from '@/components/ui/stats-cards';
 import { Switch } from '@/components/ui/switch';
 import { api, fetchPaginated, PaginatedResponse } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -22,7 +23,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { SimplePagination } from '@/components/ui/simple-pagination';
+import { Card, CardContent } from '@/components/ui/card';
 import { Users, UserCheck, UserX, Shield } from 'lucide-react';
 
 interface Vendor {
@@ -39,9 +48,11 @@ interface Vendor {
 export default function VendorsList() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [selectedVendorId, setSelectedVendorId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
   const [userId, setUserId] = useState<number | null>(null);
@@ -265,6 +276,10 @@ export default function VendorsList() {
     { label: 'Superusers', value: stats.superusers, icon: Shield, color: 'text-blue-600' },
   ] : [];
 
+  const selectedVendor = selectedVendorId ? vendors.find((v) => v.id === selectedVendorId) : null;
+  const canEditVendor = selectedVendor && (user?.is_superuser || selectedVendor.id === user?.id);
+  const canDeleteVendor = selectedVendor && user?.is_superuser;
+
   return (
     <DashboardLayout>
       <PageHeader
@@ -300,13 +315,55 @@ export default function VendorsList() {
         </>
       )}
 
-      <DataTable 
-        columns={columns} 
-        data={vendors} 
-        loading={loading} 
-        emptyMessage="No vendors found"
-        onRowClick={(item) => navigate(`/vendors/${item.id}`)}
-      />
+      {isMobile ? (
+        <div className="grid grid-cols-1 gap-4">
+          {loading ? (
+            <div className="text-center py-8 text-muted-foreground">Loading vendors...</div>
+          ) : vendors.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">No vendors found</div>
+          ) : (
+            vendors.map((vendor) => (
+              <Card
+                key={vendor.id}
+                className="cursor-pointer hover:bg-accent transition-colors"
+                onClick={() => setSelectedVendorId(vendor.id)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex gap-4">
+                    {vendor.logo_url ? (
+                      <img
+                        src={vendor.logo_url}
+                        alt={vendor.name}
+                        className="h-12 w-12 rounded-full object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="h-12 w-12 rounded-full bg-accent flex items-center justify-center text-foreground font-medium flex-shrink-0">
+                        {vendor.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-base">{vendor.name}</div>
+                      <div className="text-sm text-muted-foreground">{vendor.phone}</div>
+                      <StatusBadge
+                        status={vendor.is_active ? 'Active' : 'Inactive'}
+                        variant={getActiveStatusVariant(vendor.is_active)}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+      ) : (
+        <DataTable 
+          columns={columns} 
+          data={vendors} 
+          loading={loading} 
+          emptyMessage="No vendors found"
+          onRowClick={(item) => navigate(`/vendors/${item.id}`)}
+        />
+      )}
 
       {count > pageSize && (
         <div className="mt-4">
@@ -316,6 +373,56 @@ export default function VendorsList() {
             onPageChange={setPage}
           />
         </div>
+      )}
+
+      {selectedVendor && (
+        <Dialog open={!!selectedVendorId} onOpenChange={(open) => !open && setSelectedVendorId(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>{selectedVendor.name}</DialogTitle>
+              <DialogDescription>{selectedVendor.phone}</DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-2 py-4">
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => {
+                  setSelectedVendorId(null);
+                  navigate(`/vendors/${selectedVendor.id}`);
+                }}
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                View
+              </Button>
+              {canEditVendor && (
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setSelectedVendorId(null);
+                    navigate(selectedVendor.id === user?.id ? '/vendors/edit' : `/vendors/${selectedVendor.id}/edit`);
+                  }}
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+              )}
+              {canDeleteVendor && (
+                <Button
+                  variant="destructive"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setSelectedVendorId(null);
+                    setDeleteId(selectedVendor.id);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>

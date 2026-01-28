@@ -12,6 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { api, fetchPaginated, PaginatedResponse } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { canEditItem, canDeleteItem } from '@/lib/permissions';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -23,6 +24,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface Category {
   id: number;
@@ -44,6 +52,7 @@ export default function CategoriesList() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
   const [userId, setUserId] = useState<number | null>(null);
@@ -201,6 +210,10 @@ export default function CategoriesList() {
     { label: 'Total Categories', value: stats.total, icon: FolderOpen, color: 'text-foreground' },
   ];
 
+  const selectedCategory = selectedCategoryId ? categories.find((c) => c.id === selectedCategoryId) : null;
+  const canEditSelected = selectedCategory ? canEditItem(user, selectedCategory) : false;
+  const canDeleteSelected = selectedCategory ? canDeleteItem(user, selectedCategory) : false;
+
   return (
     <DashboardLayout>
       <PageHeader
@@ -237,7 +250,7 @@ export default function CategoriesList() {
               <Card
                 key={category.id}
                 className="cursor-pointer hover:bg-accent transition-colors"
-                onClick={() => navigate(`/categories/${category.id}`)}
+                onClick={() => setSelectedCategoryId(category.id)}
               >
                 <CardContent className="p-4">
                   <div className="flex gap-4">
@@ -282,6 +295,58 @@ export default function CategoriesList() {
             onPageChange={setPage}
           />
         </div>
+      )}
+
+      {selectedCategory && (
+        <Dialog open={!!selectedCategoryId} onOpenChange={(open) => !open && setSelectedCategoryId(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>{selectedCategory.name}</DialogTitle>
+              <DialogDescription>
+                Created {new Date(selectedCategory.created_at).toLocaleDateString()}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-2 py-4">
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => {
+                  setSelectedCategoryId(null);
+                  navigate(`/categories/${selectedCategory.id}`);
+                }}
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                View
+              </Button>
+              {canEditSelected && (
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setSelectedCategoryId(null);
+                    navigate(`/categories/${selectedCategory.id}/edit`);
+                  }}
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+              )}
+              {canDeleteSelected && (
+                <Button
+                  variant="destructive"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setSelectedCategoryId(null);
+                    setDeleteId(selectedCategory.id);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>

@@ -18,8 +18,6 @@ import { TransactionHistoryTable } from '@/components/dashboard/TransactionHisto
 import { VendorDashboardStats } from '@/components/dashboard/VendorDashboardStats';
 import { VendorAnalytics } from '@/components/dashboard/VendorAnalytics';
 import { SuperAdminAnalytics } from '@/components/dashboard/SuperAdminAnalytics';
-import { MenuQRCode } from '@/components/dashboard/MenuQRCode';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ShoppingCart, QrCode, Eye } from 'lucide-react';
 import { DataTable } from '@/components/ui/data-table';
 
@@ -128,13 +126,12 @@ export default function Dashboard() {
   const [superAdminData, setSuperAdminData] = useState<SuperAdminDashboardData | null>(null);
   const [superAdminLoading, setSuperAdminLoading] = useState(true);
 
-  // QR modal (vendor view)
-  const [qrModalOpen, setQrModalOpen] = useState(false);
-
-  // Open QR modal when opened from external browser (e.g. ?openQr=1 from Flutter WebView)
+  // Redirect to QR page when opened from external browser (e.g. ?openQr=1 from Flutter WebView)
   useEffect(() => {
-    if (searchParams.get('openQr') === '1') setQrModalOpen(true);
-  }, [searchParams]);
+    if (searchParams.get('openQr') === '1' && vendor?.phone) {
+      navigate(`/qr/${vendor.phone}`);
+    }
+  }, [searchParams, vendor?.phone, navigate]);
 
   // Fetch vendor dashboard data
   const fetchVendorData = useCallback(async () => {
@@ -379,7 +376,7 @@ export default function Dashboard() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setQrModalOpen(true)}
+                    onClick={() => navigate(`/qr/${vendor.phone}`)}
                   >
                     <QrCode className="h-4 w-4 mr-2" />
                     View & Download QR
@@ -550,22 +547,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* QR Code Dialog - vendor view */}
-      {vendor && (
-        <Dialog open={qrModalOpen} onOpenChange={setQrModalOpen}>
-          <DialogContent className="max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-auto">
-            <DialogHeader>
-              <DialogTitle>Menu QR Code</DialogTitle>
-              <DialogDescription>
-                Scan this QR code to access the menu for {vendor.name}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-3 sm:py-4">
-              <MenuQRCode vendor={vendor} />
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
     </DashboardLayout>
   );
 }

@@ -14,6 +14,13 @@ import { api, fetchPaginated, PaginatedResponse } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface Transaction {
   id: number;
@@ -38,6 +45,7 @@ export default function TransactionsList() {
   const isMobile = useIsMobile();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedTransactionId, setSelectedTransactionId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
   const [userId, setUserId] = useState<number | null>(null);
@@ -218,6 +226,8 @@ export default function TransactionsList() {
     { label: 'Total Revenue', value: `₹${parseFloat(stats.revenue || '0').toFixed(2)}`, icon: DollarSign, color: 'text-green-600' },
   ];
 
+  const selectedTransaction = selectedTransactionId ? transactions.find((t) => t.id === selectedTransactionId) : null;
+
   return (
     <DashboardLayout>
       <PageHeader title="Transactions" description="View payment transaction history" />
@@ -245,7 +255,7 @@ export default function TransactionsList() {
               <Card
                 key={transaction.id}
                 className="cursor-pointer hover:bg-accent transition-colors"
-                onClick={() => navigate(`/transactions/${transaction.id}`)}
+                onClick={() => setSelectedTransactionId(transaction.id)}
               >
                 <CardContent className="p-4">
                   <div className="flex justify-between items-start mb-2">
@@ -281,6 +291,32 @@ export default function TransactionsList() {
           emptyMessage="No transactions found"
           onRowClick={(item) => navigate(`/transactions/${item.id}`)}
         />
+      )}
+
+      {selectedTransaction && (
+        <Dialog open={!!selectedTransactionId} onOpenChange={(open) => !open && setSelectedTransactionId(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Transaction #{selectedTransaction.id}</DialogTitle>
+              <DialogDescription>
+                ₹{Number(selectedTransaction.amount).toFixed(2)} • {new Date(selectedTransaction.created_at).toLocaleString()}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-2 py-4">
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => {
+                  setSelectedTransactionId(null);
+                  navigate(`/transactions/${selectedTransaction.id}`);
+                }}
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                View
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
 
       {count > pageSize && (
