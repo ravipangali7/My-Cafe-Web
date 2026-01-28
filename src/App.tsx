@@ -68,7 +68,7 @@ import QRStandOrderView from "./pages/qr-stands/QRStandOrderView";
 import MenuPage from "./pages/menu/MenuPage";
 
 import NotFound from "./pages/NotFound";
-import ExitConfirmScreen from "./pages/ExitConfirmScreen";
+import Index from "./pages/Index";
 
 const queryClient = new QueryClient();
 
@@ -179,8 +179,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            {/* Public routes - "/" shows exit confirm so no black screen on back */}
-            <Route path="/" element={<ExitConfirmScreen />} />
+            <Route path="/" element={<Index />} />
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/menu/:vendorPhone" element={<MenuPage />} />
 
