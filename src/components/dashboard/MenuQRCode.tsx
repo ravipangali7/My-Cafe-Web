@@ -210,7 +210,7 @@ export function MenuQRCode({
             overflow: 'hidden',
           }}
         >
-          {showLogoImage ? (
+          {vendor.logo_url ? (
             <img
               src={vendor.logo_url}
               alt={vendor.name}
