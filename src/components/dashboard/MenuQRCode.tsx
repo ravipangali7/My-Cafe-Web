@@ -212,7 +212,7 @@ export function MenuQRCode({
         >
           {showLogoImage ? (
             <img
-              src={logoDataUrl!}
+              src={vendor.logo_url}
               alt={vendor.name}
               className="w-full h-full object-cover"
               style={{ width: '100%', height: '100%' }}
