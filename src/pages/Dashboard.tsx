@@ -18,6 +18,8 @@ import { TransactionHistoryTable } from '@/components/dashboard/TransactionHisto
 import { VendorDashboardStats } from '@/components/dashboard/VendorDashboardStats';
 import { VendorAnalytics } from '@/components/dashboard/VendorAnalytics';
 import { SuperAdminAnalytics } from '@/components/dashboard/SuperAdminAnalytics';
+import { MenuQRCode } from '@/components/dashboard/MenuQRCode';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ShoppingCart, QrCode, Eye } from 'lucide-react';
 import { DataTable } from '@/components/ui/data-table';
 
@@ -124,6 +126,9 @@ export default function Dashboard() {
   // Super admin dashboard data
   const [superAdminData, setSuperAdminData] = useState<SuperAdminDashboardData | null>(null);
   const [superAdminLoading, setSuperAdminLoading] = useState(true);
+
+  // QR modal (vendor view)
+  const [qrModalOpen, setQrModalOpen] = useState(false);
 
   // Fetch vendor dashboard data
   const fetchVendorData = useCallback(async () => {
@@ -356,6 +361,28 @@ export default function Dashboard() {
             <SubscriptionSummary subscription={vendorData.subscription} />
           )}
 
+          {/* Menu QR Code Card - viewable and downloadable from Dashboard */}
+          {vendor && (
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div>
+                    <CardTitle>Menu QR Code</CardTitle>
+                    <CardDescription>View and download your menu QR code for customers to scan</CardDescription>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setQrModalOpen(true)}
+                  >
+                    <QrCode className="h-4 w-4 mr-2" />
+                    View & Download QR
+                  </Button>
+                </div>
+              </CardHeader>
+            </Card>
+          )}
+
           {/* Enhanced Stats Cards */}
           {vendorData && (
             <VendorDashboardStats
@@ -515,6 +542,23 @@ export default function Dashboard() {
             />
           )}
         </div>
+      )}
+
+      {/* QR Code Dialog - vendor view */}
+      {vendor && (
+        <Dialog open={qrModalOpen} onOpenChange={setQrModalOpen}>
+          <DialogContent className="sm:max-w-md overflow-auto max-h-[90vh]">
+            <DialogHeader>
+              <DialogTitle>Menu QR Code</DialogTitle>
+              <DialogDescription>
+                Scan this QR code to access the menu for {vendor.name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <MenuQRCode vendor={vendor} />
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </DashboardLayout>
   );
