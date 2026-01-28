@@ -1,6 +1,21 @@
 // Use relative path if VITE_API_BASE_URL is empty (for Vite proxy), otherwise use the configured URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
+/**
+ * Rewrite backend media URL to same-origin /media-proxy/ so fetch works without CORS.
+ * Use when fetching a logo (e.g. for QR) from a cross-origin backend media URL.
+ */
+export function getMediaProxyUrl(logoUrl: string | null | undefined): string | null | undefined {
+  if (logoUrl == null || logoUrl === '') return logoUrl;
+  const base = (API_BASE_URL || '').replace(/\/$/, '');
+  const mediaPrefix = base ? `${base}/media` : '';
+  if (mediaPrefix && typeof window !== 'undefined' && logoUrl.startsWith(mediaPrefix)) {
+    const pathAfterMedia = logoUrl.slice(mediaPrefix.length);
+    return `${window.location.origin}/media-proxy${pathAfterMedia}`;
+  }
+  return logoUrl;
+}
+
 /** Detect WebView (Android/iOS) where blob-URL download often fails; direct URL in new window or SaveFile channel lets OS handle download. */
 export function isWebView(): boolean {
   if (typeof window !== 'undefined' && (window as Window & { __FLUTTER_WEBVIEW__?: boolean }).__FLUTTER_WEBVIEW__ === true) {
