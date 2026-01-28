@@ -1,11 +1,11 @@
 import { useRef, useState, useEffect } from 'react';
 import QRCode from 'react-qr-code';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
 import { Download, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { isWebView } from '@/lib/api';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 export interface MenuQRCodeVendor {
   id: number;
@@ -97,32 +97,40 @@ export function MenuQRCode({
   };
 
   const handleDownloadPNG = async () => {
+    if (!vendor?.phone) return;
+    const url = `${API_BASE_URL}/api/qr/card/download-png/${encodeURIComponent(vendor.phone)}/`;
     if (isWebView()) {
-      openInBrowser(window.location.href);
+      openInBrowser(url);
       return;
     }
-    if (!qrCodeRef.current) return;
-    const filename = `qr-code-${vendor?.phone || 'menu'}.png`;
+    const filename = `qr-code-${vendor.phone}.png`;
     try {
-      if (vendor?.logo_url && !logoDataUrl) {
-        await new Promise((resolve) => setTimeout(resolve, 400));
-      }
-      const canvas = await html2canvas(qrCodeRef.current, {
-        backgroundColor: '#0a0a0a',
-        scale: 2,
-        useCORS: true,
-        logging: false,
-      });
-      const dataUrl = canvas.toDataURL('image/png');
-      if (hasFlutterSaveFile()) {
-        sendFileToFlutter(dataUrl, filename, 'image/png');
-        toast.success('QR code saved');
+      const response = await fetch(url, { credentials: 'include' });
+      if (!response.ok) {
+        if (response.status === 404) toast.error('Vendor not found');
+        else toast.error('Failed to download QR code');
         return;
       }
+      const blob = await response.blob();
+      if (hasFlutterSaveFile()) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (typeof reader.result === 'string') {
+            sendFileToFlutter(reader.result, filename, 'image/png');
+            toast.success('QR code saved');
+          }
+        };
+        reader.readAsDataURL(blob);
+        return;
+      }
+      const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
+      link.href = downloadUrl;
       link.download = filename;
-      link.href = dataUrl;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
       toast.success('QR code downloaded');
     } catch (error) {
       console.error('Failed to download QR code:', error);
@@ -131,59 +139,51 @@ export function MenuQRCode({
   };
 
   const handleDownloadPDF = async () => {
+    if (!vendor?.phone) return;
+    const url = `${API_BASE_URL}/api/qr/card/download-pdf/${encodeURIComponent(vendor.phone)}/`;
     if (isWebView()) {
-      openInBrowser(window.location.href);
+      openInBrowser(url);
       return;
     }
-    if (!vendor || !qrCodeRef.current) return;
-    const filename = `qr-code-${vendor.phone || 'menu'}.pdf`;
+    const filename = `qr-code-${vendor.phone}.pdf`;
     try {
-      if (vendor.logo_url && !logoDataUrl) {
-        await new Promise((resolve) => setTimeout(resolve, 400));
-      }
-      await new Promise((resolve) => setTimeout(resolve, 150));
-      const canvas = await html2canvas(qrCodeRef.current, {
-        backgroundColor: '#0a0a0a',
-        scale: 3,
-        useCORS: true,
-        logging: false,
-        allowTaint: false,
-      });
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('portrait', 'mm', 'a4');
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const ratio = canvas.width / canvas.height;
-      const margin = 20;
-      const maxWidth = pageWidth - margin * 2;
-      const maxHeight = pageHeight - margin * 2;
-      let pdfWidth = maxWidth;
-      let pdfHeight = maxWidth / ratio;
-      if (pdfHeight > maxHeight) {
-        pdfHeight = maxHeight;
-        pdfWidth = maxHeight * ratio;
-      }
-      const xPos = (pageWidth - pdfWidth) / 2;
-      const yPos = (pageHeight - pdfHeight) / 2;
-      pdf.addImage(imgData, 'PNG', xPos, yPos, pdfWidth, pdfHeight);
-      if (hasFlutterSaveFile()) {
-        const dataUrl = pdf.output('datauristring');
-        sendFileToFlutter(dataUrl, filename, 'application/pdf');
-        toast.success('QR code PDF saved');
+      const response = await fetch(url, { credentials: 'include' });
+      if (!response.ok) {
+        if (response.status === 404) toast.error('Vendor not found');
+        else toast.error('Failed to download PDF');
         return;
       }
-      pdf.save(filename);
+      const blob = await response.blob();
+      if (hasFlutterSaveFile()) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (typeof reader.result === 'string') {
+            sendFileToFlutter(reader.result, filename, 'application/pdf');
+            toast.success('QR code PDF saved');
+          }
+        };
+        reader.readAsDataURL(blob);
+        return;
+      }
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
       toast.success('QR code PDF downloaded');
     } catch (error) {
-      console.error('Failed to generate PDF:', error);
-      toast.error('Failed to generate PDF');
+      console.error('Failed to download PDF:', error);
+      toast.error('Failed to download PDF');
     }
   };
 
   const gold = '#c9a227';
   const black = '#0a0a0a';
 
-  /* Use only logoDataUrl in the ref so html2canvas captures the logo (same-origin); never use vendor.logo_url directly in the capture block. */
+  /* Display: logoDataUrl for logo; design matches server-generated PNG/PDF. */
   const showLogoImage = Boolean(vendor.logo_url && logoDataUrl && !logoLoadError);
   const initials = vendor?.name ? getInitials(vendor.name) : '?';
   const fallbackBg = vendor?.name ? colorFromName(vendor.name) : gold;
@@ -199,7 +199,7 @@ export function MenuQRCode({
           boxSizing: 'border-box',
         }}
       >
-        {/* Circular logo with gold ring - img uses only logoDataUrl so download includes logo */}
+        {/* Circular logo with gold ring */}
         <div
           className="flex items-center justify-center rounded-full flex-shrink-0 mb-4"
           style={{
