@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -11,15 +11,28 @@ interface PageHeaderProps {
 }
 
 export function PageHeader({ title, description, backLink, action }: PageHeaderProps) {
+  const navigate = useNavigate();
+
+  const handleBack = () => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      navigate(-1);
+    } else if (backLink) {
+      navigate(backLink);
+    }
+  };
+
   return (
     <div className="mb-6">
       {backLink && (
-        <Link to={backLink}>
-          <Button variant="ghost" size="sm" className="mb-2 -ml-2 text-muted-foreground hover:text-foreground">
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Back
-          </Button>
-        </Link>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="mb-2 -ml-2 text-muted-foreground hover:text-foreground"
+          onClick={handleBack}
+        >
+          <ChevronLeft className="h-4 w-4 mr-1" />
+          Back
+        </Button>
       )}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

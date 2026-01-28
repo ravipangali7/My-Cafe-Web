@@ -1,6 +1,13 @@
 // Use relative path if VITE_API_BASE_URL is empty (for Vite proxy), otherwise use the configured URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
+/** Detect WebView (Android/iOS) where blob-URL download often fails; direct URL in new window lets OS handle download. */
+function isWebView(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent || '';
+  return /wv|WebView/i.test(ua) || /Android.*wv/i.test(ua);
+}
+
 interface ApiResponse<T> {
   data?: T;
   error?: string;
@@ -204,9 +211,14 @@ export async function generateOrderInvoice(orderId: number): Promise<ApiResponse
 
 export async function downloadOrderInvoice(orderId: number): Promise<void> {
   const url = `${API_BASE_URL}/api/orders/${orderId}/invoice/download/`;
-  
+
+  if (isWebView()) {
+    // In WebView, blob-URL + click often doesn't trigger save; open URL in new window so OS handles attachment.
+    window.open(url, '_blank');
+    return;
+  }
+
   const headers: HeadersInit = {};
-  
   const config: RequestInit = {
     method: 'GET',
     headers,
@@ -215,16 +227,13 @@ export async function downloadOrderInvoice(orderId: number): Promise<void> {
 
   try {
     const response = await fetch(url, config);
-    
+
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`Failed to download invoice: ${response.statusText}`);
     }
 
-    // Get the blob from the response
     const blob = await response.blob();
-    
-    // Create a download link
     const downloadUrl = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = downloadUrl;
