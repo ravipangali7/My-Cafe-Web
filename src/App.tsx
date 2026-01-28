@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { VendorProvider } from "@/contexts/VendorContext";
 import { api } from "@/lib/api";
@@ -71,6 +71,32 @@ import NotFound from "./pages/NotFound";
 import Index from "./pages/Index";
 
 const queryClient = new QueryClient();
+
+declare global {
+  interface Window {
+    __handleFlutterBack?: () => void;
+    RequestExit?: { postMessage: (msg: string) => void };
+  }
+}
+
+/** Registers back handler for Flutter WebView: in-app history.back(), or RequestExit when at root. */
+function FlutterBackHandler() {
+  const registered = useRef(false);
+  useEffect(() => {
+    if (registered.current) return;
+    registered.current = true;
+    window.__handleFlutterBack = function () {
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        if (window.RequestExit?.postMessage) {
+          window.RequestExit.postMessage("");
+        }
+      }
+    };
+  }, []);
+  return null;
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -178,6 +204,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <FlutterBackHandler />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
