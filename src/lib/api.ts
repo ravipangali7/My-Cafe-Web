@@ -3,6 +3,9 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 /** Detect WebView (Android/iOS) where blob-URL download often fails; direct URL in new window or SaveFile channel lets OS handle download. */
 export function isWebView(): boolean {
+  if (typeof window !== 'undefined' && (window as Window & { __FLUTTER_WEBVIEW__?: boolean }).__FLUTTER_WEBVIEW__ === true) {
+    return true;
+  }
   if (typeof navigator === 'undefined') return false;
   const ua = navigator.userAgent || '';
   return /wv|WebView/i.test(ua) || /Android.*wv/i.test(ua);

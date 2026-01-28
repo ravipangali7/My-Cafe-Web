@@ -5,7 +5,6 @@ import jsPDF from 'jspdf';
 import { Download, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { isWebView } from '@/lib/api';
 
 export interface MenuQRCodeVendor {
   id: number;
@@ -28,6 +27,12 @@ export function MenuQRCode({
 }: MenuQRCodeProps) {
   const qrCodeRef = useRef<HTMLDivElement>(null);
 
+  const hasFlutterSaveFile = () => {
+    if (typeof window === 'undefined') return false;
+    const w = window as Window & { SaveFile?: { postMessage?: (msg: string) => void } };
+    return Boolean(w?.SaveFile?.postMessage);
+  };
+
   const sendFileToFlutter = (dataUrl: string, filename: string, mimeType: string) => {
     const w = typeof window !== 'undefined' ? (window as Window & { SaveFile?: { postMessage?: (msg: string) => void } }) : null;
     if (w?.SaveFile?.postMessage) {
@@ -44,7 +49,7 @@ export function MenuQRCode({
         scale: 2,
       });
       const dataUrl = canvas.toDataURL('image/png');
-      if (isWebView()) {
+      if (hasFlutterSaveFile()) {
         sendFileToFlutter(dataUrl, filename, 'image/png');
         toast.success('QR code saved');
         return;
@@ -89,7 +94,7 @@ export function MenuQRCode({
       const xPos = (pageWidth - pdfWidth) / 2;
       const yPos = (pageHeight - pdfHeight) / 2;
       pdf.addImage(imgData, 'PNG', xPos, yPos, pdfWidth, pdfHeight);
-      if (isWebView()) {
+      if (hasFlutterSaveFile()) {
         const dataUrl = pdf.output('datauristring');
         sendFileToFlutter(dataUrl, filename, 'application/pdf');
         toast.success('QR code PDF saved');
