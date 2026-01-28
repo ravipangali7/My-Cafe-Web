@@ -5,6 +5,7 @@ import jsPDF from 'jspdf';
 import { Download, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { isWebView } from '@/lib/api';
 
 export interface MenuQRCodeVendor {
   id: number;
@@ -27,17 +28,30 @@ export function MenuQRCode({
 }: MenuQRCodeProps) {
   const qrCodeRef = useRef<HTMLDivElement>(null);
 
+  const sendFileToFlutter = (dataUrl: string, filename: string, mimeType: string) => {
+    const w = typeof window !== 'undefined' ? (window as Window & { SaveFile?: { postMessage?: (msg: string) => void } }) : null;
+    if (w?.SaveFile?.postMessage) {
+      w.SaveFile.postMessage(JSON.stringify({ dataUrl, filename, mimeType }));
+    }
+  };
+
   const handleDownloadPNG = async () => {
     if (!qrCodeRef.current) return;
+    const filename = `qr-code-${vendor?.phone || 'menu'}.png`;
     try {
       const canvas = await html2canvas(qrCodeRef.current, {
         backgroundColor: '#ffffff',
         scale: 2,
       });
-      const url = canvas.toDataURL('image/png');
+      const dataUrl = canvas.toDataURL('image/png');
+      if (isWebView()) {
+        sendFileToFlutter(dataUrl, filename, 'image/png');
+        toast.success('QR code saved');
+        return;
+      }
       const link = document.createElement('a');
-      link.download = `qr-code-${vendor?.phone || 'menu'}.png`;
-      link.href = url;
+      link.download = filename;
+      link.href = dataUrl;
       link.click();
       toast.success('QR code downloaded');
     } catch (error) {
@@ -48,6 +62,7 @@ export function MenuQRCode({
 
   const handleDownloadPDF = async () => {
     if (!vendor || !qrCodeRef.current) return;
+    const filename = `qr-code-${vendor.phone || 'menu'}.pdf`;
     try {
       await new Promise((resolve) => setTimeout(resolve, 100));
       const canvas = await html2canvas(qrCodeRef.current, {
@@ -74,7 +89,13 @@ export function MenuQRCode({
       const xPos = (pageWidth - pdfWidth) / 2;
       const yPos = (pageHeight - pdfHeight) / 2;
       pdf.addImage(imgData, 'PNG', xPos, yPos, pdfWidth, pdfHeight);
-      pdf.save(`qr-code-${vendor.phone || 'menu'}.pdf`);
+      if (isWebView()) {
+        const dataUrl = pdf.output('datauristring');
+        sendFileToFlutter(dataUrl, filename, 'application/pdf');
+        toast.success('QR code PDF saved');
+        return;
+      }
+      pdf.save(filename);
       toast.success('QR code PDF downloaded');
     } catch (error) {
       console.error('Failed to generate PDF:', error);

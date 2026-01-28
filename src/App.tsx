@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { VendorProvider } from "@/contexts/VendorContext";
@@ -68,20 +68,9 @@ import QRStandOrderView from "./pages/qr-stands/QRStandOrderView";
 import MenuPage from "./pages/menu/MenuPage";
 
 import NotFound from "./pages/NotFound";
+import ExitConfirmScreen from "./pages/ExitConfirmScreen";
 
 const queryClient = new QueryClient();
-
-/** When user navigates back to "/", replace with /dashboard so no black/blank redirect screen is shown. */
-function BackNavigationGuard() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  useEffect(() => {
-    if (location.pathname === '/') {
-      navigate('/dashboard', { replace: true });
-    }
-  }, [location.pathname, navigate]);
-  return null;
-}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -189,10 +178,9 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <BackNavigationGuard />
           <Routes>
-            {/* Public routes */}
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            {/* Public routes - "/" shows exit confirm so no black screen on back */}
+            <Route path="/" element={<ExitConfirmScreen />} />
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/menu/:vendorPhone" element={<MenuPage />} />
 
