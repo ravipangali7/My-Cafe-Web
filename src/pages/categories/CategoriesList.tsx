@@ -204,6 +204,46 @@ export default function CategoriesList() {
       label: 'Created',
       render: (item: Category) => new Date(item.created_at).toLocaleDateString(),
     },
+    {
+      key: 'actions',
+      label: 'Actions',
+      render: (item: Category) => {
+        const canEdit = canEditItem(user, item);
+        const canDelete = canDeleteItem(user, item);
+        return (
+          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+            <Button
+              variant="ghost"
+              size="sm"
+              title="View"
+              onClick={() => navigate(`/categories/${item.id}`)}
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+            {canEdit && (
+              <Button
+                variant="ghost"
+                size="sm"
+                title="Edit"
+                onClick={() => navigate(`/categories/${item.id}/edit`)}
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+            )}
+            {canDelete && (
+              <Button
+                variant="ghost"
+                size="sm"
+                title="Delete"
+                onClick={() => setDeleteId(item.id)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        );
+      },
+    },
   ];
 
   const statCards = [

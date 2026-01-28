@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { MenuQRCode, MenuQRCodeVendor } from '@/components/dashboard/MenuQRCode';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -9,6 +9,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 export default function QRPage() {
   const { vendorPhone } = useParams<{ vendorPhone: string }>();
+  const navigate = useNavigate();
   const [vendor, setVendor] = useState<MenuQRCodeVendor | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -91,6 +92,15 @@ export default function QRPage() {
   return (
     <div className="min-h-screen bg-background p-4 flex flex-col items-center">
       <div className="w-full max-w-md space-y-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="self-start -ml-2 text-muted-foreground hover:text-foreground"
+          onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/'))}
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
         <MenuQRCode vendor={vendor} menuUrl={menuUrl} blockOnly={false} />
       </div>
     </div>
