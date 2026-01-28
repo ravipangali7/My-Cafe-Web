@@ -53,22 +53,22 @@ export function MenuQRCode({
       return;
     }
     let cancelled = false;
-    const loadLogo = async () => {
-      try {
-        const res = await fetch(vendor.logo_url!, { mode: 'cors', credentials: 'include' });
-        if (!res.ok || cancelled) return;
-        const blob = await res.blob();
-        if (cancelled) return;
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          if (!cancelled && typeof reader.result === 'string') setLogoDataUrl(reader.result);
-        };
-        reader.readAsDataURL(blob);
-      } catch {
-        setLogoDataUrl(null);
-      }
-    };
-    loadLogo();
+    // const loadLogo = async () => {
+    //   try {
+    //     const res = await fetch(vendor.logo_url!, { mode: 'cors', credentials: 'include' });
+    //     if (!res.ok || cancelled) return;
+    //     const blob = await res.blob();
+    //     if (cancelled) return;
+    //     const reader = new FileReader();
+    //     reader.onloadend = () => {
+    //       if (!cancelled && typeof reader.result === 'string') setLogoDataUrl(reader.result);
+    //     };
+    //     reader.readAsDataURL(blob);
+    //   } catch {
+    //     setLogoDataUrl(null);
+    //   }
+    // };
+    // loadLogo();
     return () => { cancelled = true; };
   }, [vendor?.logo_url]);
   useEffect(() => { setLogoLoadError(false); }, [vendor?.logo_url]);
@@ -205,7 +205,7 @@ export function MenuQRCode({
           style={{
             width: 72,
             height: 72,
-            border: `3px solid ${gold}`,
+            border: `3px solid #fff`,
             backgroundColor: black,
             overflow: 'hidden',
           }}
