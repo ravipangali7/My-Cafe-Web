@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -115,6 +115,7 @@ export default function Dashboard() {
   const { vendor } = useVendor();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   
   // View mode state (for super admins)
   const [viewMode, setViewMode] = useState<'superAdmin' | 'vendor'>('vendor');
@@ -129,6 +130,11 @@ export default function Dashboard() {
 
   // QR modal (vendor view)
   const [qrModalOpen, setQrModalOpen] = useState(false);
+
+  // Open QR modal when opened from external browser (e.g. ?openQr=1 from Flutter WebView)
+  useEffect(() => {
+    if (searchParams.get('openQr') === '1') setQrModalOpen(true);
+  }, [searchParams]);
 
   // Fetch vendor dashboard data
   const fetchVendorData = useCallback(async () => {

@@ -20,6 +20,23 @@ interface MenuQRCodeProps {
   blockOnly?: boolean;
 }
 
+/** Get initials from vendor name: first letter of first two words or first two chars. */
+function getInitials(name: string): string {
+  if (!name?.trim()) return '?';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  const s = parts[0];
+  return s.length >= 2 ? (s[0] + s[1]).toUpperCase() : s[0].toUpperCase();
+}
+
+/** Pick a consistent color from name hash (hex). */
+function colorFromName(name: string): string {
+  const colors = ['#1C455A', '#2E7D32', '#1565C0', '#6A1B9A', '#C62828', '#E65100', '#00695C', '#283593'];
+  let hash = 0;
+  for (let i = 0; i < (name || '').length; i++) hash = ((hash << 5) - hash) + name.charCodeAt(i);
+  return colors[Math.abs(hash) % colors.length];
+}
+
 export function MenuQRCode({
   vendor,
   menuUrl = typeof window !== 'undefined' ? `${window.location.origin}/menu/${vendor.phone}` : '',
@@ -27,6 +44,7 @@ export function MenuQRCode({
 }: MenuQRCodeProps) {
   const qrCodeRef = useRef<HTMLDivElement>(null);
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
+  const [logoLoadError, setLogoLoadError] = useState(false);
 
   useEffect(() => {
     if (!vendor?.logo_url) {
@@ -52,11 +70,34 @@ export function MenuQRCode({
     loadLogo();
     return () => { cancelled = true; };
   }, [vendor?.logo_url]);
+  useEffect(() => { setLogoLoadError(false); }, [vendor?.logo_url]);
+
+  const isFlutterWebView = () => {
+    if (typeof window === 'undefined') return false;
+    const w = window as Window & { __FLUTTER_WEBVIEW__?: boolean };
+    return Boolean(w?.__FLUTTER_WEBVIEW__);
+  };
 
   const hasFlutterSaveFile = () => {
     if (typeof window === 'undefined') return false;
     const w = window as Window & { SaveFile?: { postMessage?: (msg: string) => void } };
     return Boolean(w?.SaveFile?.postMessage);
+  };
+
+  const hasOpenInBrowser = () => {
+    if (typeof window === 'undefined') return false;
+    const w = window as Window & { OpenInBrowser?: { postMessage?: (msg: string) => void } };
+    return Boolean(w?.OpenInBrowser?.postMessage);
+  };
+
+  const openQrInBrowser = () => {
+    const base = typeof window !== 'undefined' ? `${window.location.origin}/dashboard` : '';
+    const url = `${base}?openQr=1`;
+    const w = typeof window !== 'undefined' ? (window as Window & { OpenInBrowser?: { postMessage?: (msg: string) => void } }) : null;
+    if (w?.OpenInBrowser?.postMessage) {
+      w.OpenInBrowser.postMessage(url);
+      toast.info('Opening in browser to download');
+    }
   };
 
   const sendFileToFlutter = (dataUrl: string, filename: string, mimeType: string) => {
@@ -68,6 +109,10 @@ export function MenuQRCode({
 
   const handleDownloadPNG = async () => {
     if (!qrCodeRef.current) return;
+    if (isFlutterWebView() && hasOpenInBrowser()) {
+      openQrInBrowser();
+      return;
+    }
     const filename = `qr-code-${vendor?.phone || 'menu'}.png`;
     try {
       const canvas = await html2canvas(qrCodeRef.current, {
@@ -95,6 +140,10 @@ export function MenuQRCode({
 
   const handleDownloadPDF = async () => {
     if (!vendor || !qrCodeRef.current) return;
+    if (isFlutterWebView() && hasOpenInBrowser()) {
+      openQrInBrowser();
+      return;
+    }
     const filename = `qr-code-${vendor.phone || 'menu'}.pdf`;
     try {
       await new Promise((resolve) => setTimeout(resolve, 150));
@@ -139,11 +188,9 @@ export function MenuQRCode({
   const gold = '#c9a227';
   const black = '#0a0a0a';
 
-  const DefaultLogoIcon = () => (
-    <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M24 4L28 20H44L30 30L34 46L24 38L14 46L18 30L4 20H20L24 4Z" fill={gold} />
-    </svg>
-  );
+  const showLogoImage = vendor.logo_url && !logoLoadError;
+  const initials = vendor?.name ? getInitials(vendor.name) : '?';
+  const fallbackBg = vendor?.name ? colorFromName(vendor.name) : gold;
 
   return (
     <div className="flex flex-col items-center gap-4 w-full">
@@ -167,24 +214,30 @@ export function MenuQRCode({
             overflow: 'hidden',
           }}
         >
-          {vendor.logo_url ? (
+          {showLogoImage ? (
             <img
-              src={logoDataUrl || vendor.logo_url}
+              src={logoDataUrl || vendor.logo_url!}
               alt={vendor.name}
               crossOrigin="anonymous"
               className="w-full h-full object-cover"
               style={{ width: '100%', height: '100%' }}
+              onError={() => setLogoLoadError(true)}
             />
           ) : (
-            <DefaultLogoIcon />
+            <div
+              className="w-full h-full flex items-center justify-center text-white font-bold"
+              style={{ backgroundColor: fallbackBg, fontSize: '24px' }}
+            >
+              {initials}
+            </div>
           )}
         </div>
-        {/* Title */}
+        {/* Title - vendor name */}
         <h1
           className="text-center font-bold uppercase tracking-wider mb-0.5"
           style={{ color: '#fff', fontSize: '22px', letterSpacing: '0.15em', marginBottom: 2 }}
         >
-          My Cafe
+          {vendor?.name || 'My Cafe'}
         </h1>
         {/* Subtitle */}
         <p
@@ -219,7 +272,7 @@ export function MenuQRCode({
           className="text-center mt-4 text-xs"
           style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10 }}
         >
-          © 2025 My Cafe | All Rights Reserved
+          © 2025 {vendor?.name || 'My Cafe'} | All Rights Reserved
         </p>
       </div>
       {!blockOnly && (

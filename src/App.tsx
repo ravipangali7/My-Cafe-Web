@@ -79,19 +79,21 @@ declare global {
   }
 }
 
-/** Registers back handler for Flutter WebView: in-app history.back(), or RequestExit when at root. */
+/** Registers back handler for Flutter WebView: on Login or Dashboard show exit dialog; on other pages navigate back. */
 function FlutterBackHandler() {
   const registered = useRef(false);
   useEffect(() => {
     if (registered.current) return;
     registered.current = true;
     window.__handleFlutterBack = function () {
-      if (window.history.length > 1) {
+      const pathname = window.location.pathname;
+      const isLoginOrDashboard = pathname === '/login' || pathname === '/' || pathname === '/dashboard';
+      if (isLoginOrDashboard) {
+        if (window.RequestExit?.postMessage) window.RequestExit.postMessage("");
+      } else if (window.history.length > 1) {
         window.history.back();
       } else {
-        if (window.RequestExit?.postMessage) {
-          window.RequestExit.postMessage("");
-        }
+        if (window.RequestExit?.postMessage) window.RequestExit.postMessage("");
       }
     };
   }, []);
