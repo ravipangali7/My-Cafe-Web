@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { VendorProvider } from "@/contexts/VendorContext";
@@ -81,6 +81,7 @@ declare global {
   interface Window {
     __handleFlutterBack?: () => void;
     RequestExit?: { postMessage: (msg: string) => void };
+    openOrderDetail?: (orderId: string) => void;
   }
 }
 
@@ -102,6 +103,20 @@ function FlutterBackHandler() {
       }
     };
   }, []);
+  return null;
+}
+
+/** Exposes openOrderDetail for Flutter: when user accepts incoming order, Flutter calls this to navigate to order detail. */
+function OpenOrderDetailHandler() {
+  const navigate = useNavigate();
+  const registered = useRef(false);
+  useEffect(() => {
+    if (registered.current) return;
+    registered.current = true;
+    window.openOrderDetail = (orderId: string) => {
+      if (orderId) navigate(`/orders/${orderId}`);
+    };
+  }, [navigate]);
   return null;
 }
 
@@ -212,6 +227,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <FlutterBackHandler />
+          <OpenOrderDetailHandler />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
