@@ -7,6 +7,7 @@ import { useEffect, useState, useRef } from "react";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { VendorProvider } from "@/contexts/VendorContext";
 import { api } from "@/lib/api";
+import { toast } from "sonner";
 
 // Auth pages
 import Login from "./pages/Login";
@@ -82,6 +83,7 @@ declare global {
     __handleFlutterBack?: () => void;
     RequestExit?: { postMessage: (msg: string) => void };
     openOrderDetail?: (orderId: string) => void;
+    handleIncomingOrderAction?: (orderId: string, action: "accepted" | "rejected") => Promise<void>;
   }
 }
 
@@ -115,6 +117,37 @@ function OpenOrderDetailHandler() {
     registered.current = true;
     window.openOrderDetail = (orderId: string) => {
       if (orderId) navigate(`/orders/${orderId}`);
+    };
+  }, [navigate]);
+  return null;
+}
+
+/** Exposes handleIncomingOrderAction for Flutter: Flutter passes accept/reject; React calls API and navigates on accept. */
+function HandleIncomingOrderActionHandler() {
+  const navigate = useNavigate();
+  const registered = useRef(false);
+  useEffect(() => {
+    if (registered.current) return;
+    registered.current = true;
+    window.handleIncomingOrderAction = async (orderId: string, action: "accepted" | "rejected") => {
+      if (!orderId) return;
+      const formData = new FormData();
+      formData.append("status", action);
+      try {
+        const response = await api.post(`/api/orders/${orderId}/edit/`, formData, true);
+        if (response.error) {
+          toast.error("Failed to update order status");
+        } else {
+          if (action === "accepted") {
+            toast.success("Order accepted");
+            navigate(`/orders/${orderId}`);
+          } else {
+            toast.success("Order rejected");
+          }
+        }
+      } catch (error: unknown) {
+        toast.error(error instanceof Error ? error.message : "Failed to update order");
+      }
     };
   }, [navigate]);
   return null;
@@ -228,6 +261,7 @@ const App = () => (
         <AuthProvider>
           <FlutterBackHandler />
           <OpenOrderDetailHandler />
+          <HandleIncomingOrderActionHandler />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
