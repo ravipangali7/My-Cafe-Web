@@ -6,9 +6,10 @@ export function canEditItem(user: any, item: any): boolean {
   if (!user) return false;
   if (user.is_superuser) return true;
   
-  // Check various possible user_id fields
+  // Check various possible user_id fields (API returns user as FK id for vendors)
   return (
     item.user_id === user.id ||
+    item.user === user.id ||
     item.user?.id === user.id ||
     item.id === user.id ||
     (item.user_info && item.user_info.id === user.id) ||
