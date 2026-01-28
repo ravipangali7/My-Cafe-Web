@@ -115,19 +115,13 @@ export function MenuQRCode({
         className="p-6 bg-white rounded-lg border-2 border-gray-200 w-full max-w-sm"
       >
         <div className="text-center mb-4">
-          {vendor.logo_url && (
-            <div className="mb-2 flex justify-center">
-              <img
-                src={vendor.logo_url}
-                alt={vendor.name}
-                className="h-12 w-12 rounded-full object-cover border-2 border-gray-300"
-              />
-            </div>
-          )}
           <p className="text-lg font-semibold text-gray-800">{vendor.name}</p>
         </div>
         <div className="flex justify-center mb-4 max-w-full" data-qr-code>
-          <div className="p-2 bg-white rounded" style={{ maxWidth: 256 }}>
+          <div
+            className="relative bg-white rounded p-2"
+            style={{ width: 256, height: 256 }}
+          >
             <QRCode
               value={menuUrl}
               size={256}
@@ -136,6 +130,27 @@ export function MenuQRCode({
               fgColor="#000000"
               bgColor="#FFFFFF"
             />
+            {vendor.logo_url && (
+              <div
+                className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                style={{
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                }}
+              >
+                <div
+                  className="flex items-center justify-center rounded bg-white border-2 border-gray-200 shadow-sm"
+                  style={{ width: 56, height: 56 }}
+                >
+                  <img
+                    src={vendor.logo_url}
+                    alt={vendor.name}
+                    className="w-10 h-10 rounded object-cover"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
         <div className="text-center">
