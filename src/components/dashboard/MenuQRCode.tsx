@@ -5,7 +5,7 @@ import jsPDF from 'jspdf';
 import { Download, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { isWebView, getMediaProxyUrl } from '@/lib/api';
+import { isWebView } from '@/lib/api';
 
 export interface MenuQRCodeVendor {
   id: number;
@@ -55,9 +55,7 @@ export function MenuQRCode({
     let cancelled = false;
     const loadLogo = async () => {
       try {
-        // Prefer same-origin proxy to avoid CORS; fallback to direct URL (backend must send CORS)
-        const url = getMediaProxyUrl(vendor.logo_url!) ?? vendor.logo_url!;
-        const res = await fetch(url, { mode: 'cors', credentials: 'omit' });
+        const res = await fetch(vendor.logo_url!, { mode: 'cors', credentials: 'include' });
         if (!res.ok || cancelled) return;
         const blob = await res.blob();
         if (cancelled) return;
