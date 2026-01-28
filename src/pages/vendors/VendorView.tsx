@@ -201,14 +201,14 @@ export default function VendorView() {
       </div>
 
       <Dialog open={qrModalOpen} onOpenChange={setQrModalOpen}>
-        <DialogContent className="sm:max-w-md overflow-auto max-h-[90vh]">
+        <DialogContent className="max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-auto">
           <DialogHeader>
             <DialogTitle>Menu QR Code</DialogTitle>
             <DialogDescription>
               Scan this QR code to access the menu for {vendor.name}
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
+          <div className="py-3 sm:py-4">
             <MenuQRCode vendor={vendor} />
           </div>
         </DialogContent>

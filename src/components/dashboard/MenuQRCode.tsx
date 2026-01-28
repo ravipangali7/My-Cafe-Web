@@ -72,32 +72,10 @@ export function MenuQRCode({
   }, [vendor?.logo_url]);
   useEffect(() => { setLogoLoadError(false); }, [vendor?.logo_url]);
 
-  const isFlutterWebView = () => {
-    if (typeof window === 'undefined') return false;
-    const w = window as Window & { __FLUTTER_WEBVIEW__?: boolean };
-    return Boolean(w?.__FLUTTER_WEBVIEW__);
-  };
-
   const hasFlutterSaveFile = () => {
     if (typeof window === 'undefined') return false;
     const w = window as Window & { SaveFile?: { postMessage?: (msg: string) => void } };
     return Boolean(w?.SaveFile?.postMessage);
-  };
-
-  const hasOpenInBrowser = () => {
-    if (typeof window === 'undefined') return false;
-    const w = window as Window & { OpenInBrowser?: { postMessage?: (msg: string) => void } };
-    return Boolean(w?.OpenInBrowser?.postMessage);
-  };
-
-  const openQrInBrowser = () => {
-    const base = typeof window !== 'undefined' ? `${window.location.origin}/dashboard` : '';
-    const url = `${base}?openQr=1`;
-    const w = typeof window !== 'undefined' ? (window as Window & { OpenInBrowser?: { postMessage?: (msg: string) => void } }) : null;
-    if (w?.OpenInBrowser?.postMessage) {
-      w.OpenInBrowser.postMessage(url);
-      toast.info('Opening in browser to download');
-    }
   };
 
   const sendFileToFlutter = (dataUrl: string, filename: string, mimeType: string) => {
@@ -109,10 +87,6 @@ export function MenuQRCode({
 
   const handleDownloadPNG = async () => {
     if (!qrCodeRef.current) return;
-    if (isFlutterWebView() && hasOpenInBrowser()) {
-      openQrInBrowser();
-      return;
-    }
     const filename = `qr-code-${vendor?.phone || 'menu'}.png`;
     try {
       const canvas = await html2canvas(qrCodeRef.current, {
@@ -140,10 +114,6 @@ export function MenuQRCode({
 
   const handleDownloadPDF = async () => {
     if (!vendor || !qrCodeRef.current) return;
-    if (isFlutterWebView() && hasOpenInBrowser()) {
-      openQrInBrowser();
-      return;
-    }
     const filename = `qr-code-${vendor.phone || 'menu'}.pdf`;
     try {
       await new Promise((resolve) => setTimeout(resolve, 150));
