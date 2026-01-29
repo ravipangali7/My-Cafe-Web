@@ -1,9 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { ShoppingCart, Plus, Minus, X } from 'lucide-react';
+import { ShoppingCart, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { getFirebaseMessaging } from '@/lib/firebase-config';
@@ -61,7 +59,7 @@ export default function MenuPage() {
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orderModalOpen, setOrderModalOpen] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<string>('');
+  const [activeCategory, setActiveCategory] = useState<string>('all');
 
   const fetchMenu = useCallback(async () => {
     if (!vendorPhone) {
@@ -77,9 +75,6 @@ export default function MenuPage() {
         toast.error(response.error || 'Failed to load menu');
       } else if (response.data) {
         setMenuData(response.data);
-        if (response.data.categories.length > 0) {
-          setActiveCategory(response.data.categories[0].id.toString());
-        }
       }
     } catch (error) {
       toast.error('Failed to load menu');
@@ -184,157 +179,236 @@ export default function MenuPage() {
     return cart.reduce((sum, item) => sum + item.quantity, 0);
   };
 
+  // Get all products or filter by category
+  const getFilteredProducts = () => {
+    if (!menuData) return [];
+    
+    if (activeCategory === 'all') {
+      return menuData.categories.flatMap(cat => cat.products);
+    }
+    
+    const category = menuData.categories.find(cat => cat.id.toString() === activeCategory);
+    return category ? category.products : [];
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse text-muted-foreground">Loading menu...</div>
+      <div className="min-h-screen flex items-center justify-center bg-zinc-900">
+        <div className="animate-pulse text-zinc-400">Loading menu...</div>
       </div>
     );
   }
 
   if (!menuData) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-destructive">Menu not found</div>
+      <div className="min-h-screen flex items-center justify-center bg-zinc-900">
+        <div className="text-red-400">Menu not found</div>
       </div>
     );
   }
 
+  const filteredProducts = getFilteredProducts();
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-zinc-900">
       {/* Header */}
-      <div className="bg-primary text-primary-foreground p-4 sticky top-0 z-10 shadow-md">
+      <div className="bg-zinc-950 border-b border-zinc-800 p-4 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             {menuData.vendor.logo_url && (
               <img
                 src={menuData.vendor.logo_url}
                 alt={menuData.vendor.name}
-                className="h-12 w-12 rounded-full object-cover"
+                className="h-14 w-14 rounded-full object-cover border-2 border-orange-500"
               />
             )}
             <div>
-              <h1 className="text-2xl font-bold">{menuData.vendor.name}</h1>
-              <p className="text-sm opacity-90">Menu</p>
+              <h1 className="text-2xl md:text-3xl font-bold text-white tracking-wide">
+                {menuData.vendor.name}
+              </h1>
+              <p className="text-sm text-zinc-400">Our Menu</p>
             </div>
           </div>
           {cart.length > 0 && (
             <Button
-              variant="secondary"
               onClick={() => setOrderModalOpen(true)}
-              className="relative"
+              className="bg-orange-500 hover:bg-orange-600 text-white rounded-full px-6"
             >
               <ShoppingCart className="h-5 w-5 mr-2" />
-              Cart ({getCartItemCount()})
-              <Badge className="ml-2 bg-primary text-primary-foreground">
-                ₹{calculateTotal().toFixed(2)}
-              </Badge>
+              <span className="hidden sm:inline">Cart</span> ({getCartItemCount()})
+              <span className="ml-2 font-bold">₹{calculateTotal().toFixed(0)}</span>
             </Button>
           )}
         </div>
       </div>
 
+      {/* Category Pills */}
+      <div className="bg-zinc-900 border-b border-zinc-800 sticky top-[73px] z-10">
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            <button
+              onClick={() => setActiveCategory('all')}
+              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                activeCategory === 'all'
+                  ? 'bg-orange-500 text-white'
+                  : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+              }`}
+            >
+              All Items
+            </button>
+            {menuData.categories.map((category) => (
+              <button
+                key={category.id}
+                onClick={() => setActiveCategory(category.id.toString())}
+                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                  activeCategory === category.id.toString()
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                }`}
+              >
+                {category.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Menu Content */}
       <div className="max-w-7xl mx-auto p-4 pb-24">
-        {menuData.categories.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
+        {filteredProducts.length === 0 ? (
+          <div className="text-center py-12 text-zinc-500">
             No menu items available
           </div>
         ) : (
-          <Tabs value={activeCategory} onValueChange={setActiveCategory} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-6 mb-6">
-              {menuData.categories.map((category) => (
-                <TabsTrigger key={category.id} value={category.id.toString()}>
-                  {category.name}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredProducts.map((product) => {
+              // Get the first variant for display price
+              const primaryVariant = product.variants[0];
+              const price = primaryVariant
+                ? parseFloat(primaryVariant.discounted_price || primaryVariant.price)
+                : 0;
+              const hasDiscount = primaryVariant?.discount_type && primaryVariant?.discount_value;
+              const originalPrice = primaryVariant ? parseFloat(primaryVariant.price) : 0;
 
-            {menuData.categories.map((category) => (
-              <TabsContent key={category.id} value={category.id.toString()}>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {category.products.map((product) => (
-                    <Card key={product.id} className="overflow-hidden">
-                      <CardContent className="p-0">
-                        {product.image_url && (
-                          <div className="aspect-video w-full overflow-hidden bg-accent">
-                            <img
-                              src={product.image_url}
-                              alt={product.name}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
+              return (
+                <div
+                  key={product.id}
+                  className="bg-zinc-800 rounded-2xl flex overflow-hidden hover:bg-zinc-750 transition-all group"
+                >
+                  {/* Left: Product Image */}
+                  <div className="w-28 h-28 sm:w-32 sm:h-32 shrink-0 relative">
+                    {product.image_url ? (
+                      <img
+                        src={product.image_url}
+                        alt={product.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-zinc-700 flex items-center justify-center">
+                        <span className="text-zinc-500 text-xs">No Image</span>
+                      </div>
+                    )}
+                    {/* Veg/Non-veg indicator */}
+                    <div
+                      className={`absolute top-2 left-2 w-4 h-4 rounded-sm border-2 flex items-center justify-center ${
+                        product.type === 'veg'
+                          ? 'border-green-500 bg-white'
+                          : 'border-red-500 bg-white'
+                      }`}
+                    >
+                      <div
+                        className={`w-2 h-2 rounded-full ${
+                          product.type === 'veg' ? 'bg-green-500' : 'bg-red-500'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Right: Content */}
+                  <div className="flex-1 p-3 sm:p-4 flex flex-col justify-between min-w-0">
+                    <div>
+                      {/* Price Badge */}
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                          ₹{price.toFixed(0)}
+                        </span>
+                        {hasDiscount && (
+                          <span className="text-zinc-500 text-sm line-through">
+                            ₹{originalPrice.toFixed(0)}
+                          </span>
                         )}
-                        <div className="p-4">
-                          <div className="flex items-start justify-between mb-2">
-                            <h3 className="font-semibold text-lg">{product.name}</h3>
-                            <Badge
-                              variant={product.type === 'veg' ? 'default' : 'destructive'}
-                              className="ml-2"
-                            >
-                              {product.type === 'veg' ? 'Veg' : 'Non-Veg'}
-                            </Badge>
-                          </div>
+                      </div>
 
-                          <div className="space-y-2">
-                            {product.variants.map((variant) => {
-                              const hasDiscount = variant.discount_type && variant.discount_value;
-                              const price = parseFloat(variant.discounted_price || variant.price);
-                              const originalPrice = parseFloat(variant.price);
+                      {/* Product Name */}
+                      <h3 className="text-white font-bold text-base sm:text-lg uppercase tracking-wide leading-tight truncate">
+                        {product.name}
+                      </h3>
 
-                              return (
-                                <div
-                                  key={variant.id}
-                                  className="flex items-center justify-between p-2 border rounded-lg"
-                                >
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-medium">
-                                        {variant.unit_symbol} - ₹{price.toFixed(2)}
-                                      </span>
-                                      {hasDiscount && (
-                                        <span className="text-sm text-muted-foreground line-through">
-                                          ₹{originalPrice.toFixed(2)}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                  <Button
-                                    size="sm"
-                                    onClick={() => addToCart(product, variant)}
-                                  >
-                                    <Plus className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              );
-                            })}
-                          </div>
+                      {/* Variant info */}
+                      {primaryVariant && product.variants.length > 1 && (
+                        <p className="text-zinc-400 text-xs mt-1">
+                          {product.variants.length} variants available
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Add to Cart Button */}
+                    <div className="mt-2">
+                      {product.variants.length === 1 ? (
+                        <button
+                          onClick={() => addToCart(product, primaryVariant)}
+                          className="bg-zinc-700 hover:bg-orange-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1"
+                        >
+                          <Plus className="h-4 w-4" />
+                          Add
+                        </button>
+                      ) : (
+                        <div className="flex flex-wrap gap-1">
+                          {product.variants.slice(0, 2).map((variant) => {
+                            const variantPrice = parseFloat(
+                              variant.discounted_price || variant.price
+                            );
+                            return (
+                              <button
+                                key={variant.id}
+                                onClick={() => addToCart(product, variant)}
+                                className="bg-zinc-700 hover:bg-orange-500 text-white px-2 py-1 rounded-lg text-xs font-medium transition-all"
+                              >
+                                {variant.unit_symbol} ₹{variantPrice.toFixed(0)}
+                              </button>
+                            );
+                          })}
+                          {product.variants.length > 2 && (
+                            <span className="text-zinc-500 text-xs py-1">
+                              +{product.variants.length - 2} more
+                            </span>
+                          )}
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </TabsContent>
-            ))}
-          </Tabs>
+              );
+            })}
+          </div>
         )}
       </div>
 
       {/* Floating Cart Button */}
       {cart.length > 0 && (
-        <div className="fixed bottom-4 right-4 z-20">
+        <div className="fixed bottom-4 left-4 right-4 z-20 max-w-md mx-auto">
           <Button
             size="lg"
             onClick={() => setOrderModalOpen(true)}
-            className="rounded-full shadow-lg h-14 px-6"
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white rounded-full shadow-lg shadow-orange-500/20 h-14 text-base font-bold"
           >
             <ShoppingCart className="h-5 w-5 mr-2" />
-            Place Order (₹{calculateTotal().toFixed(2)})
+            Place Order ({getCartItemCount()} items) - ₹{calculateTotal().toFixed(0)}
           </Button>
         </div>
       )}
 
-      {/* Cart Sidebar / Modal */}
+      {/* Order Modal */}
       {orderModalOpen && (
         <OrderModal
           open={orderModalOpen}

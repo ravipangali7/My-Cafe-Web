@@ -114,6 +114,18 @@ export default function OrderView() {
     fetchOrder();
   }, [fetchOrder]);
 
+  // Auto-refresh when page becomes visible again (e.g., after accepting/rejecting order on mobile)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchOrder();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [fetchOrder]);
+
   const handleDelete = useCallback(async () => {
     if (!id) return;
     
