@@ -33,30 +33,6 @@ interface ProductCardProps {
   onVariantSelect: (productId: number, variantId: number) => void;
 }
 
-// Map variant unit symbols to size labels
-function getSizeLabel(symbol: string, index: number, total: number): string {
-  const lowerSymbol = symbol.toLowerCase();
-  
-  // Check for common size indicators
-  if (lowerSymbol.includes('small') || lowerSymbol === 's') return 'S';
-  if (lowerSymbol.includes('medium') || lowerSymbol === 'm') return 'M';
-  if (lowerSymbol.includes('large') || lowerSymbol === 'l') return 'L';
-  if (lowerSymbol.includes('xl') || lowerSymbol.includes('extra')) return 'XL';
-  
-  // If we have exactly 3 variants, map to S, M, L
-  if (total === 3) {
-    return ['S', 'M', 'L'][index] || symbol;
-  }
-  
-  // If we have exactly 2 variants, map to S, L
-  if (total === 2) {
-    return ['S', 'L'][index] || symbol;
-  }
-  
-  // Otherwise use the symbol or first letter
-  return symbol.length <= 3 ? symbol.toUpperCase() : symbol.charAt(0).toUpperCase();
-}
-
 export function ProductCard({
   product,
   cart,
@@ -123,11 +99,11 @@ export function ProductCard({
       {/* Price */}
       <div className="text-center mb-3">
         <span className="text-coral-500 font-bold text-lg">
-          ${price.toFixed(2)}
+          ₹{price.toFixed(2)}
         </span>
         {hasDiscount && (
           <span className="text-gray-400 text-sm line-through ml-2">
-            ${originalPrice.toFixed(2)}
+            ₹{originalPrice.toFixed(2)}
           </span>
         )}
       </div>
@@ -135,8 +111,7 @@ export function ProductCard({
       {/* Size Variants */}
       {product.variants.length > 1 && (
         <div className="flex justify-center gap-2 mb-3">
-          {product.variants.map((variant, index) => {
-            const sizeLabel = getSizeLabel(variant.unit_symbol, index, product.variants.length);
+          {product.variants.map((variant) => {
             const isSelected = variant.id === selectedVariantId;
             
             return (
@@ -144,14 +119,14 @@ export function ProductCard({
                 key={variant.id}
                 onClick={() => onVariantSelect(product.id, variant.id)}
                 className={cn(
-                  'w-8 h-8 rounded-full text-xs font-medium transition-all',
+                  'min-w-[40px] px-3 py-1.5 rounded-full text-sm font-medium transition-all',
                   isSelected
                     ? 'bg-coral-500 text-white shadow-sm'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 )}
-                title={`${variant.unit_name} - $${parseFloat(variant.discounted_price || variant.price).toFixed(2)}`}
+                title={`${variant.unit_name} - ₹${parseFloat(variant.discounted_price || variant.price).toFixed(2)}`}
               >
-                {sizeLabel}
+                {variant.unit_symbol}
               </button>
             );
           })}

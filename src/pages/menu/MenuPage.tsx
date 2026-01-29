@@ -374,7 +374,7 @@ export default function MenuPage() {
             className="w-full bg-coral-500 hover:bg-coral-600 text-white rounded-full shadow-lg shadow-coral-500/30 h-14 text-base font-bold"
           >
             <ShoppingCart className="h-5 w-5 mr-2" />
-            View Cart ({getCartItemCount()} items) - ${calculateTotal().toFixed(2)}
+            View Cart ({getCartItemCount()} items) - ₹{calculateTotal().toFixed(2)}
           </Button>
         </div>
       )}

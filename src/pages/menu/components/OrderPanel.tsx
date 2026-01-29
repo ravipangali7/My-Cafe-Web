@@ -199,7 +199,7 @@ export function OrderPanel({
                     {item.product.name}
                   </h4>
                   <p className="text-coral-500 font-semibold text-sm">
-                    ${(price * item.quantity).toFixed(2)}
+                    ₹{(price * item.quantity).toFixed(2)}
                   </p>
                 </div>
 
@@ -240,15 +240,15 @@ export function OrderPanel({
           <div className="space-y-2 text-sm">
             <div className="flex justify-between text-gray-600">
               <span>Sub Total</span>
-              <span className="font-medium">${subTotal.toFixed(2)}</span>
+              <span className="font-medium">₹{subTotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-gray-600">
               <span>Tax 10% (VAT Included)</span>
-              <span className="font-medium">${tax.toFixed(2)}</span>
+              <span className="font-medium">₹{tax.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-coral-500 font-bold text-base pt-2 border-t border-gray-100">
               <span>Total</span>
-              <span>${grandTotal.toFixed(2)}</span>
+              <span>₹{grandTotal.toFixed(2)}</span>
             </div>
           </div>
         )}
