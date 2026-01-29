@@ -19,6 +19,18 @@ export default {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        coral: {
+          50: "#fff5f5",
+          100: "#ffe4e1",
+          200: "#ffc9c2",
+          300: "#ffa599",
+          400: "#ff7b6b",
+          500: "#ff6b5b",
+          600: "#e55a4a",
+          700: "#cc4a3c",
+          800: "#a33d32",
+          900: "#7a2e26",
+        },
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",

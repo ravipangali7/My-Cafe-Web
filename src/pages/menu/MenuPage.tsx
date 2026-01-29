@@ -1,13 +1,16 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { ShoppingCart, Plus } from 'lucide-react';
+import { ShoppingCart, Search, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { getFirebaseMessaging } from '@/lib/firebase-config';
 import { onMessage } from 'firebase/messaging';
 import { toast } from 'sonner';
-import { OrderModal } from './components/OrderModal';
+import { CategoryPills } from './components/CategoryPills';
+import { ProductCard } from './components/ProductCard';
+import { OrderPanel } from './components/OrderPanel';
+import { cn } from '@/lib/utils';
 
 interface ProductVariant {
   id: number;
@@ -58,8 +61,10 @@ export default function MenuPage() {
   const [menuData, setMenuData] = useState<MenuData | null>(null);
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [orderModalOpen, setOrderModalOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedVariants, setSelectedVariants] = useState<Record<number, number>>({});
+  const [showMobileCart, setShowMobileCart] = useState(false);
 
   const fetchMenu = useCallback(async () => {
     if (!vendorPhone) {
@@ -92,17 +97,14 @@ export default function MenuPage() {
     const messaging = getFirebaseMessaging();
     if (messaging) {
       const unsubscribe = onMessage(messaging, (payload) => {
-        // Show browser notification when app is in foreground
         if (payload.notification) {
           const { title, body } = payload.notification;
           
-          // Show toast notification
           toast.info(title || 'New Notification', {
             description: body || '',
             duration: 5000,
           });
           
-          // Also show browser notification if permission is granted
           if (Notification.permission === 'granted') {
             new Notification(title || 'New Notification', {
               body: body || '',
@@ -179,30 +181,46 @@ export default function MenuPage() {
     return cart.reduce((sum, item) => sum + item.quantity, 0);
   };
 
-  // Get all products or filter by category
+  const handleVariantSelect = (productId: number, variantId: number) => {
+    setSelectedVariants(prev => ({ ...prev, [productId]: variantId }));
+  };
+
+  // Get all products or filter by category and search
   const getFilteredProducts = () => {
     if (!menuData) return [];
     
-    if (activeCategory === 'all') {
-      return menuData.categories.flatMap(cat => cat.products);
-    }
+    let products: Product[];
     
-    const category = menuData.categories.find(cat => cat.id.toString() === activeCategory);
-    return category ? category.products : [];
+    if (activeCategory === 'all') {
+      products = menuData.categories.flatMap(cat => cat.products);
+    } else {
+      const category = menuData.categories.find(cat => cat.id.toString() === activeCategory);
+      products = category ? category.products : [];
+    }
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      products = products.filter(p => 
+        p.name.toLowerCase().includes(query)
+      );
+    }
+
+    return products;
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-900">
-        <div className="animate-pulse text-zinc-400">Loading menu...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-coral-50 to-coral-100">
+        <div className="animate-pulse text-coral-500 font-medium">Loading menu...</div>
       </div>
     );
   }
 
   if (!menuData) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-900">
-        <div className="text-red-400">Menu not found</div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-coral-50 to-coral-100">
+        <div className="text-red-500 font-medium">Menu not found</div>
       </div>
     );
   }
@@ -210,220 +228,167 @@ export default function MenuPage() {
   const filteredProducts = getFilteredProducts();
 
   return (
-    <div className="min-h-screen bg-zinc-900">
+    <div className="min-h-screen bg-gradient-to-br from-coral-50 via-white to-coral-100">
       {/* Header */}
-      <div className="bg-zinc-950 border-b border-zinc-800 p-4 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <div className="bg-white/80 backdrop-blur-sm border-b border-coral-100 p-4 sticky top-0 z-20">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+          {/* Logo and Vendor Info */}
+          <div className="flex items-center gap-3">
             {menuData.vendor.logo_url && (
               <img
                 src={menuData.vendor.logo_url}
                 alt={menuData.vendor.name}
-                className="h-14 w-14 rounded-full object-cover border-2 border-orange-500"
+                className="h-12 w-12 rounded-full object-cover border-2 border-coral-200"
               />
             )}
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-white tracking-wide">
+              <h1 className="text-xl font-bold text-gray-800">
                 {menuData.vendor.name}
               </h1>
-              <p className="text-sm text-zinc-400">Our Menu</p>
+              <p className="text-sm text-gray-500">Our Menu</p>
             </div>
           </div>
+
+          {/* Search Bar */}
+          <div className="hidden md:flex flex-1 max-w-md mx-4">
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Search Categories or Menu..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 bg-gray-50 border-gray-200 focus:border-coral-300 focus:ring-coral-200 rounded-xl"
+              />
+            </div>
+          </div>
+
+          {/* Mobile Cart Button */}
           {cart.length > 0 && (
             <Button
-              onClick={() => setOrderModalOpen(true)}
-              className="bg-orange-500 hover:bg-orange-600 text-white rounded-full px-6"
+              onClick={() => setShowMobileCart(true)}
+              className="lg:hidden bg-coral-500 hover:bg-coral-600 text-white rounded-full px-4"
             >
               <ShoppingCart className="h-5 w-5 mr-2" />
-              <span className="hidden sm:inline">Cart</span> ({getCartItemCount()})
-              <span className="ml-2 font-bold">₹{calculateTotal().toFixed(0)}</span>
+              ({getCartItemCount()})
             </Button>
           )}
         </div>
-      </div>
 
-      {/* Category Pills */}
-      <div className="bg-zinc-900 border-b border-zinc-800 sticky top-[73px] z-10">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            <button
-              onClick={() => setActiveCategory('all')}
-              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-                activeCategory === 'all'
-                  ? 'bg-orange-500 text-white'
-                  : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
-              }`}
-            >
-              All Items
-            </button>
-            {menuData.categories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => setActiveCategory(category.id.toString())}
-                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-                  activeCategory === category.id.toString()
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
-                }`}
-              >
-                {category.name}
-              </button>
-            ))}
+        {/* Mobile Search */}
+        <div className="md:hidden mt-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Search Categories or Menu..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 bg-gray-50 border-gray-200 focus:border-coral-300 focus:ring-coral-200 rounded-xl"
+            />
           </div>
         </div>
       </div>
 
-      {/* Menu Content */}
-      <div className="max-w-7xl mx-auto p-4 pb-24">
-        {filteredProducts.length === 0 ? (
-          <div className="text-center py-12 text-zinc-500">
-            No menu items available
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredProducts.map((product) => {
-              // Get the first variant for display price
-              const primaryVariant = product.variants[0];
-              const price = primaryVariant
-                ? parseFloat(primaryVariant.discounted_price || primaryVariant.price)
-                : 0;
-              const hasDiscount = primaryVariant?.discount_type && primaryVariant?.discount_value;
-              const originalPrice = primaryVariant ? parseFloat(primaryVariant.price) : 0;
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto p-4 flex gap-6">
+        {/* Left Panel - Categories & Products */}
+        <div className="flex-1 min-w-0">
+          {/* Category Pills */}
+          <CategoryPills
+            categories={menuData.categories}
+            activeCategory={activeCategory}
+            onCategoryChange={setActiveCategory}
+          />
 
-              return (
-                <div
+          {/* Products Grid */}
+          {filteredProducts.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <p className="text-lg">No menu items found</p>
+              {searchQuery && (
+                <p className="text-sm mt-2">Try a different search term</p>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {filteredProducts.map((product) => (
+                <ProductCard
                   key={product.id}
-                  className="bg-zinc-800 rounded-2xl flex overflow-hidden hover:bg-zinc-750 transition-all group"
-                >
-                  {/* Left: Product Image */}
-                  <div className="w-28 h-28 sm:w-32 sm:h-32 shrink-0 relative">
-                    {product.image_url ? (
-                      <img
-                        src={product.image_url}
-                        alt={product.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-zinc-700 flex items-center justify-center">
-                        <span className="text-zinc-500 text-xs">No Image</span>
-                      </div>
-                    )}
-                    {/* Veg/Non-veg indicator */}
-                    <div
-                      className={`absolute top-2 left-2 w-4 h-4 rounded-sm border-2 flex items-center justify-center ${
-                        product.type === 'veg'
-                          ? 'border-green-500 bg-white'
-                          : 'border-red-500 bg-white'
-                      }`}
-                    >
-                      <div
-                        className={`w-2 h-2 rounded-full ${
-                          product.type === 'veg' ? 'bg-green-500' : 'bg-red-500'
-                        }`}
-                      />
-                    </div>
-                  </div>
+                  product={product}
+                  cart={cart}
+                  onAddToCart={addToCart}
+                  selectedVariants={selectedVariants}
+                  onVariantSelect={handleVariantSelect}
+                />
+              ))}
+            </div>
+          )}
+        </div>
 
-                  {/* Right: Content */}
-                  <div className="flex-1 p-3 sm:p-4 flex flex-col justify-between min-w-0">
-                    <div>
-                      {/* Price Badge */}
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">
-                          ₹{price.toFixed(0)}
-                        </span>
-                        {hasDiscount && (
-                          <span className="text-zinc-500 text-sm line-through">
-                            ₹{originalPrice.toFixed(0)}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Product Name */}
-                      <h3 className="text-white font-bold text-base sm:text-lg uppercase tracking-wide leading-tight truncate">
-                        {product.name}
-                      </h3>
-
-                      {/* Variant info */}
-                      {primaryVariant && product.variants.length > 1 && (
-                        <p className="text-zinc-400 text-xs mt-1">
-                          {product.variants.length} variants available
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Add to Cart Button */}
-                    <div className="mt-2">
-                      {product.variants.length === 1 ? (
-                        <button
-                          onClick={() => addToCart(product, primaryVariant)}
-                          className="bg-zinc-700 hover:bg-orange-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1"
-                        >
-                          <Plus className="h-4 w-4" />
-                          Add
-                        </button>
-                      ) : (
-                        <div className="flex flex-wrap gap-1">
-                          {product.variants.slice(0, 2).map((variant) => {
-                            const variantPrice = parseFloat(
-                              variant.discounted_price || variant.price
-                            );
-                            return (
-                              <button
-                                key={variant.id}
-                                onClick={() => addToCart(product, variant)}
-                                className="bg-zinc-700 hover:bg-orange-500 text-white px-2 py-1 rounded-lg text-xs font-medium transition-all"
-                              >
-                                {variant.unit_symbol} ₹{variantPrice.toFixed(0)}
-                              </button>
-                            );
-                          })}
-                          {product.variants.length > 2 && (
-                            <span className="text-zinc-500 text-xs py-1">
-                              +{product.variants.length - 2} more
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+        {/* Right Panel - Order Panel (Desktop) */}
+        <div className="hidden lg:block w-80 xl:w-96 flex-shrink-0">
+          <div className="sticky top-24">
+            <OrderPanel
+              cart={cart}
+              vendorPhone={vendorPhone || ''}
+              vendor={menuData.vendor}
+              onOrderPlaced={() => {
+                setCart([]);
+              }}
+              onUpdateQuantity={updateQuantity}
+              onRemoveFromCart={removeFromCart}
+              total={calculateTotal()}
+            />
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Floating Cart Button */}
+      {/* Mobile Floating Cart Button */}
       {cart.length > 0 && (
-        <div className="fixed bottom-4 left-4 right-4 z-20 max-w-md mx-auto">
+        <div className="fixed bottom-4 left-4 right-4 z-30 lg:hidden">
           <Button
             size="lg"
-            onClick={() => setOrderModalOpen(true)}
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white rounded-full shadow-lg shadow-orange-500/20 h-14 text-base font-bold"
+            onClick={() => setShowMobileCart(true)}
+            className="w-full bg-coral-500 hover:bg-coral-600 text-white rounded-full shadow-lg shadow-coral-500/30 h-14 text-base font-bold"
           >
             <ShoppingCart className="h-5 w-5 mr-2" />
-            Place Order ({getCartItemCount()} items) - ₹{calculateTotal().toFixed(0)}
+            View Cart ({getCartItemCount()} items) - ${calculateTotal().toFixed(2)}
           </Button>
         </div>
       )}
 
-      {/* Order Modal */}
-      {orderModalOpen && (
-        <OrderModal
-          open={orderModalOpen}
-          onOpenChange={setOrderModalOpen}
-          cart={cart}
-          vendorPhone={vendorPhone || ''}
-          vendor={menuData.vendor}
-          onOrderPlaced={() => {
-            setCart([]);
-            setOrderModalOpen(false);
-          }}
-          onUpdateQuantity={updateQuantity}
-          onRemoveFromCart={removeFromCart}
-          total={calculateTotal()}
-        />
+      {/* Mobile Cart Overlay */}
+      {showMobileCart && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setShowMobileCart(false)}
+          />
+          
+          {/* Cart Panel */}
+          <div className="absolute bottom-0 left-0 right-0 max-h-[85vh] overflow-y-auto bg-white rounded-t-3xl animate-in slide-in-from-bottom duration-300">
+            {/* Handle */}
+            <div className="sticky top-0 bg-white pt-3 pb-2 flex justify-center rounded-t-3xl">
+              <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
+            </div>
+            
+            <div className="px-4 pb-6">
+              <OrderPanel
+                cart={cart}
+                vendorPhone={vendorPhone || ''}
+                vendor={menuData.vendor}
+                onOrderPlaced={() => {
+                  setCart([]);
+                  setShowMobileCart(false);
+                }}
+                onUpdateQuantity={updateQuantity}
+                onRemoveFromCart={removeFromCart}
+                total={calculateTotal()}
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
