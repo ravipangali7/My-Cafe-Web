@@ -73,11 +73,8 @@ export function OrderPanel({
     year: 'numeric',
   });
 
-  // Calculate tax (10% VAT)
-  const taxRate = 0.10;
-  const subTotal = total;
-  const tax = subTotal * taxRate;
-  const grandTotal = subTotal + tax;
+  // Total amount (no tax)
+  const grandTotal = total;
 
   // Request FCM token
   useEffect(() => {
@@ -238,15 +235,7 @@ export function OrderPanel({
         {/* Price Summary */}
         {cart.length > 0 && (
           <div className="space-y-2 text-sm">
-            <div className="flex justify-between text-gray-600">
-              <span>Sub Total</span>
-              <span className="font-medium">₹{subTotal.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-gray-600">
-              <span>Tax 10% (VAT Included)</span>
-              <span className="font-medium">₹{tax.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-coral-500 font-bold text-base pt-2 border-t border-gray-100">
+            <div className="flex justify-between text-coral-500 font-bold text-base">
               <span>Total</span>
               <span>₹{grandTotal.toFixed(2)}</span>
             </div>
