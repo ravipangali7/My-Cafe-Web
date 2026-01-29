@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Plus, Minus, X, Banknote, CreditCard, Wallet } from 'lucide-react';
+import { Plus, Minus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { api } from '@/lib/api';
 import { getFCMTokenOnly } from '@/lib/fcm';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 
 interface ProductVariant {
   id: number;
@@ -50,8 +49,6 @@ interface OrderPanelProps {
   total: number;
 }
 
-type PaymentMethod = 'cash' | 'card' | 'ewallet';
-
 export function OrderPanel({
   cart,
   vendorPhone,
@@ -64,7 +61,6 @@ export function OrderPanel({
   const [guestName, setGuestName] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
   const [tableNo, setTableNo] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [submitting, setSubmitting] = useState(false);
   const [fcmToken, setFcmToken] = useState<string | null>(null);
 
@@ -120,7 +116,7 @@ export function OrderPanel({
         table_no: tableNo || '',
         status: 'pending',
         payment_status: 'pending',
-        payment_method: paymentMethod,
+        payment_method: 'cash',
         vendor_phone: vendorPhone,
         total: grandTotal.toFixed(2),
         items: JSON.stringify(
@@ -148,7 +144,6 @@ export function OrderPanel({
         setGuestName('');
         setGuestPhone('');
         setTableNo('');
-        setPaymentMethod('cash');
       }
     } catch (error) {
       toast.error('Failed to place order');
@@ -257,49 +252,6 @@ export function OrderPanel({
             </div>
           </div>
         )}
-
-        {/* Payment Method */}
-        <div>
-          <Label className="text-sm text-gray-600 mb-2 block">Payment Method</Label>
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              onClick={() => setPaymentMethod('cash')}
-              className={cn(
-                'flex flex-col items-center gap-1 p-3 rounded-xl border transition-all',
-                paymentMethod === 'cash'
-                  ? 'border-coral-500 bg-coral-50 text-coral-600'
-                  : 'border-gray-200 text-gray-500 hover:border-gray-300'
-              )}
-            >
-              <Banknote className="w-5 h-5" />
-              <span className="text-xs font-medium">Cash</span>
-            </button>
-            <button
-              onClick={() => setPaymentMethod('card')}
-              className={cn(
-                'flex flex-col items-center gap-1 p-3 rounded-xl border transition-all',
-                paymentMethod === 'card'
-                  ? 'border-coral-500 bg-coral-50 text-coral-600'
-                  : 'border-gray-200 text-gray-500 hover:border-gray-300'
-              )}
-            >
-              <CreditCard className="w-5 h-5" />
-              <span className="text-xs font-medium">Debit Card</span>
-            </button>
-            <button
-              onClick={() => setPaymentMethod('ewallet')}
-              className={cn(
-                'flex flex-col items-center gap-1 p-3 rounded-xl border transition-all',
-                paymentMethod === 'ewallet'
-                  ? 'border-coral-500 bg-coral-50 text-coral-600'
-                  : 'border-gray-200 text-gray-500 hover:border-gray-300'
-              )}
-            >
-              <Wallet className="w-5 h-5" />
-              <span className="text-xs font-medium">E-Wallet</span>
-            </button>
-          </div>
-        </div>
 
         {/* Customer Details */}
         <div className="space-y-3">

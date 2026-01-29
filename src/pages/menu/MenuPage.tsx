@@ -201,9 +201,31 @@ export default function MenuPage() {
     // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      products = products.filter(p => 
+      
+      // Find categories that match the search query
+      const matchingCategoryIds = menuData.categories
+        .filter(cat => cat.name.toLowerCase().includes(query))
+        .map(cat => cat.id);
+      
+      // Get all products from matching categories
+      const productsFromMatchingCategories = menuData.categories
+        .filter(cat => matchingCategoryIds.includes(cat.id))
+        .flatMap(cat => cat.products);
+      
+      // Filter products by name
+      const productsMatchingName = products.filter(p => 
         p.name.toLowerCase().includes(query)
       );
+      
+      // Combine both results and remove duplicates
+      const combinedProducts = [...productsMatchingName];
+      productsFromMatchingCategories.forEach(p => {
+        if (!combinedProducts.find(existing => existing.id === p.id)) {
+          combinedProducts.push(p);
+        }
+      });
+      
+      products = combinedProducts;
     }
 
     return products;
