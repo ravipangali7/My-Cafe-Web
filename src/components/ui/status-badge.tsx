@@ -27,8 +27,10 @@ export function StatusBadge({ status, variant = 'default' }: StatusBadgeProps) {
 export function getOrderStatusVariant(status: string): StatusBadgeProps['variant'] {
   switch (status) {
     case 'completed':
+    case 'ready':
       return 'success';
     case 'accepted':
+    case 'running':
       return 'warning';
     case 'rejected':
       return 'destructive';

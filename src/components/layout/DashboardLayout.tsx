@@ -15,7 +15,8 @@ import {
   Coffee,
   FileText,
   QrCode,
-  ShieldCheck
+  ShieldCheck,
+  Radio
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -147,21 +148,33 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         isMobile ? "pl-0" : "lg:pl-64"
       )}>
         {/* Top bar */}
-        <header className="sticky top-0 z-30 h-16 bg-card border-b border-border flex items-center px-4 lg:px-6">
-          {isMobile && (
-            <>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => setSidebarOpen(true)}
-              >
-                <Menu className="h-5 w-5" />
+        <header className="sticky top-0 z-30 h-16 bg-card border-b border-border flex items-center justify-between px-4 lg:px-6">
+          <div className="flex items-center">
+            {isMobile && (
+              <>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => setSidebarOpen(true)}
+                >
+                  <Menu className="h-5 w-5" />
+                </Button>
+                <Link to="/dashboard" className="flex items-center gap-2 ml-2">
+                  <Coffee className="h-6 w-6 text-foreground" />
+                  <span className="text-lg font-semibold text-foreground">My Cafe</span>
+                </Link>
+              </>
+            )}
+          </div>
+          
+          {/* Live Order Button - Only for vendors (non-superusers) */}
+          {!user?.is_superuser && (
+            <Link to="/live-orders">
+              <Button variant="default" size="sm" className="gap-2">
+                <Radio className="h-4 w-4" />
+                <span className="hidden sm:inline">Live Order</span>
               </Button>
-              <Link to="/dashboard" className="flex items-center gap-2 ml-2">
-                <Coffee className="h-6 w-6 text-foreground" />
-                <span className="text-lg font-semibold text-foreground">My Cafe</span>
-              </Link>
-            </>
+            </Link>
           )}
         </header>
 

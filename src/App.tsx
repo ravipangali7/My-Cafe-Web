@@ -39,6 +39,7 @@ import ProductForm from "./pages/products/ProductForm";
 import OrdersList from "./pages/orders/OrdersList";
 import OrderView from "./pages/orders/OrderView";
 import OrderForm from "./pages/orders/OrderForm";
+import LiveOrders from "./pages/orders/LiveOrders";
 
 // Transactions
 import TransactionsList from "./pages/transactions/TransactionsList";
@@ -300,6 +301,7 @@ const App = () => (
             <Route path="/orders/new" element={<ProtectedRoute><OrderForm /></ProtectedRoute>} />
             <Route path="/orders/:id" element={<ProtectedRoute><OrderView /></ProtectedRoute>} />
             <Route path="/orders/:id/edit" element={<ProtectedRoute><OrderForm /></ProtectedRoute>} />
+            <Route path="/live-orders" element={<ProtectedRoute><LiveOrders /></ProtectedRoute>} />
 
             {/* Transactions */}
             <Route path="/transactions" element={<ProtectedRoute><TransactionsList /></ProtectedRoute>} />
