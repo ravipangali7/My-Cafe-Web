@@ -1,0 +1,374 @@
+import { useEffect, useState, useCallback } from 'react';
+import { Wallet, Clock, CheckCircle, XCircle, Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { PageHeader } from '@/components/ui/page-header';
+import { DataTable } from '@/components/ui/data-table';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { FilterBar } from '@/components/ui/filter-bar';
+import { StatsCards } from '@/components/ui/stats-cards';
+import { SimplePagination } from '@/components/ui/simple-pagination';
+import { Card, CardContent } from '@/components/ui/card';
+import { api } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+import { ShareholderWithdrawal } from '@/lib/types';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+export default function WithdrawalsList() {
+  const { user } = useAuth();
+  const [withdrawals, setWithdrawals] = useState<ShareholderWithdrawal[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [appliedSearch, setAppliedSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [count, setCount] = useState(0);
+  const [stats, setStats] = useState({ pending: 0, approved: 0, failed: 0 });
+  
+  // Request withdrawal dialog
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [createForm, setCreateForm] = useState({ amount: '', remarks: '' });
+  const [creating, setCreating] = useState(false);
+  
+  // Approve/Reject dialog
+  const [selectedWithdrawal, setSelectedWithdrawal] = useState<ShareholderWithdrawal | null>(null);
+  const [rejectRemarks, setRejectRemarks] = useState('');
+  const [processing, setProcessing] = useState(false);
+
+  const fetchWithdrawals = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params: Record<string, string | number> = {
+        page,
+        page_size: pageSize,
+      };
+
+      if (appliedSearch) params.search = appliedSearch;
+      if (statusFilter) params.status = statusFilter;
+
+      const queryString = api.buildQueryString(params);
+      const response = await api.get<{
+        withdrawals: ShareholderWithdrawal[];
+        count: number;
+        total_pages: number;
+        stats: { pending: number; approved: number; failed: number };
+      }>(`/api/withdrawals/${queryString}`);
+
+      if (response.error) {
+        toast.error('Failed to fetch withdrawals');
+      } else if (response.data) {
+        setWithdrawals(response.data.withdrawals);
+        setCount(response.data.count);
+        setTotalPages(response.data.total_pages);
+        setStats(response.data.stats);
+      }
+    } catch (error) {
+      toast.error('Failed to fetch withdrawals');
+    } finally {
+      setLoading(false);
+    }
+  }, [page, pageSize, appliedSearch, statusFilter]);
+
+  useEffect(() => {
+    fetchWithdrawals();
+  }, [fetchWithdrawals]);
+
+  const handleApplyFilters = () => {
+    setAppliedSearch(search);
+    setPage(1);
+  };
+
+  const handleClearFilters = () => {
+    setSearch('');
+    setAppliedSearch('');
+    setStatusFilter('');
+    setPage(1);
+  };
+
+  const handleCreateWithdrawal = async () => {
+    if (!createForm.amount || parseInt(createForm.amount) <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+
+    setCreating(true);
+    try {
+      const response = await api.post('/api/withdrawals/create/', createForm);
+
+      if (response.error) {
+        toast.error(response.error);
+      } else {
+        toast.success('Withdrawal request created');
+        setShowCreateDialog(false);
+        setCreateForm({ amount: '', remarks: '' });
+        fetchWithdrawals();
+      }
+    } catch (error) {
+      toast.error('Failed to create withdrawal request');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleApprove = async (withdrawal: ShareholderWithdrawal) => {
+    setProcessing(true);
+    try {
+      const response = await api.post(`/api/withdrawals/${withdrawal.id}/approve/`);
+
+      if (response.error) {
+        toast.error(response.error);
+      } else {
+        toast.success('Withdrawal approved');
+        setSelectedWithdrawal(null);
+        fetchWithdrawals();
+      }
+    } catch (error) {
+      toast.error('Failed to approve withdrawal');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!selectedWithdrawal) return;
+
+    setProcessing(true);
+    try {
+      const response = await api.post(`/api/withdrawals/${selectedWithdrawal.id}/reject/`, {
+        remarks: rejectRemarks,
+      });
+
+      if (response.error) {
+        toast.error(response.error);
+      } else {
+        toast.success('Withdrawal rejected');
+        setSelectedWithdrawal(null);
+        setRejectRemarks('');
+        fetchWithdrawals();
+      }
+    } catch (error) {
+      toast.error('Failed to reject withdrawal');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const getStatusVariant = (status: string) => {
+    switch (status) {
+      case 'approved': return 'success';
+      case 'pending': return 'warning';
+      case 'failed': return 'destructive';
+      default: return 'default';
+    }
+  };
+
+  const columns = [
+    {
+      key: 'id',
+      label: 'ID',
+      render: (item: ShareholderWithdrawal) => `#${item.id}`,
+    },
+    ...(user?.is_superuser ? [{
+      key: 'user',
+      label: 'User',
+      render: (item: ShareholderWithdrawal) => {
+        if (!item.user_info) return '—';
+        return (
+          <div className="flex items-center gap-2">
+            {item.user_info.logo_url ? (
+              <img src={item.user_info.logo_url} alt={item.user_info.name} className="h-8 w-8 rounded-full object-cover" />
+            ) : (
+              <div className="h-8 w-8 rounded-full bg-accent flex items-center justify-center text-xs">
+                {item.user_info.name.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div>
+              <div className="font-medium text-sm">{item.user_info.name}</div>
+              <div className="text-xs text-muted-foreground">{item.user_info.phone}</div>
+            </div>
+          </div>
+        );
+      },
+    }] : []),
+    {
+      key: 'amount',
+      label: 'Amount',
+      render: (item: ShareholderWithdrawal) => `₹${item.amount.toLocaleString()}`,
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (item: ShareholderWithdrawal) => (
+        <StatusBadge status={item.status} variant={getStatusVariant(item.status)} />
+      ),
+    },
+    {
+      key: 'remarks',
+      label: 'Remarks',
+      render: (item: ShareholderWithdrawal) => item.remarks || '—',
+    },
+    {
+      key: 'created_at',
+      label: 'Created',
+      render: (item: ShareholderWithdrawal) => new Date(item.created_at).toLocaleString(),
+    },
+    ...(user?.is_superuser ? [{
+      key: 'actions',
+      label: 'Actions',
+      render: (item: ShareholderWithdrawal) => item.status === 'pending' ? (
+        <div className="flex gap-2">
+          <Button variant="ghost" size="sm" className="text-green-600" onClick={() => handleApprove(item)}>
+            <CheckCircle className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="sm" className="text-red-600" onClick={() => setSelectedWithdrawal(item)}>
+            <XCircle className="h-4 w-4" />
+          </Button>
+        </div>
+      ) : null,
+    }] : []),
+  ];
+
+  const statCards = [
+    { label: 'Pending', value: stats.pending, icon: Clock, color: 'text-yellow-600' },
+    { label: 'Approved', value: stats.approved, icon: CheckCircle, color: 'text-green-600' },
+    { label: 'Failed', value: stats.failed, icon: XCircle, color: 'text-red-600' },
+  ];
+
+  const canRequestWithdrawal = user?.is_shareholder && !user?.is_superuser;
+
+  return (
+    <DashboardLayout>
+      <PageHeader 
+        title="Withdrawals" 
+        description="Manage shareholder withdrawal requests"
+        action={canRequestWithdrawal && (
+          <Button onClick={() => setShowCreateDialog(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Request Withdrawal
+          </Button>
+        )}
+      />
+
+      <StatsCards stats={statCards} loading={loading} />
+
+      <FilterBar
+        search={search}
+        onSearchChange={setSearch}
+        onApply={handleApplyFilters}
+        onClear={handleClearFilters}
+        additionalFilters={
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="All Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All Status</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="approved">Approved</SelectItem>
+              <SelectItem value="failed">Failed</SelectItem>
+            </SelectContent>
+          </Select>
+        }
+      />
+
+      <Card className="mt-4">
+        <CardContent className="p-0">
+          <DataTable columns={columns} data={withdrawals} loading={loading} />
+        </CardContent>
+      </Card>
+
+      <SimplePagination
+        page={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        totalItems={count}
+      />
+
+      {/* Create Withdrawal Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Request Withdrawal</DialogTitle>
+            <DialogDescription>
+              Current balance: ₹{(user as any)?.balance?.toLocaleString() || 0}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Amount (₹)</Label>
+              <Input
+                type="number"
+                min="1"
+                value={createForm.amount}
+                onChange={(e) => setCreateForm({ ...createForm, amount: e.target.value })}
+                placeholder="Enter amount"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Remarks (Optional)</Label>
+              <Textarea
+                value={createForm.remarks}
+                onChange={(e) => setCreateForm({ ...createForm, remarks: e.target.value })}
+                placeholder="Add any notes..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>Cancel</Button>
+            <Button onClick={handleCreateWithdrawal} disabled={creating}>
+              {creating ? 'Submitting...' : 'Submit Request'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reject Withdrawal Dialog */}
+      <Dialog open={!!selectedWithdrawal} onOpenChange={() => setSelectedWithdrawal(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Withdrawal</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to reject this withdrawal request for ₹{selectedWithdrawal?.amount.toLocaleString()}?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Reason for rejection (Optional)</Label>
+              <Textarea
+                value={rejectRemarks}
+                onChange={(e) => setRejectRemarks(e.target.value)}
+                placeholder="Enter reason..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSelectedWithdrawal(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleReject} disabled={processing}>
+              {processing ? 'Rejecting...' : 'Reject'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </DashboardLayout>
+  );
+}

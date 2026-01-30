@@ -72,6 +72,11 @@ import QRStandOrdersList from "./pages/qr-stands/QRStandOrdersList";
 import QRStandOrderForm from "./pages/qr-stands/QRStandOrderForm";
 import QRStandOrderView from "./pages/qr-stands/QRStandOrderView";
 
+// Shareholders, Withdrawals, Dues
+import ShareholdersList from "./pages/shareholders/ShareholdersList";
+import WithdrawalsList from "./pages/withdrawals/WithdrawalsList";
+import DuesList from "./pages/dues/DuesList";
+
 // Menu (public)
 import MenuPage from "./pages/menu/MenuPage";
 
@@ -337,6 +342,11 @@ const App = () => (
             <Route path="/qr-stands" element={<ProtectedRoute><QRStandOrdersList /></ProtectedRoute>} />
             <Route path="/qr-stands/new" element={<ProtectedRoute><QRStandOrderForm /></ProtectedRoute>} />
             <Route path="/qr-stands/:id" element={<ProtectedRoute><QRStandOrderView /></ProtectedRoute>} />
+
+            {/* Shareholders, Withdrawals, Dues */}
+            <Route path="/shareholders" element={<ProtectedRoute><ShareholdersList /></ProtectedRoute>} />
+            <Route path="/withdrawals" element={<ProtectedRoute><WithdrawalsList /></ProtectedRoute>} />
+            <Route path="/dues" element={<ProtectedRoute><DuesList /></ProtectedRoute>} />
 
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />

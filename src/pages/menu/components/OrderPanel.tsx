@@ -47,6 +47,7 @@ interface OrderPanelProps {
   onUpdateQuantity: (productId: number, variantId: number, delta: number) => void;
   onRemoveFromCart: (productId: number, variantId: number) => void;
   total: number;
+  transactionFee?: number;
 }
 
 export function OrderPanel({
@@ -57,6 +58,7 @@ export function OrderPanel({
   onUpdateQuantity,
   onRemoveFromCart,
   total,
+  transactionFee = 0,
 }: OrderPanelProps) {
   const [guestName, setGuestName] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
@@ -73,8 +75,9 @@ export function OrderPanel({
     year: 'numeric',
   });
 
-  // Total amount (no tax)
-  const grandTotal = total;
+  // Calculate totals with transaction fee
+  const subtotal = total;
+  const grandTotal = total + transactionFee;
 
   // Request FCM token
   useEffect(() => {
@@ -107,6 +110,7 @@ export function OrderPanel({
 
     setSubmitting(true);
     try {
+      // Send subtotal without transaction fee - backend will add the fee
       const orderData: Record<string, unknown> = {
         name: guestName,
         phone: guestPhone,
@@ -115,7 +119,7 @@ export function OrderPanel({
         payment_status: 'pending',
         payment_method: 'cash',
         vendor_phone: vendorPhone,
-        total: grandTotal.toFixed(2),
+        total: subtotal.toFixed(2),
         items: JSON.stringify(
           cart.map((item) => ({
             product_id: item.product.id,
@@ -235,9 +239,21 @@ export function OrderPanel({
         {/* Price Summary */}
         {cart.length > 0 && (
           <div className="space-y-2 text-sm">
-            <div className="flex justify-between text-coral-500 font-bold text-base">
-              <span>Total</span>
-              <span>₹{grandTotal.toFixed(2)}</span>
+            <div className="flex justify-between text-gray-600">
+              <span>Subtotal</span>
+              <span>₹{subtotal.toFixed(2)}</span>
+            </div>
+            {transactionFee > 0 && (
+              <div className="flex justify-between text-gray-600">
+                <span>Service Charge</span>
+                <span>₹{transactionFee.toFixed(2)}</span>
+              </div>
+            )}
+            <div className="border-t border-gray-200 pt-2 mt-2">
+              <div className="flex justify-between text-coral-500 font-bold text-base">
+                <span>Total</span>
+                <span>₹{grandTotal.toFixed(2)}</span>
+              </div>
             </div>
           </div>
         )}

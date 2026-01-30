@@ -65,6 +65,19 @@ export default function MenuPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedVariants, setSelectedVariants] = useState<Record<number, number>>({});
   const [showMobileCart, setShowMobileCart] = useState(false);
+  const [transactionFee, setTransactionFee] = useState<number>(0);
+
+  // Fetch settings for transaction fee
+  const fetchSettings = useCallback(async () => {
+    try {
+      const response = await api.get<{ setting: { per_transaction_fee?: number } | null }>('/api/settings/');
+      if (response.data?.setting?.per_transaction_fee) {
+        setTransactionFee(response.data.setting.per_transaction_fee);
+      }
+    } catch (error) {
+      console.error('Failed to fetch settings:', error);
+    }
+  }, []);
 
   const fetchMenu = useCallback(async () => {
     if (!vendorPhone) {
@@ -90,7 +103,8 @@ export default function MenuPage() {
 
   useEffect(() => {
     fetchMenu();
-  }, [fetchMenu]);
+    fetchSettings();
+  }, [fetchMenu, fetchSettings]);
 
   // Set up foreground message handler for FCM notifications
   useEffect(() => {
@@ -360,6 +374,7 @@ export default function MenuPage() {
               onUpdateQuantity={updateQuantity}
               onRemoveFromCart={removeFromCart}
               total={calculateTotal()}
+              transactionFee={transactionFee}
             />
           </div>
         </div>
@@ -374,7 +389,7 @@ export default function MenuPage() {
             className="w-full bg-coral-500 hover:bg-coral-600 text-white rounded-full shadow-lg shadow-coral-500/30 h-14 text-base font-bold"
           >
             <ShoppingCart className="h-5 w-5 mr-2" />
-            View Cart ({getCartItemCount()} items) - ₹{calculateTotal().toFixed(2)}
+            View Cart ({getCartItemCount()} items) - ₹{(calculateTotal() + transactionFee).toFixed(2)}
           </Button>
         </div>
       )}
@@ -407,6 +422,7 @@ export default function MenuPage() {
                 onUpdateQuantity={updateQuantity}
                 onRemoveFromCart={removeFromCart}
                 total={calculateTotal()}
+                transactionFee={transactionFee}
               />
             </div>
           </div>

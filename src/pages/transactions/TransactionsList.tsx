@@ -23,6 +23,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 
+import { Transaction as TransactionType, TransactionCategory, TransactionType as TxnType, TRANSACTION_CATEGORY_LABELS, TRANSACTION_TYPE_LABELS } from '@/lib/types';
+
 interface Transaction {
   id: number;
   amount: string;
@@ -31,7 +33,11 @@ interface Transaction {
   utr: string | null;
   payer_name: string | null;
   created_at: string;
-  order_id: number;
+  order_id: number | null;
+  qr_stand_order_id: number | null;
+  transaction_type: TxnType;
+  transaction_category: TransactionCategory;
+  is_system: boolean;
   user_info?: {
     id: number;
     name: string;
@@ -181,16 +187,38 @@ export default function TransactionsList() {
     }
   };
 
+  const getTypeVariant = (type: TxnType) => {
+    return type === 'in' ? 'success' : 'destructive';
+  };
+
+  const getCategoryLabel = (category: TransactionCategory) => {
+    return TRANSACTION_CATEGORY_LABELS[category] || category;
+  };
+
   const columns = [
     {
       key: 'id',
-      label: 'Transaction ID',
+      label: 'ID',
       render: (item: Transaction) => `#${item.id}`,
     },
     {
-      key: 'order_id',
-      label: 'Order ID',
-      render: (item: Transaction) => `#${item.order_id}`,
+      key: 'transaction_type',
+      label: 'Type',
+      render: (item: Transaction) => (
+        <StatusBadge 
+          status={TRANSACTION_TYPE_LABELS[item.transaction_type] || item.transaction_type} 
+          variant={getTypeVariant(item.transaction_type)} 
+        />
+      ),
+    },
+    {
+      key: 'transaction_category',
+      label: 'Category',
+      render: (item: Transaction) => (
+        <span className="text-xs bg-accent px-2 py-1 rounded">
+          {getCategoryLabel(item.transaction_category)}
+        </span>
+      ),
     },
     ...(user?.is_superuser ? [{
       key: 'user',
@@ -221,7 +249,11 @@ export default function TransactionsList() {
     {
       key: 'amount',
       label: 'Amount',
-      render: (item: Transaction) => `₹${Number(item.amount).toFixed(2)}`,
+      render: (item: Transaction) => (
+        <span className={item.transaction_type === 'in' ? 'text-green-600' : 'text-red-600'}>
+          {item.transaction_type === 'in' ? '+' : '-'}₹{Number(item.amount).toFixed(2)}
+        </span>
+      ),
     },
     {
       key: 'status',
@@ -231,14 +263,20 @@ export default function TransactionsList() {
       ),
     },
     {
-      key: 'payer_name',
-      label: 'Payer',
-      render: (item: Transaction) => item.payer_name || '—',
+      key: 'is_system',
+      label: 'System',
+      render: (item: Transaction) => item.is_system ? (
+        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">System</span>
+      ) : '—',
     },
     {
-      key: 'utr',
-      label: 'UTR',
-      render: (item: Transaction) => item.utr || '—',
+      key: 'order_id',
+      label: 'Reference',
+      render: (item: Transaction) => {
+        if (item.order_id) return `Order #${item.order_id}`;
+        if (item.qr_stand_order_id) return `QR #${item.qr_stand_order_id}`;
+        return '—';
+      },
     },
     {
       key: 'created_at',
