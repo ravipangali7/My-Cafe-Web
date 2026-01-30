@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Users, 
+  Users2,
   Scale, 
   FolderOpen, 
   Package, 
@@ -16,7 +17,9 @@ import {
   FileText,
   QrCode,
   ShieldCheck,
-  Radio
+  Radio,
+  Banknote,
+  Wallet
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -39,6 +42,9 @@ const allNavItems = [
   { path: '/qr-stands', label: 'QR Stand Orders', icon: QrCode, superuserOnly: false },
   { path: '/transactions', label: 'Transactions', icon: Receipt, superuserOnly: false },
   { path: '/reports', label: 'Reports', icon: FileText, superuserOnly: false },
+  { path: '/shareholders', label: 'Shareholders', icon: Users2, superuserOnly: true },
+  { path: '/withdrawals', label: 'Withdrawals', icon: Banknote, superuserOnly: true },
+  { path: '/dues', label: 'Dues', icon: Wallet, superuserOnly: true },
   { path: '/kyc-management', label: 'KYC Management', icon: ShieldCheck, superuserOnly: true },
   { path: '/settings', label: 'Settings', icon: Settings, superuserOnly: true },
 ];
