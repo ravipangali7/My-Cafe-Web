@@ -38,7 +38,7 @@ export default function WithdrawalsList() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
@@ -64,7 +64,7 @@ export default function WithdrawalsList() {
       };
 
       if (appliedSearch) params.search = appliedSearch;
-      if (statusFilter) params.status = statusFilter;
+      if (statusFilter && statusFilter !== 'all') params.status = statusFilter;
 
       const queryString = api.buildQueryString(params);
       const response = await api.get<{
@@ -101,7 +101,7 @@ export default function WithdrawalsList() {
   const handleClearFilters = () => {
     setSearch('');
     setAppliedSearch('');
-    setStatusFilter('');
+    setStatusFilter('all');
     setPage(1);
   };
 
@@ -282,7 +282,7 @@ export default function WithdrawalsList() {
               <SelectValue placeholder="All Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Status</SelectItem>
+              <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="approved">Approved</SelectItem>
               <SelectItem value="failed">Failed</SelectItem>
