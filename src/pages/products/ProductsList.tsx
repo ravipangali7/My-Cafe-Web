@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { DataTable } from '@/components/ui/data-table';
 import { StatusBadge, getActiveStatusVariant } from '@/components/ui/status-badge';
 import { FilterBar } from '@/components/ui/filter-bar';
+import { DateFilterButtons, DateFilterType } from '@/components/ui/date-filter-buttons';
 import { StatsCards } from '@/components/ui/stats-cards';
 import { SimplePagination } from '@/components/ui/simple-pagination';
 import { Card, CardContent } from '@/components/ui/card';
@@ -61,6 +62,11 @@ export default function ProductsList() {
   const [appliedSearch, setAppliedSearch] = useState('');
   const [userId, setUserId] = useState<number | null>(null);
   const [appliedUserId, setAppliedUserId] = useState<number | null>(null);
+  const [dateFilter, setDateFilter] = useState<DateFilterType>('all');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+  const [appliedStartDate, setAppliedStartDate] = useState<string>('');
+  const [appliedEndDate, setAppliedEndDate] = useState<string>('');
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
@@ -89,6 +95,13 @@ export default function ProductsList() {
       if (appliedUserId && user.is_superuser) {
         params.user_id = appliedUserId;
       }
+      
+      if (appliedStartDate) {
+        params.start_date = appliedStartDate;
+      }
+      if (appliedEndDate) {
+        params.end_date = appliedEndDate;
+      }
 
       const response = await fetchPaginated<Product>('/api/products/', params);
       
@@ -104,7 +117,7 @@ export default function ProductsList() {
     } finally {
       setLoading(false);
     }
-  }, [user, page, pageSize, appliedSearch, appliedUserId]);
+  }, [user, page, pageSize, appliedSearch, appliedUserId, appliedStartDate, appliedEndDate]);
 
   const fetchStats = useCallback(async () => {
     if (!user) return;
@@ -158,6 +171,8 @@ export default function ProductsList() {
   const handleApplyFilters = () => {
     setAppliedSearch(search);
     setAppliedUserId(userId);
+    setAppliedStartDate(startDate);
+    setAppliedEndDate(endDate);
     setPage(1);
   };
 
@@ -166,7 +181,18 @@ export default function ProductsList() {
     setAppliedSearch('');
     setUserId(null);
     setAppliedUserId(null);
+    setDateFilter('all');
+    setStartDate('');
+    setEndDate('');
+    setAppliedStartDate('');
+    setAppliedEndDate('');
     setPage(1);
+  };
+
+  const handleDateFilterChange = (filter: DateFilterType, start?: string, end?: string) => {
+    setDateFilter(filter);
+    setStartDate(start || '');
+    setEndDate(end || '');
   };
 
   const columns = [
@@ -300,6 +326,18 @@ export default function ProductsList() {
         onApply={handleApplyFilters}
         onClear={handleClearFilters}
         showUserFilter={user?.is_superuser}
+        additionalFilters={
+          <div className="w-full">
+            <DateFilterButtons
+              activeFilter={dateFilter}
+              onFilterChange={handleDateFilterChange}
+              startDate={startDate}
+              endDate={endDate}
+              onStartDateChange={setStartDate}
+              onEndDateChange={setEndDate}
+            />
+          </div>
+        }
       />
 
       {isMobile ? (

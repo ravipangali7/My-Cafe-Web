@@ -8,6 +8,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FilterBar } from '@/components/ui/filter-bar';
+import { DateFilterButtons, DateFilterType } from '@/components/ui/date-filter-buttons';
 import { SimplePagination } from '@/components/ui/simple-pagination';
 import { Card, CardContent } from '@/components/ui/card';
 import { api, fetchPaginated, PaginatedResponse } from '@/lib/api';
@@ -59,6 +60,11 @@ export default function QRStandOrdersList() {
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
+  const [dateFilter, setDateFilter] = useState<DateFilterType>('all');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+  const [appliedStartDate, setAppliedStartDate] = useState<string>('');
+  const [appliedEndDate, setAppliedEndDate] = useState<string>('');
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
@@ -78,6 +84,13 @@ export default function QRStandOrdersList() {
       if (appliedSearch) {
         params.search = appliedSearch;
       }
+      
+      if (appliedStartDate) {
+        params.start_date = appliedStartDate;
+      }
+      if (appliedEndDate) {
+        params.end_date = appliedEndDate;
+      }
 
       const response = await fetchPaginated<QRStandOrder>('/api/qr-stands/orders/', params);
       
@@ -93,7 +106,13 @@ export default function QRStandOrdersList() {
     } finally {
       setLoading(false);
     }
-  }, [user, page, pageSize, appliedSearch]);
+  }, [user, page, pageSize, appliedSearch, appliedStartDate, appliedEndDate]);
+
+  const handleDateFilterChange = (filter: DateFilterType, start?: string, end?: string) => {
+    setDateFilter(filter);
+    setStartDate(start || '');
+    setEndDate(end || '');
+  };
 
   useEffect(() => {
     if (user) {
@@ -267,14 +286,33 @@ export default function QRStandOrdersList() {
         onSearchChange={setSearch}
         onApply={() => {
           setAppliedSearch(search);
+          setAppliedStartDate(startDate);
+          setAppliedEndDate(endDate);
           setPage(1);
         }}
         onClear={() => {
           setSearch('');
           setAppliedSearch('');
+          setDateFilter('all');
+          setStartDate('');
+          setEndDate('');
+          setAppliedStartDate('');
+          setAppliedEndDate('');
           setPage(1);
         }}
         showUserFilter={false}
+        additionalFilters={
+          <div className="w-full">
+            <DateFilterButtons
+              activeFilter={dateFilter}
+              onFilterChange={handleDateFilterChange}
+              startDate={startDate}
+              endDate={endDate}
+              onStartDateChange={setStartDate}
+              onEndDateChange={setEndDate}
+            />
+          </div>
+        }
       />
 
       {isMobile ? (

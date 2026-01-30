@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { FilterBar } from '@/components/ui/filter-bar';
+import { DateFilterButtons, DateFilterType } from '@/components/ui/date-filter-buttons';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -47,6 +48,7 @@ export function FinanceReport() {
   const { user } = useAuth();
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [dateFilter, setDateFilter] = useState<DateFilterType>('all');
   const [userId, setUserId] = useState<number | null>(null);
   const [appliedUserId, setAppliedUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
@@ -94,6 +96,12 @@ export function FinanceReport() {
     setAppliedUserId(null);
   };
 
+  const handleDateFilterChange = (filter: DateFilterType, start?: string, end?: string) => {
+    setDateFilter(filter);
+    if (start) setStartDate(start);
+    if (end) setEndDate(end);
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -109,7 +117,10 @@ export function FinanceReport() {
                 id="startDate"
                 type="date"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                  setDateFilter('custom');
+                }}
                 required
               />
             </div>
@@ -119,11 +130,20 @@ export function FinanceReport() {
                 id="endDate"
                 type="date"
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                onChange={(e) => {
+                  setEndDate(e.target.value);
+                  setDateFilter('custom');
+                }}
                 required
               />
             </div>
           </div>
+
+          <DateFilterButtons
+            activeFilter={dateFilter}
+            onFilterChange={handleDateFilterChange}
+            showDateInputs={false}
+          />
 
           {user?.is_superuser && (
             <FilterBar

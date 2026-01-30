@@ -5,6 +5,7 @@ interface User {
   id: number;
   name: string;
   phone: string;
+  country_code: string;
   logo_url: string | null;
   expire_date: string | null;
   is_active: boolean;
@@ -16,8 +17,8 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  signIn: (phone: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (name: string, phone: string, password: string, email?: string) => Promise<{ error: Error | null }>;
+  signIn: (phone: string, password: string, countryCode?: string) => Promise<{ error: Error | null }>;
+  signUp: (name: string, phone: string, password: string, countryCode?: string, email?: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -64,11 +65,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, [checkAuth]);
 
-  const signIn = useCallback(async (phone: string, password: string) => {
+  const signIn = useCallback(async (phone: string, password: string, countryCode: string = '91') => {
     try {
       const response = await api.post<{ user: User; message: string }>('/api/auth/login/', {
         phone,
         password,
+        country_code: countryCode,
       });
 
       if (response.error) {
@@ -86,12 +88,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const signUp = useCallback(async (name: string, phone: string, password: string, email?: string) => {
+  const signUp = useCallback(async (name: string, phone: string, password: string, countryCode: string = '91', email?: string) => {
     try {
       const response = await api.post<{ user: User; message: string }>('/api/auth/register/', {
         name,
         phone,
         password,
+        country_code: countryCode,
         email: email || '',
       });
 

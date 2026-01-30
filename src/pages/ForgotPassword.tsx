@@ -1,35 +1,50 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Coffee } from 'lucide-react';
+import { Coffee, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CountryCodeSelect } from '@/components/ui/country-code-select';
-import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/lib/api';
 import { toast } from 'sonner';
 
-export default function Login() {
+export default function ForgotPassword() {
   const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
   const [countryCode, setCountryCode] = useState('91');
   const [loading, setLoading] = useState(false);
-  const { signIn } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!phone) {
+      toast.error('Please enter your phone number');
+      return;
+    }
+    
     setLoading(true);
 
-    const { error } = await signIn(phone, password, countryCode);
+    try {
+      const response = await api.post<{ message: string; phone: string; country_code: string }>(
+        '/api/auth/forgot-password/',
+        { phone, country_code: countryCode }
+      );
 
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success('Welcome back!');
-      navigate('/dashboard');
+      if (response.error) {
+        toast.error(response.error);
+      } else if (response.data) {
+        toast.success(response.data.message);
+        // Navigate to OTP verification with phone and country code
+        navigate('/verify-otp', { 
+          state: { phone, countryCode } 
+        });
+      }
+    } catch (error) {
+      toast.error('Failed to send OTP. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -41,8 +56,10 @@ export default function Login() {
               <Coffee className="h-8 w-8 text-primary-foreground" />
             </div>
           </div>
-          <CardTitle className="text-2xl">Welcome to My Cafe</CardTitle>
-          <CardDescription>Sign in to manage your cafe</CardDescription>
+          <CardTitle className="text-2xl">Forgot Password</CardTitle>
+          <CardDescription>
+            Enter your phone number and we'll send you an OTP via WhatsApp
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -64,34 +81,18 @@ export default function Login() {
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
+            
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? 'Sending OTP...' : 'Send OTP'}
             </Button>
             
             <div className="text-center">
               <Link 
-                to="/forgot-password" 
-                className="text-sm text-primary hover:underline"
+                to="/login" 
+                className="text-sm text-muted-foreground hover:text-primary inline-flex items-center gap-1"
               >
-                Forgot Password?
-              </Link>
-            </div>
-            
-            <div className="text-center text-sm text-muted-foreground">
-              Don't have an account?{' '}
-              <Link to="/register" className="text-primary hover:underline">
-                Sign Up
+                <ArrowLeft className="h-4 w-4" />
+                Back to Login
               </Link>
             </div>
           </form>

@@ -11,6 +11,10 @@ import { toast } from "sonner";
 
 // Auth pages
 import Login from "./pages/Login";
+import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
+import OTPVerification from "./pages/OTPVerification";
+import ResetPassword from "./pages/ResetPassword";
 
 // Dashboard
 import Dashboard from "./pages/Dashboard";
@@ -266,6 +270,10 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+            <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+            <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+            <Route path="/verify-otp" element={<PublicRoute><OTPVerification /></PublicRoute>} />
+            <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
             <Route path="/menu/:vendorPhone" element={<MenuPage />} />
             <Route path="/qr/:vendorPhone" element={<QRPage />} />
 
