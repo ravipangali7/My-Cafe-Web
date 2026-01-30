@@ -235,10 +235,17 @@ export function MenuQRCode({
         </h1>
         {/* Subtitle */}
         <p
-          className="text-center uppercase tracking-widest text-xs mb-4"
+          className="text-center uppercase tracking-widest text-xs mb-3"
           style={{ color: 'rgba(255,255,255,0.9)', letterSpacing: '0.2em', fontSize: 10 }}
         >
           Menu QR Code
+        </p>
+        {/* Scan & Order Now - call to action */}
+        <p
+          className="text-center font-semibold tracking-wide mb-3"
+          style={{ color: gold, fontSize: 16, letterSpacing: '0.05em' }}
+        >
+          Scan &amp; Order Now
         </p>
         {/* QR code with gold border */}
         <div
