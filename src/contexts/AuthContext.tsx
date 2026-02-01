@@ -10,6 +10,7 @@ interface User {
   expire_date: string | null;
   is_active: boolean;
   is_superuser: boolean;
+  due_balance: number;
   created_at: string;
   updated_at: string;
 }

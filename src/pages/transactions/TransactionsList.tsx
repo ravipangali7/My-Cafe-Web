@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, Receipt, DollarSign } from 'lucide-react';
+import { Eye, Receipt, DollarSign, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/ui/page-header';
@@ -11,6 +11,9 @@ import { DateFilterButtons, DateFilterType } from '@/components/ui/date-filter-b
 import { StatsCards } from '@/components/ui/stats-cards';
 import { SimplePagination } from '@/components/ui/simple-pagination';
 import { Card, CardContent } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+type TransactionFilterType = 'system' | 'all_users' | 'individual';
 import { api, fetchPaginated, PaginatedResponse } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -62,6 +65,8 @@ export default function TransactionsList() {
   const [endDate, setEndDate] = useState<string>('');
   const [appliedStartDate, setAppliedStartDate] = useState<string>('');
   const [appliedEndDate, setAppliedEndDate] = useState<string>('');
+  const [transactionFilter, setTransactionFilter] = useState<TransactionFilterType>('all_users');
+  const [appliedTransactionFilter, setAppliedTransactionFilter] = useState<TransactionFilterType>('all_users');
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
@@ -86,8 +91,18 @@ export default function TransactionsList() {
         params.search = appliedSearch;
       }
       
-      if (appliedUserId && user.is_superuser) {
-        params.user_id = appliedUserId;
+      // Apply transaction filter (superuser only)
+      if (user.is_superuser) {
+        if (appliedTransactionFilter === 'system') {
+          params.is_system = 'true';
+        } else if (appliedTransactionFilter === 'all_users') {
+          params.is_system = 'false';
+        } else if (appliedTransactionFilter === 'individual') {
+          params.is_system = 'false';
+          if (appliedUserId) {
+            params.user_id = appliedUserId;
+          }
+        }
       }
       
       if (appliedStartDate) {
@@ -111,7 +126,7 @@ export default function TransactionsList() {
     } finally {
       setLoading(false);
     }
-  }, [user, page, pageSize, appliedSearch, appliedUserId, appliedStartDate, appliedEndDate]);
+  }, [user, page, pageSize, appliedSearch, appliedUserId, appliedStartDate, appliedEndDate, appliedTransactionFilter]);
 
   const fetchStats = useCallback(async () => {
     if (!user) return;
@@ -151,6 +166,7 @@ export default function TransactionsList() {
     setAppliedUserId(userId);
     setAppliedStartDate(startDate);
     setAppliedEndDate(endDate);
+    setAppliedTransactionFilter(transactionFilter);
     setPage(1);
   };
 
@@ -164,6 +180,8 @@ export default function TransactionsList() {
     setEndDate('');
     setAppliedStartDate('');
     setAppliedEndDate('');
+    setTransactionFilter('all_users');
+    setAppliedTransactionFilter('all_users');
     setPage(1);
   };
 
@@ -305,9 +323,29 @@ export default function TransactionsList() {
         onUserIdChange={setUserId}
         onApply={handleApplyFilters}
         onClear={handleClearFilters}
-        showUserFilter={user?.is_superuser}
+        showUserFilter={user?.is_superuser && transactionFilter === 'individual'}
         additionalFilters={
-          <div className="w-full">
+          <div className="w-full space-y-4">
+            {user?.is_superuser && (
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="w-full md:w-48">
+                  <Select
+                    value={transactionFilter}
+                    onValueChange={(value: TransactionFilterType) => setTransactionFilter(value)}
+                  >
+                    <SelectTrigger>
+                      <Filter className="h-4 w-4 mr-2" />
+                      <SelectValue placeholder="Filter transactions" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="system">System</SelectItem>
+                      <SelectItem value="all_users">All Users</SelectItem>
+                      <SelectItem value="individual">Individual User</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
             <DateFilterButtons
               activeFilter={dateFilter}
               onFilterChange={handleDateFilterChange}

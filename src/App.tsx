@@ -76,6 +76,7 @@ import QRStandOrderView from "./pages/qr-stands/QRStandOrderView";
 import ShareholdersList from "./pages/shareholders/ShareholdersList";
 import WithdrawalsList from "./pages/withdrawals/WithdrawalsList";
 import DuesList from "./pages/dues/DuesList";
+import PayDues from "./pages/dues/PayDues";
 
 // Menu (public)
 import MenuPage from "./pages/menu/MenuPage";
@@ -169,6 +170,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const [kycStatus, setKycStatus] = useState<string | null>(null);
   const [subscriptionState, setSubscriptionState] = useState<string | null>(null);
   const [isSubscriptionFeeEnabled, setIsSubscriptionFeeEnabled] = useState<boolean>(true);
+  const [isDueBlocked, setIsDueBlocked] = useState<boolean>(false);
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
@@ -202,6 +204,19 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
             setSubscriptionState(subResponse.data.subscription_state);
             // Set whether subscription fee is enabled from backend settings
             setIsSubscriptionFeeEnabled(subResponse.data.is_subscription_fee ?? true);
+            
+            // If subscription is valid, check due status
+            const subState = subResponse.data.subscription_state;
+            const subFeeEnabled = subResponse.data.is_subscription_fee ?? true;
+            const needsSubscription = subFeeEnabled && (subState === 'no_subscription' || subState === 'expired');
+            
+            if (!needsSubscription) {
+              // Check due threshold status
+              const dueResponse = await api.get<{ due_balance: number; due_threshold: number; is_blocked: boolean }>('/api/dues/status/');
+              if (!dueResponse.error && dueResponse.data) {
+                setIsDueBlocked(dueResponse.data.is_blocked);
+              }
+            }
           }
         }
       } catch (error) {
@@ -243,6 +258,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       return <Navigate to="/subscription" replace />;
     }
     // Allow access for active subscriptions or inactive_with_date (user needs to contact admin)
+  }
+
+  // Check due threshold - if blocked, redirect to pay-dues page
+  if (isDueBlocked && location.pathname !== '/pay-dues') {
+    return <Navigate to="/pay-dues" replace />;
   }
 
   return <VendorProvider>{children}</VendorProvider>;
@@ -351,6 +371,7 @@ const App = () => (
             <Route path="/shareholders" element={<ProtectedRoute><ShareholdersList /></ProtectedRoute>} />
             <Route path="/withdrawals" element={<ProtectedRoute><WithdrawalsList /></ProtectedRoute>} />
             <Route path="/dues" element={<ProtectedRoute><DuesList /></ProtectedRoute>} />
+            <Route path="/pay-dues" element={<ProtectedRoute><PayDues /></ProtectedRoute>} />
 
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
