@@ -45,8 +45,7 @@ export default function PayDues() {
       return;
     }
 
-    const minimumPayment = Math.max(0, dueStatus.due_balance - dueStatus.due_threshold + 1);
-    if (minimumPayment <= 0) {
+    if (dueStatus.due_balance <= 0) {
       toast.error('No payment required');
       return;
     }
@@ -54,7 +53,7 @@ export default function PayDues() {
     setProcessing(true);
     try {
       const payload: Record<string, string | number> = {
-        amount: minimumPayment,
+        amount: dueStatus.due_balance,
       };
 
       const response = await api.post<{
@@ -109,8 +108,6 @@ export default function PayDues() {
     );
   }
 
-  const minimumPaymentToUnblock = Math.max(0, dueStatus.due_balance - dueStatus.due_threshold + 1);
-
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
@@ -149,14 +146,6 @@ export default function PayDues() {
                 ₹{dueStatus.due_balance.toLocaleString()}
               </p>
             </div>
-            
-            {minimumPaymentToUnblock > 0 && (
-              <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-900 rounded-lg p-4">
-                <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                  Pay at least <span className="font-bold">₹{minimumPaymentToUnblock.toLocaleString()}</span> to regain full access
-                </p>
-              </div>
-            )}
 
             {/* Payment Button */}
             {paymentSuccess ? (
@@ -176,14 +165,14 @@ export default function PayDues() {
                 className="w-full" 
                 size="lg"
                 onClick={handlePayment}
-                disabled={processing || minimumPaymentToUnblock <= 0}
+                disabled={processing || dueStatus.due_balance <= 0}
               >
                 {processing ? (
                   <>Processing...</>
                 ) : (
                   <>
                     <CreditCard className="h-4 w-4 mr-2" />
-                    Pay ₹{minimumPaymentToUnblock.toLocaleString()}
+                    Pay ₹{dueStatus.due_balance.toLocaleString()}
                   </>
                 )}
               </Button>

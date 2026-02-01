@@ -1,8 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { AlertTriangle, Wallet, Users, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/ui/page-header';
 import { DataTable } from '@/components/ui/data-table';
@@ -40,7 +38,6 @@ export default function DuesList() {
   
   // Payment dialog
   const [payingVendor, setPayingVendor] = useState<VendorDue | null>(null);
-  const [paymentAmount, setPaymentAmount] = useState('');
   const [processing, setProcessing] = useState(false);
 
   const fetchDues = useCallback(async () => {
@@ -98,11 +95,11 @@ export default function DuesList() {
   };
 
   const handlePay = async () => {
-    if (!payingVendor || !paymentAmount) return;
+    if (!payingVendor) return;
 
-    const amount = parseInt(paymentAmount);
-    if (amount <= 0 || amount > payingVendor.due_balance) {
-      toast.error('Invalid payment amount');
+    const amount = payingVendor.due_balance;
+    if (amount <= 0) {
+      toast.error('No dues to collect');
       return;
     }
 
@@ -118,7 +115,6 @@ export default function DuesList() {
       } else {
         toast.success('Due payment processed successfully');
         setPayingVendor(null);
-        setPaymentAmount('');
         fetchDues();
       }
     } catch (error) {
@@ -130,7 +126,6 @@ export default function DuesList() {
 
   const openPayDialog = (vendor: VendorDue) => {
     setPayingVendor(vendor);
-    setPaymentAmount(String(vendor.due_balance));
   };
 
   const columns = [
@@ -239,25 +234,17 @@ export default function DuesList() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Payment Amount (₹)</Label>
-              <Input
-                type="number"
-                min="1"
-                max={payingVendor?.due_balance}
-                value={paymentAmount}
-                onChange={(e) => setPaymentAmount(e.target.value)}
-                placeholder="Enter amount"
-              />
-              <p className="text-xs text-muted-foreground">
-                Maximum: ₹{payingVendor?.due_balance.toLocaleString()}
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+              <p className="text-sm text-amber-700 dark:text-amber-300">Full payment to be collected</p>
+              <p className="text-2xl font-bold text-red-600">
+                ₹{payingVendor?.due_balance.toLocaleString()}
               </p>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPayingVendor(null)}>Cancel</Button>
             <Button onClick={handlePay} disabled={processing}>
-              {processing ? 'Processing...' : 'Process Payment'}
+              {processing ? 'Processing...' : `Collect ₹${payingVendor?.due_balance.toLocaleString()}`}
             </Button>
           </DialogFooter>
         </DialogContent>
