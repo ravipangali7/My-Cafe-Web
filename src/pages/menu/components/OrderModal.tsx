@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Plus, Minus, X, ShoppingCart } from 'lucide-react';
+import { Plus, Minus, X, ShoppingCart, Loader2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { getFCMTokenOnly } from '@/lib/fcm';
 import { toast } from 'sonner';
+import { initiateOrderPayment, redirectToPayment } from '@/services/paymentService';
 
 interface ProductVariant {
   id: number;
@@ -129,6 +130,9 @@ export function OrderModal({
       return;
     }
 
+    const customerName = orderType === 'user' ? userName : guestName;
+    const customerPhone = orderType === 'user' ? userPhone : guestPhone;
+
     if (orderType === 'user') {
       if (!selectedUser) {
         toast.error('Please search and select a user');
@@ -144,8 +148,8 @@ export function OrderModal({
     setSubmitting(true);
     try {
       const orderData: any = {
-        name: orderType === 'user' ? userName : guestName,
-        phone: orderType === 'user' ? userPhone : guestPhone,
+        name: customerName,
+        phone: customerPhone,
         table_no: tableNo,
         status: 'pending',
         payment_status: 'pending',
@@ -165,21 +169,43 @@ export function OrderModal({
         orderData.fcm_token = fcmToken;
       }
 
-      const response = await api.post<{ order: any }>('/api/orders/create/', orderData);
+      const response = await api.post<{ order: { id: number } }>('/api/orders/create/', orderData);
 
       if (response.error) {
         toast.error(response.error || 'Failed to place order');
-      } else {
-        toast.success('Order placed successfully!');
+        return;
+      }
+
+      const orderId = response.data?.order?.id;
+      if (!orderId) {
+        toast.error('Failed to get order ID');
+        return;
+      }
+
+      // Initiate UG payment
+      toast.info('Initiating payment...');
+      const paymentResult = await initiateOrderPayment(
+        orderId,
+        total.toFixed(2),
+        customerName,
+        customerPhone
+      );
+
+      if (paymentResult.error) {
+        toast.error(paymentResult.error || 'Failed to initiate payment');
+        // Order was created but payment failed - still notify
+        toast.info('Order created. Please complete payment later.');
         onOrderPlaced();
-        // Reset form
-        setOrderType('guest');
-        setUserPhone('');
-        setUserName('');
-        setGuestName('');
-        setGuestPhone('');
-        setTableNo('');
-        setSelectedUser(null);
+        return;
+      }
+
+      if (paymentResult.data?.payment_url) {
+        toast.success('Redirecting to payment...');
+        // Redirect to UG payment page
+        redirectToPayment(paymentResult.data.payment_url);
+      } else {
+        toast.error('Payment URL not received');
+        onOrderPlaced();
       }
     } catch (error) {
       toast.error('Failed to place order');
@@ -328,7 +354,14 @@ export function OrderModal({
             className="w-full"
             size="lg"
           >
-            {submitting ? 'Placing Order...' : 'Place Order'}
+            {submitting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              'Place Order & Pay'
+            )}
           </Button>
         </div>
       </DialogContent>

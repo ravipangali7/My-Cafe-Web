@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Plus, Minus, X } from 'lucide-react';
+import { Plus, Minus, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { api } from '@/lib/api';
 import { getFCMTokenOnly } from '@/lib/fcm';
 import { toast } from 'sonner';
+import { initiateOrderPayment, redirectToPayment } from '@/services/paymentService';
 
 interface ProductVariant {
   id: number;
@@ -134,17 +135,43 @@ export function OrderPanel({
         orderData.fcm_token = fcmToken;
       }
 
-      const response = await api.post<{ order: unknown }>('/api/orders/create/', orderData);
+      const response = await api.post<{ order: { id: number } }>('/api/orders/create/', orderData);
 
       if (response.error) {
         toast.error(response.error || 'Failed to place order');
-      } else {
-        toast.success('Order placed successfully!');
+        return;
+      }
+
+      const orderId = response.data?.order?.id;
+      if (!orderId) {
+        toast.error('Failed to get order ID');
+        return;
+      }
+
+      // Initiate UG payment
+      toast.info('Initiating payment...');
+      const paymentResult = await initiateOrderPayment(
+        orderId,
+        grandTotal.toFixed(2),
+        guestName,
+        guestPhone
+      );
+
+      if (paymentResult.error) {
+        toast.error(paymentResult.error || 'Failed to initiate payment');
+        // Order was created but payment failed - still notify
+        toast.info('Order created. Please complete payment later.');
         onOrderPlaced();
-        // Reset form
-        setGuestName('');
-        setGuestPhone('');
-        setTableNo('');
+        return;
+      }
+
+      if (paymentResult.data?.payment_url) {
+        toast.success('Redirecting to payment...');
+        // Redirect to UG payment page
+        redirectToPayment(paymentResult.data.payment_url);
+      } else {
+        toast.error('Payment URL not received');
+        onOrderPlaced();
       }
     } catch (error) {
       toast.error('Failed to place order');
@@ -305,7 +332,14 @@ export function OrderPanel({
           className="w-full bg-coral-500 hover:bg-coral-600 text-white py-3 rounded-xl font-semibold"
           size="lg"
         >
-          {submitting ? 'Placing Order...' : 'Place Order'}
+          {submitting ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Processing...
+            </>
+          ) : (
+            'Place Order & Pay'
+          )}
         </Button>
       </div>
     </div>

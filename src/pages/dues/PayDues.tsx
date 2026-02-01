@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { AlertTriangle, CreditCard, Wallet, CheckCircle } from 'lucide-react';
+import { AlertTriangle, CreditCard, Wallet, CheckCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { initiateDuesPayment, redirectToPayment } from '@/services/paymentService';
 
 interface DueStatus {
   due_balance: number;
@@ -53,41 +54,33 @@ export default function PayDues() {
       return;
     }
 
+    if (!user) {
+      toast.error('User not found');
+      return;
+    }
+
     setProcessing(true);
     try {
-      const payload: Record<string, string | number> = {
-        amount: dueStatus.due_balance,
-      };
+      // Initiate UG payment for dues
+      toast.info('Initiating payment...');
+      const paymentResult = await initiateDuesPayment(
+        user.id,
+        dueStatus.due_balance.toString(),
+        user.name,
+        user.phone
+      );
 
-      const response = await api.post<{
-        message: string;
-        remaining_dues: number;
-        transaction_id: number;
-      }>('/api/dues/pay/', payload);
+      if (paymentResult.error) {
+        toast.error(paymentResult.error || 'Failed to initiate payment');
+        return;
+      }
 
-      if (response.error) {
-        toast.error(response.error);
-      } else if (response.data) {
-        setPaymentSuccess(true);
-        toast.success('Payment processed successfully');
-        
-        // Check if user is no longer blocked
-        const newDueBalance = response.data.remaining_dues;
-        if (newDueBalance <= dueStatus.due_threshold) {
-          // User is unblocked, redirect to dashboard after a short delay
-          // Using window.location.href to force a full page reload so ProtectedRoute re-checks due status
-          setTimeout(() => {
-            window.location.href = '/dashboard';
-          }, 2000);
-        } else {
-          // Update due status
-          setDueStatus({
-            ...dueStatus,
-            due_balance: newDueBalance,
-            is_blocked: newDueBalance > dueStatus.due_threshold,
-          });
-          setPaymentSuccess(false);
-        }
+      if (paymentResult.data?.payment_url) {
+        toast.success('Redirecting to payment...');
+        // Redirect to UG payment page
+        redirectToPayment(paymentResult.data.payment_url);
+      } else {
+        toast.error('Payment URL not received');
       }
     } catch (error) {
       toast.error('Failed to process payment');
@@ -172,7 +165,10 @@ export default function PayDues() {
                 disabled={processing || dueStatus.due_balance <= 0}
               >
                 {processing ? (
-                  <>Processing...</>
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Processing...
+                  </>
                 ) : (
                   <>
                     <CreditCard className="h-4 w-4 mr-2" />

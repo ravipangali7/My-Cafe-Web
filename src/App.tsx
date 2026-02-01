@@ -78,6 +78,9 @@ import WithdrawalsList from "./pages/withdrawals/WithdrawalsList";
 import DuesList from "./pages/dues/DuesList";
 import PayDues from "./pages/dues/PayDues";
 
+// Payment
+import PaymentStatus from "./pages/payment/PaymentStatus";
+
 // Menu (public)
 import MenuPage from "./pages/menu/MenuPage";
 
@@ -372,6 +375,11 @@ const App = () => (
             <Route path="/withdrawals" element={<ProtectedRoute><WithdrawalsList /></ProtectedRoute>} />
             <Route path="/dues" element={<ProtectedRoute><DuesList /></ProtectedRoute>} />
             <Route path="/pay-dues" element={<ProtectedRoute><PayDues /></ProtectedRoute>} />
+
+            {/* Payment (public - for payment callbacks) */}
+            <Route path="/payment/status/:txnId" element={<PaymentStatus />} />
+            <Route path="/payment/status" element={<PaymentStatus />} />
+            <Route path="/payment/callback" element={<PaymentStatus />} />
 
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />

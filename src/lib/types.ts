@@ -79,8 +79,70 @@ export interface Transaction {
     phone: string;
     logo_url: string | null;
   } | null;
+  // UG Payment Gateway fields
+  ug_order_id: number | null;
+  ug_client_txn_id: string | null;
+  ug_payment_url: string | null;
+  ug_txn_date: string | null;
+  ug_status: string | null;
+  ug_remark: string | null;
   created_at: string;
   updated_at: string;
+}
+
+// UG Payment types
+export type PaymentType = 'order' | 'dues' | 'subscription' | 'qr_stand';
+
+export interface InitiatePaymentRequest {
+  payment_type: PaymentType;
+  reference_id: number;
+  amount: string;
+  customer_name: string;
+  customer_email?: string;
+  customer_mobile: string;
+}
+
+export interface InitiatePaymentResponse {
+  success: boolean;
+  payment_url: string;
+  ug_client_txn_id: string;
+  ug_order_id: number;
+  transaction_id: number;
+  message: string;
+}
+
+export interface VerifyPaymentResponse {
+  success: boolean;
+  status: 'success' | 'failure' | 'pending' | 'scanning' | 'unknown';
+  transaction: {
+    id: number;
+    amount: string;
+    utr: string | null;
+    vpa: string | null;
+    status: TransactionStatus;
+    ug_status: string | null;
+    ug_remark: string | null;
+    payment_type: TransactionCategory;
+    created_at: string;
+  };
+  message?: string;
+}
+
+export interface PaymentStatusResponse {
+  has_payment: boolean;
+  payment: {
+    id: number;
+    ug_client_txn_id: string;
+    ug_order_id: number;
+    ug_payment_url: string;
+    ug_status: string | null;
+    ug_remark: string | null;
+    amount: string;
+    utr: string | null;
+    vpa: string | null;
+    status: TransactionStatus;
+    created_at: string;
+  } | null;
 }
 
 // Shareholder type (user with shareholder fields)

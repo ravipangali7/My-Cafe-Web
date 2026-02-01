@@ -10,7 +10,8 @@ import { PageHeader } from '@/components/ui/page-header';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Save } from 'lucide-react';
+import { Save, Loader2 } from 'lucide-react';
+import { initiateQRStandPayment, redirectToPayment } from '@/services/paymentService';
 
 interface Vendor {
   id: number;
@@ -142,15 +143,52 @@ export default function QRStandOrderForm() {
 
     try {
       if (isCreateMode) {
-        const response = await api.post('/api/qr-stands/orders/create/', {
+        const response = await api.post<{ order: { id: number; total_price: string } }>('/api/qr-stands/orders/create/', {
           vendor_id: vendorId,
           quantity: parseInt(quantity),
         });
 
         if (response.error) {
           toast.error(response.error || 'Failed to create order');
+          return;
+        }
+
+        const orderId = response.data?.order?.id;
+        const orderTotal = response.data?.order?.total_price || totalPrice;
+
+        if (!orderId) {
+          toast.error('Failed to get order ID');
+          return;
+        }
+
+        // Get vendor info for payment
+        const vendor = vendors.find(v => v.id === vendorId) || user;
+        const vendorName = vendor?.name || 'Vendor';
+        const vendorPhone = vendor?.phone || '';
+
+        // Initiate UG payment
+        toast.info('Initiating payment...');
+        const paymentResult = await initiateQRStandPayment(
+          orderId,
+          orderTotal,
+          vendorName,
+          vendorPhone
+        );
+
+        if (paymentResult.error) {
+          toast.error(paymentResult.error || 'Failed to initiate payment');
+          // Order was created but payment failed - still notify
+          toast.info('Order created. Please complete payment later.');
+          navigate('/qr-stands');
+          return;
+        }
+
+        if (paymentResult.data?.payment_url) {
+          toast.success('Redirecting to payment...');
+          // Redirect to UG payment page
+          redirectToPayment(paymentResult.data.payment_url);
         } else {
-          toast.success('Order created successfully');
+          toast.error('Payment URL not received');
           navigate('/qr-stands');
         }
       } else {
@@ -285,11 +323,14 @@ export default function QRStandOrderForm() {
             <div className="flex gap-3 pt-4">
               <Button type="submit" disabled={loading}>
                 {loading ? (
-                  'Saving...'
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Processing...
+                  </>
                 ) : (
                   <>
                     <Save className="h-4 w-4 mr-2" />
-                    {isCreateMode ? 'Create Order' : 'Update Order'}
+                    {isCreateMode ? 'Create Order & Pay' : 'Update Order'}
                   </>
                 )}
               </Button>
