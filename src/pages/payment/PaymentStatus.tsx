@@ -33,8 +33,13 @@ export default function PaymentStatus() {
   
   const [loading, setLoading] = useState(true);
   const [polling, setPolling] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   const [paymentData, setPaymentData] = useState<VerifyPaymentResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  
+  // Determine if navigation should be blocked
+  const isProcessing = loading || polling || verifying;
+  const isPendingStatus = paymentData?.status === 'pending' || paymentData?.status === 'scanning';
 
   // Get initial status from URL params (from callback redirect)
   const initialStatus = searchParams.get('status');
@@ -48,25 +53,26 @@ export default function PaymentStatus() {
     }
 
     try {
+      setVerifying(true);
       const result = await verifyPayment(txnId);
       
       if (result.error) {
         setError(result.error);
+        setVerifying(false);
       } else if (result.data) {
         setPaymentData(result.data);
         
         // If still pending, start polling
+        // The backend now has retry logic, but we still poll as additional fallback
         if (result.data.status === 'pending' || result.data.status === 'scanning') {
           setPolling(true);
           const pollResult = await pollPaymentStatus(
             txnId,
-            30,
-            2000,
+            30,  // max attempts
+            2000, // 2 second interval
             (status) => {
               // Update status during polling
-              if (paymentData) {
-                setPaymentData(prev => prev ? { ...prev, status: status as any } : null);
-              }
+              setPaymentData(prev => prev ? { ...prev, status: status as any } : null);
             }
           );
           
@@ -75,9 +81,11 @@ export default function PaymentStatus() {
           }
           setPolling(false);
         }
+        setVerifying(false);
       }
     } catch (err) {
       setError('Failed to fetch payment status');
+      setVerifying(false);
     } finally {
       setLoading(false);
     }
@@ -128,7 +136,8 @@ export default function PaymentStatus() {
   };
 
   const renderStatusIcon = () => {
-    if (loading || polling) {
+    // Show spinner while loading, polling, or verifying
+    if (isProcessing) {
       return (
         <div className="w-24 h-24 rounded-full bg-yellow-100 flex items-center justify-center mx-auto">
           <Loader2 className="h-12 w-12 text-yellow-600 animate-spin" />
@@ -154,6 +163,7 @@ export default function PaymentStatus() {
       );
     }
 
+    // Pending status - show clock icon
     return (
       <div className="w-24 h-24 rounded-full bg-yellow-100 flex items-center justify-center mx-auto">
         <Clock className="h-12 w-12 text-yellow-600" />
@@ -167,11 +177,20 @@ export default function PaymentStatus() {
     }
 
     if (polling) {
-      return 'Waiting for payment confirmation...';
+      return 'Verifying payment with gateway...';
+    }
+
+    if (verifying) {
+      return 'Processing payment confirmation...';
     }
 
     if (error) {
       return error;
+    }
+
+    // Show pending message with hint to wait
+    if (isPendingStatus) {
+      return 'Payment processing - please wait...';
     }
 
     return getPaymentStatusLabel(paymentData?.status);
@@ -269,15 +288,23 @@ export default function PaymentStatus() {
 
           {/* Action Buttons */}
           <div className="flex flex-col gap-2">
+            {/* Show verifying indicator when processing */}
+            {isProcessing && (
+              <div className="text-center text-sm text-amber-600 bg-amber-50 rounded-lg p-3 mb-2">
+                <Loader2 className="h-4 w-4 inline-block mr-2 animate-spin" />
+                Please wait while we confirm your payment...
+              </div>
+            )}
+            
             {(paymentData?.status === 'pending' || paymentData?.status === 'scanning') && (
               <Button 
                 onClick={handleRetry} 
                 variant="outline" 
                 className="w-full"
-                disabled={polling}
+                disabled={isProcessing}
               >
-                <RefreshCw className={`h-4 w-4 mr-2 ${polling ? 'animate-spin' : ''}`} />
-                {polling ? 'Checking...' : 'Refresh Status'}
+                <RefreshCw className={`h-4 w-4 mr-2 ${isProcessing ? 'animate-spin' : ''}`} />
+                {isProcessing ? 'Verifying...' : 'Refresh Status'}
               </Button>
             )}
             
@@ -295,9 +322,15 @@ export default function PaymentStatus() {
               </Button>
             )}
             
-            <Button onClick={handleGoHome} variant={paymentData?.status === 'success' ? 'outline' : 'default'} className="w-full">
+            {/* Dashboard button - disabled while processing or pending to prevent premature navigation */}
+            <Button 
+              onClick={handleGoHome} 
+              variant={paymentData?.status === 'success' ? 'outline' : 'default'} 
+              className="w-full"
+              disabled={isProcessing || isPendingStatus}
+            >
               <Home className="h-4 w-4 mr-2" />
-              Go to Dashboard
+              {isProcessing || isPendingStatus ? 'Please wait...' : 'Go to Dashboard'}
             </Button>
           </div>
         </CardContent>
