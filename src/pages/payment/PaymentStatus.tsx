@@ -9,9 +9,9 @@ import {
   Loader2, 
   Home, 
   RefreshCw,
-  Receipt,
   Copy,
-  ArrowLeft
+  ArrowLeft,
+  UtensilsCrossed
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { 
@@ -20,12 +20,14 @@ import {
   getPaymentStatusLabel,
   getPaymentStatusColor
 } from '@/services/paymentService';
+import { useAuth } from '@/contexts/AuthContext';
 import type { VerifyPaymentResponse } from '@/lib/types';
 
 export default function PaymentStatus() {
   const { txnId: txnIdFromParams } = useParams<{ txnId: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   
   // Support client_txn_id from query params (UG sends both client_txn_id and txn_id)
   // Prioritize client_txn_id (our ID) over txn_id (UG's internal ID)
@@ -129,7 +131,19 @@ export default function PaymentStatus() {
   };
 
   const handleGoHome = () => {
-    navigate('/dashboard');
+    if (user) {
+      // Logged-in user goes to dashboard
+      navigate('/dashboard');
+    } else {
+      // Non-logged-in user goes to vendor's menu
+      const vendorPhone = paymentData?.transaction?.vendor_phone;
+      if (vendorPhone) {
+        navigate(`/menu/${vendorPhone}`);
+      } else {
+        // Fallback to home if no vendor phone
+        navigate('/');
+      }
+    }
   };
 
   const handleGoBack = () => {
@@ -215,8 +229,17 @@ export default function PaymentStatus() {
                 Go Back
               </Button>
               <Button onClick={handleGoHome} className="w-full">
-                <Home className="h-4 w-4 mr-2" />
-                Go to Dashboard
+                {user ? (
+                  <>
+                    <Home className="h-4 w-4 mr-2" />
+                    Go to Dashboard
+                  </>
+                ) : (
+                  <>
+                    <UtensilsCrossed className="h-4 w-4 mr-2" />
+                    Go to Menu
+                  </>
+                )}
               </Button>
             </div>
           </CardContent>
@@ -309,13 +332,6 @@ export default function PaymentStatus() {
               </Button>
             )}
             
-            {paymentData?.status === 'success' && (
-              <Button onClick={handleGoHome} className="w-full bg-green-600 hover:bg-green-700">
-                <Receipt className="h-4 w-4 mr-2" />
-                View Receipt
-              </Button>
-            )}
-            
             {paymentData?.status === 'failure' && (
               <Button onClick={handleGoBack} variant="outline" className="w-full">
                 <ArrowLeft className="h-4 w-4 mr-2" />
@@ -323,15 +339,23 @@ export default function PaymentStatus() {
               </Button>
             )}
             
-            {/* Dashboard button - disabled while processing or pending to prevent premature navigation */}
+            {/* Navigation button - goes to dashboard for logged-in users, menu for guests */}
             <Button 
               onClick={handleGoHome} 
-              variant={paymentData?.status === 'success' ? 'outline' : 'default'} 
-              className="w-full"
+              className={`w-full ${paymentData?.status === 'success' ? 'bg-green-600 hover:bg-green-700' : ''}`}
               disabled={isProcessing || isPendingStatus}
             >
-              <Home className="h-4 w-4 mr-2" />
-              {isProcessing || isPendingStatus ? 'Please wait...' : 'Go to Dashboard'}
+              {user ? (
+                <>
+                  <Home className="h-4 w-4 mr-2" />
+                  {isProcessing || isPendingStatus ? 'Please wait...' : 'Go to Dashboard'}
+                </>
+              ) : (
+                <>
+                  <UtensilsCrossed className="h-4 w-4 mr-2" />
+                  {isProcessing || isPendingStatus ? 'Please wait...' : 'Go to Menu'}
+                </>
+              )}
             </Button>
           </div>
         </CardContent>

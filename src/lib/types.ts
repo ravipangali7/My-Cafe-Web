@@ -124,6 +124,7 @@ export interface VerifyPaymentResponse {
     ug_remark: string | null;
     payment_type: TransactionCategory;
     created_at: string;
+    vendor_phone: string | null;
   };
   message?: string;
 }
