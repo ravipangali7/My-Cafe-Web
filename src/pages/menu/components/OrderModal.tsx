@@ -182,7 +182,8 @@ export function OrderModal({
         return;
       }
 
-      // Initiate UG payment
+      // Initiate UG payment - REQUIRED for order completion
+      // Orders are only valid after successful payment
       toast.info('Initiating payment...');
       const paymentResult = await initiateOrderPayment(
         orderId,
@@ -192,20 +193,23 @@ export function OrderModal({
       );
 
       if (paymentResult.error) {
+        // Payment initiation failed - do NOT proceed
+        // Order exists in pending state but user must complete payment
         toast.error(paymentResult.error || 'Failed to initiate payment');
-        // Order was created but payment failed - still notify
-        toast.info('Order created. Please complete payment later.');
-        onOrderPlaced();
+        toast.error('Payment is required. Please try again.');
+        // Do NOT call onOrderPlaced() - keep the cart so user can retry
+        // The pending order can be paid later via the order details page
         return;
       }
 
       if (paymentResult.data?.payment_url) {
         toast.success('Redirecting to payment...');
         // Redirect to UG payment page
+        // On successful payment, order will be marked as paid automatically
         redirectToPayment(paymentResult.data.payment_url);
       } else {
-        toast.error('Payment URL not received');
-        onOrderPlaced();
+        toast.error('Payment URL not received. Please try again.');
+        // Do NOT call onOrderPlaced() - payment is required
       }
     } catch (error) {
       toast.error('Failed to place order');

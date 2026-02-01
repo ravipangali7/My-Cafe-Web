@@ -112,13 +112,13 @@ export function OrderPanel({
     setSubmitting(true);
     try {
       // Send subtotal without transaction fee - backend will add the fee
+      // NOTE: All orders require UG payment - no COD option
       const orderData: Record<string, unknown> = {
         name: guestName,
         phone: guestPhone,
         table_no: tableNo || '',
         status: 'pending',
         payment_status: 'pending',
-        payment_method: 'cash',
         vendor_phone: vendorPhone,
         total: subtotal.toFixed(2),
         items: JSON.stringify(
@@ -148,7 +148,8 @@ export function OrderPanel({
         return;
       }
 
-      // Initiate UG payment
+      // Initiate UG payment - REQUIRED for order completion
+      // Orders are only valid after successful payment
       toast.info('Initiating payment...');
       const paymentResult = await initiateOrderPayment(
         orderId,
@@ -158,20 +159,22 @@ export function OrderPanel({
       );
 
       if (paymentResult.error) {
+        // Payment initiation failed - do NOT proceed
+        // Order exists in pending state but user must complete payment
         toast.error(paymentResult.error || 'Failed to initiate payment');
-        // Order was created but payment failed - still notify
-        toast.info('Order created. Please complete payment later.');
-        onOrderPlaced();
+        toast.error('Payment is required. Please try again.');
+        // Do NOT call onOrderPlaced() - keep the cart so user can retry
         return;
       }
 
       if (paymentResult.data?.payment_url) {
         toast.success('Redirecting to payment...');
         // Redirect to UG payment page
+        // On successful payment, order will be marked as paid automatically
         redirectToPayment(paymentResult.data.payment_url);
       } else {
-        toast.error('Payment URL not received');
-        onOrderPlaced();
+        toast.error('Payment URL not received. Please try again.');
+        // Do NOT call onOrderPlaced() - payment is required
       }
     } catch (error) {
       toast.error('Failed to place order');
