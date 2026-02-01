@@ -23,9 +23,13 @@ import {
 import type { VerifyPaymentResponse } from '@/lib/types';
 
 export default function PaymentStatus() {
-  const { txnId } = useParams<{ txnId: string }>();
+  const { txnId: txnIdFromParams } = useParams<{ txnId: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  
+  // Support txn_id from both route params and query params (fallback for direct callback access)
+  const txnIdFromQuery = searchParams.get('txn_id') || searchParams.get('client_txn_id');
+  const txnId = txnIdFromParams || txnIdFromQuery;
   
   const [loading, setLoading] = useState(true);
   const [polling, setPolling] = useState(false);
