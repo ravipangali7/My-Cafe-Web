@@ -270,12 +270,16 @@ export default function MenuPage() {
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           {/* Logo and Vendor Info */}
           <div className="flex items-center gap-3">
-            {menuData.vendor.logo_url && (
+            {menuData.vendor.logo_url ? (
               <img
                 src={menuData.vendor.logo_url}
                 alt={menuData.vendor.name}
                 className="h-12 w-12 rounded-full object-cover border-2 border-coral-200"
               />
+            ) : (
+              <div className="h-12 w-12 rounded-full bg-coral-500 border-2 border-coral-200 flex items-center justify-center text-white font-bold text-lg">
+                {menuData.vendor.name.charAt(0).toUpperCase()}
+              </div>
             )}
             <div>
               <h1 className="text-xl font-bold text-gray-800">

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Wallet, Clock, CheckCircle, XCircle, Plus, Pencil, Trash2 } from 'lucide-react';
+import { Wallet, Clock, CheckCircle, XCircle, Plus, Pencil, Trash2, FileX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -355,7 +355,10 @@ export default function WithdrawalsList() {
         title="Withdrawals" 
         description="Manage shareholder withdrawal requests"
         action={canRequestWithdrawal && (
-          <Button onClick={() => setShowCreateDialog(true)}>
+          <Button 
+            onClick={() => setShowCreateDialog(true)}
+            className="bg-green-600 hover:bg-green-700 text-white shadow-lg"
+          >
             <Plus className="h-4 w-4 mr-2" />
             Request Withdrawal
           </Button>
@@ -384,18 +387,65 @@ export default function WithdrawalsList() {
         }
       />
 
-      <Card className="mt-4">
-        <CardContent className="p-0">
-          <DataTable columns={columns} data={withdrawals} loading={loading} />
-        </CardContent>
-      </Card>
+      {/* Empty State */}
+      {!loading && withdrawals.length === 0 && !appliedSearch && statusFilter === 'all' ? (
+        <Card className="mt-4">
+          <CardContent className="py-16 text-center">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
+                <FileX className="h-8 w-8 text-gray-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800">No Withdrawals Yet</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  {canRequestWithdrawal 
+                    ? "You haven't made any withdrawal requests. Click below to request your first withdrawal."
+                    : "No withdrawal requests have been made yet."
+                  }
+                </p>
+              </div>
+              {canRequestWithdrawal && (
+                <Button 
+                  onClick={() => setShowCreateDialog(true)}
+                  size="lg"
+                  className="bg-green-600 hover:bg-green-700 text-white mt-2"
+                >
+                  <Plus className="h-5 w-5 mr-2" />
+                  Request Your First Withdrawal
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          <Card className="mt-4">
+            <CardContent className="p-0">
+              <DataTable columns={columns} data={withdrawals} loading={loading} />
+            </CardContent>
+          </Card>
 
-      <SimplePagination
-        page={page}
-        totalPages={totalPages}
-        onPageChange={setPage}
-        totalItems={count}
-      />
+          <SimplePagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            totalItems={count}
+          />
+        </>
+      )}
+
+      {/* Floating Action Button for Mobile */}
+      {canRequestWithdrawal && (
+        <div className="fixed bottom-6 right-6 z-50 md:hidden">
+          <Button
+            onClick={() => setShowCreateDialog(true)}
+            size="lg"
+            className="h-14 w-14 rounded-full bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-600/30 p-0"
+          >
+            <Plus className="h-6 w-6" />
+          </Button>
+        </div>
+      )}
 
       {/* Create Withdrawal Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
