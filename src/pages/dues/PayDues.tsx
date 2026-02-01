@@ -68,7 +68,7 @@ export default function PayDues() {
         
         // Check if user is no longer blocked
         const newDueBalance = response.data.remaining_dues;
-        if (newDueBalance < dueStatus.due_threshold) {
+        if (newDueBalance <= dueStatus.due_threshold) {
           // User is unblocked, redirect to dashboard after a short delay
           // Using window.location.href to force a full page reload so ProtectedRoute re-checks due status
           setTimeout(() => {
