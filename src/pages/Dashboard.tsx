@@ -18,6 +18,7 @@ import { TransactionHistoryTable } from '@/components/dashboard/TransactionHisto
 import { VendorDashboardStats } from '@/components/dashboard/VendorDashboardStats';
 import { VendorAnalytics } from '@/components/dashboard/VendorAnalytics';
 import { SuperAdminAnalytics } from '@/components/dashboard/SuperAdminAnalytics';
+import { DueBalanceCard } from '@/components/dashboard/DueBalanceCard';
 import { ShoppingCart, QrCode, Eye } from 'lucide-react';
 import { DataTable } from '@/components/ui/data-table';
 
@@ -362,6 +363,11 @@ export default function Dashboard() {
           {/* Subscription Summary Card (Compact) */}
           {vendorData && (
             <SubscriptionSummary subscription={vendorData.subscription} />
+          )}
+
+          {/* Due Balance Card */}
+          {user && user.due_balance !== undefined && (
+            <DueBalanceCard dueBalance={user.due_balance} />
           )}
 
           {/* Menu QR Code Card - viewable and downloadable from Dashboard */}
