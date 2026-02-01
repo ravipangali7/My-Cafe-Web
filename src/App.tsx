@@ -168,6 +168,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const [kycStatus, setKycStatus] = useState<string | null>(null);
   const [subscriptionState, setSubscriptionState] = useState<string | null>(null);
+  const [isSubscriptionFeeEnabled, setIsSubscriptionFeeEnabled] = useState<boolean>(true);
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
@@ -196,9 +197,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
           }
 
           // Check subscription status if KYC is approved
-          const subResponse = await api.get<{ subscription_state: string }>('/api/subscription/status/');
+          const subResponse = await api.get<{ subscription_state: string; is_subscription_fee?: boolean }>('/api/subscription/status/');
           if (!subResponse.error && subResponse.data) {
             setSubscriptionState(subResponse.data.subscription_state);
+            // Set whether subscription fee is enabled from backend settings
+            setIsSubscriptionFeeEnabled(subResponse.data.is_subscription_fee ?? true);
           }
         }
       } catch (error) {
@@ -233,8 +236,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/kyc" replace />;
   }
 
-  // Check subscription status - allow access to /subscription route even if not active
-  if (kycStatus === 'approved' && subscriptionState) {
+  // Check subscription status - only if subscription fee is enabled
+  // If is_subscription_fee is false, skip subscription check entirely
+  if (isSubscriptionFeeEnabled && kycStatus === 'approved' && subscriptionState) {
     if ((subscriptionState === 'no_subscription' || subscriptionState === 'expired') && location.pathname !== '/subscription') {
       return <Navigate to="/subscription" replace />;
     }

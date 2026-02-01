@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -33,6 +33,9 @@ export default function SubscriptionPlans() {
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
+  
+  // Ref to track if subscription is being processed - prevents premature redirect
+  const isProcessingSubscription = useRef(false);
 
   const fetchSubscriptionStatus = useCallback(async () => {
     if (!user) {
@@ -51,8 +54,9 @@ export default function SubscriptionPlans() {
       if (response.data) {
         setSubscriptionStatus(response.data);
         
-        // If subscription is active or inactive_with_date, redirect
-        if (response.data.subscription_state === 'active') {
+        // If subscription is active, redirect to dashboard
+        // BUT only if we're not in the middle of processing a subscription
+        if (response.data.subscription_state === 'active' && !isProcessingSubscription.current) {
           navigate('/dashboard');
           return;
         }
@@ -98,6 +102,8 @@ export default function SubscriptionPlans() {
 
     setSelectedPlan(plan);
     setSubscribing(true);
+    // Set the ref to prevent automatic redirect during subscription processing
+    isProcessingSubscription.current = true;
 
     try {
       // In a real application, you would integrate with a payment gateway here
@@ -113,16 +119,20 @@ export default function SubscriptionPlans() {
 
       if (response.error) {
         toast.error(response.error || 'Failed to activate subscription');
+        isProcessingSubscription.current = false;
       } else {
         toast.success('Subscription activated successfully!');
+        // Update subscription status without triggering redirect
         await fetchSubscriptionStatus();
-        // Redirect to dashboard after a short delay
+        // Redirect to dashboard after a short delay to show success message
         setTimeout(() => {
+          isProcessingSubscription.current = false;
           navigate('/dashboard');
         }, 1500);
       }
     } catch (error: any) {
       toast.error(error.message || 'Failed to activate subscription');
+      isProcessingSubscription.current = false;
     } finally {
       setSubscribing(false);
       setSelectedPlan(null);

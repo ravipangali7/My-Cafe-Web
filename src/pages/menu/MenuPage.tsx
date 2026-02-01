@@ -67,10 +67,10 @@ export default function MenuPage() {
   const [showMobileCart, setShowMobileCart] = useState(false);
   const [transactionFee, setTransactionFee] = useState<number>(0);
 
-  // Fetch settings for transaction fee
+  // Fetch settings for transaction fee (public endpoint - no auth required)
   const fetchSettings = useCallback(async () => {
     try {
-      const response = await api.get<{ setting: { per_transaction_fee?: number } | null }>('/api/settings/');
+      const response = await api.get<{ setting: { per_transaction_fee?: number } | null }>('/api/settings/public/');
       if (response.data?.setting?.per_transaction_fee) {
         setTransactionFee(response.data.setting.per_transaction_fee);
       }

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Wallet, Clock, CheckCircle, XCircle, Plus } from 'lucide-react';
+import { Wallet, Clock, CheckCircle, XCircle, Plus, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -54,6 +54,17 @@ export default function WithdrawalsList() {
   const [selectedWithdrawal, setSelectedWithdrawal] = useState<ShareholderWithdrawal | null>(null);
   const [rejectRemarks, setRejectRemarks] = useState('');
   const [processing, setProcessing] = useState(false);
+  
+  // Edit withdrawal dialog
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingWithdrawal, setEditingWithdrawal] = useState<ShareholderWithdrawal | null>(null);
+  const [editForm, setEditForm] = useState({ amount: '', remarks: '' });
+  const [updating, setUpdating] = useState(false);
+  
+  // Delete confirmation dialog
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deletingWithdrawal, setDeletingWithdrawal] = useState<ShareholderWithdrawal | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchWithdrawals = useCallback(async () => {
     setLoading(true);
@@ -173,6 +184,69 @@ export default function WithdrawalsList() {
     }
   };
 
+  const handleOpenEdit = (withdrawal: ShareholderWithdrawal) => {
+    setEditingWithdrawal(withdrawal);
+    setEditForm({
+      amount: withdrawal.amount.toString(),
+      remarks: withdrawal.remarks || '',
+    });
+    setShowEditDialog(true);
+  };
+
+  const handleUpdateWithdrawal = async () => {
+    if (!editingWithdrawal) return;
+    if (!editForm.amount || parseInt(editForm.amount) <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+
+    setUpdating(true);
+    try {
+      const response = await api.put(`/api/withdrawals/${editingWithdrawal.id}/update/`, editForm);
+
+      if (response.error) {
+        toast.error(response.error);
+      } else {
+        toast.success('Withdrawal updated successfully');
+        setShowEditDialog(false);
+        setEditingWithdrawal(null);
+        setEditForm({ amount: '', remarks: '' });
+        fetchWithdrawals();
+      }
+    } catch (error) {
+      toast.error('Failed to update withdrawal');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleOpenDelete = (withdrawal: ShareholderWithdrawal) => {
+    setDeletingWithdrawal(withdrawal);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteWithdrawal = async () => {
+    if (!deletingWithdrawal) return;
+
+    setDeleting(true);
+    try {
+      const response = await api.delete(`/api/withdrawals/${deletingWithdrawal.id}/delete/`);
+
+      if (response.error) {
+        toast.error(response.error);
+      } else {
+        toast.success('Withdrawal deleted successfully');
+        setShowDeleteDialog(false);
+        setDeletingWithdrawal(null);
+        fetchWithdrawals();
+      }
+    } catch (error) {
+      toast.error('Failed to delete withdrawal');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const getStatusVariant = (status: string) => {
     switch (status) {
       case 'approved': return 'success';
@@ -232,20 +306,39 @@ export default function WithdrawalsList() {
       label: 'Created',
       render: (item: ShareholderWithdrawal) => new Date(item.created_at).toLocaleString(),
     },
-    ...(user?.is_superuser ? [{
+    {
       key: 'actions',
       label: 'Actions',
-      render: (item: ShareholderWithdrawal) => item.status === 'pending' ? (
-        <div className="flex gap-2">
-          <Button variant="ghost" size="sm" className="text-green-600" onClick={() => handleApprove(item)}>
-            <CheckCircle className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="sm" className="text-red-600" onClick={() => setSelectedWithdrawal(item)}>
-            <XCircle className="h-4 w-4" />
-          </Button>
-        </div>
-      ) : null,
-    }] : []),
+      render: (item: ShareholderWithdrawal) => {
+        // For superusers: show approve/reject for pending withdrawals
+        if (user?.is_superuser && item.status === 'pending') {
+          return (
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" className="text-green-600" onClick={() => handleApprove(item)}>
+                <CheckCircle className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="sm" className="text-red-600" onClick={() => setSelectedWithdrawal(item)}>
+                <XCircle className="h-4 w-4" />
+              </Button>
+            </div>
+          );
+        }
+        // For shareholders: show edit/delete for their own pending withdrawals
+        if (!user?.is_superuser && user?.is_shareholder && item.status === 'pending') {
+          return (
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" className="text-blue-600" onClick={() => handleOpenEdit(item)}>
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="sm" className="text-red-600" onClick={() => handleOpenDelete(item)}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          );
+        }
+        return null;
+      },
+    },
   ];
 
   const statCards = [
@@ -365,6 +458,62 @@ export default function WithdrawalsList() {
             <Button variant="outline" onClick={() => setSelectedWithdrawal(null)}>Cancel</Button>
             <Button variant="destructive" onClick={handleReject} disabled={processing}>
               {processing ? 'Rejecting...' : 'Reject'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Withdrawal Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Withdrawal Request</DialogTitle>
+            <DialogDescription>
+              Update your pending withdrawal request. Current balance: ₹{(user as any)?.balance?.toLocaleString() || 0}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Amount (₹)</Label>
+              <Input
+                type="number"
+                min="1"
+                value={editForm.amount}
+                onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })}
+                placeholder="Enter amount"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Remarks (Optional)</Label>
+              <Textarea
+                value={editForm.remarks}
+                onChange={(e) => setEditForm({ ...editForm, remarks: e.target.value })}
+                placeholder="Add any notes..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>Cancel</Button>
+            <Button onClick={handleUpdateWithdrawal} disabled={updating}>
+              {updating ? 'Updating...' : 'Update Request'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Withdrawal Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Withdrawal Request</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this withdrawal request for ₹{deletingWithdrawal?.amount.toLocaleString()}? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteWithdrawal} disabled={deleting}>
+              {deleting ? 'Deleting...' : 'Delete'}
             </Button>
           </DialogFooter>
         </DialogContent>
