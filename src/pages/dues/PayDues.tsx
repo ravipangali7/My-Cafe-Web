@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, CreditCard, Wallet, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +13,6 @@ interface DueStatus {
 }
 
 export default function PayDues() {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const [dueStatus, setDueStatus] = useState<DueStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,8 +70,9 @@ export default function PayDues() {
         const newDueBalance = response.data.remaining_dues;
         if (newDueBalance < dueStatus.due_threshold) {
           // User is unblocked, redirect to dashboard after a short delay
+          // Using window.location.href to force a full page reload so ProtectedRoute re-checks due status
           setTimeout(() => {
-            navigate('/dashboard', { replace: true });
+            window.location.href = '/dashboard';
           }, 2000);
         } else {
           // Update due status
