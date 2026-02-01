@@ -25,6 +25,11 @@ export default function PayDues() {
         const response = await api.get<DueStatus>('/api/dues/status/');
         if (response.data) {
           setDueStatus(response.data);
+          // If user is not blocked, redirect to dashboard
+          if (!response.data.is_blocked) {
+            window.location.href = '/dashboard';
+            return;
+          }
         }
       } catch (error) {
         console.error('Error fetching due status:', error);
@@ -79,7 +84,7 @@ export default function PayDues() {
           setDueStatus({
             ...dueStatus,
             due_balance: newDueBalance,
-            is_blocked: newDueBalance >= dueStatus.due_threshold,
+            is_blocked: newDueBalance > dueStatus.due_threshold,
           });
           setPaymentSuccess(false);
         }
