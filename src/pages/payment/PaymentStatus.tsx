@@ -27,8 +27,9 @@ export default function PaymentStatus() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   
-  // Support txn_id from both route params and query params (fallback for direct callback access)
-  const txnIdFromQuery = searchParams.get('txn_id') || searchParams.get('client_txn_id');
+  // Support client_txn_id from query params (UG sends both client_txn_id and txn_id)
+  // Prioritize client_txn_id (our ID) over txn_id (UG's internal ID)
+  const txnIdFromQuery = searchParams.get('client_txn_id') || searchParams.get('txn_id');
   const txnId = txnIdFromParams || txnIdFromQuery;
   
   const [loading, setLoading] = useState(true);
