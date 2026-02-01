@@ -78,6 +78,9 @@ import WithdrawalsList from "./pages/withdrawals/WithdrawalsList";
 import DuesList from "./pages/dues/DuesList";
 import PayDues from "./pages/dues/PayDues";
 
+// Customers
+import CustomersList from "./pages/customers/CustomersList";
+
 // Payment
 import PaymentStatus from "./pages/payment/PaymentStatus";
 
@@ -375,6 +378,9 @@ const App = () => (
             <Route path="/withdrawals" element={<ProtectedRoute><WithdrawalsList /></ProtectedRoute>} />
             <Route path="/dues" element={<ProtectedRoute><DuesList /></ProtectedRoute>} />
             <Route path="/pay-dues" element={<ProtectedRoute><PayDues /></ProtectedRoute>} />
+
+            {/* Customers */}
+            <Route path="/customers" element={<ProtectedRoute><CustomersList /></ProtectedRoute>} />
 
             {/* Payment (public - for payment callbacks) */}
             <Route path="/payment/status/:txnId" element={<PaymentStatus />} />
