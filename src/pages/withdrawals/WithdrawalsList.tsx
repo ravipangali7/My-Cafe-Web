@@ -15,7 +15,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { ShareholderWithdrawal } from '@/lib/types';
+import { ShareholderWithdrawal, Shareholder } from '@/lib/types';
 import {
   Dialog,
   DialogContent,
@@ -47,8 +47,13 @@ export default function WithdrawalsList() {
   
   // Request withdrawal dialog
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [createForm, setCreateForm] = useState({ amount: '', remarks: '' });
+  const [createForm, setCreateForm] = useState({ amount: '', remarks: '', user_id: '' });
   const [creating, setCreating] = useState(false);
+  
+  // Shareholders list (for superuser to create on behalf of)
+  const [shareholders, setShareholders] = useState<Shareholder[]>([]);
+  const [loadingShareholders, setLoadingShareholders] = useState(false);
+  const [selectedShareholder, setSelectedShareholder] = useState<Shareholder | null>(null);
   
   // Approve/Reject dialog
   const [selectedWithdrawal, setSelectedWithdrawal] = useState<ShareholderWithdrawal | null>(null);
@@ -116,22 +121,80 @@ export default function WithdrawalsList() {
     setPage(1);
   };
 
+  // Fetch shareholders for superuser dropdown
+  const fetchShareholders = useCallback(async () => {
+    if (!user?.is_superuser) return;
+    
+    setLoadingShareholders(true);
+    try {
+      const response = await api.get<{
+        shareholders: Shareholder[];
+        count: number;
+      }>('/api/shareholders/?page_size=100');
+
+      if (response.error) {
+        toast.error('Failed to fetch shareholders');
+      } else if (response.data) {
+        setShareholders(response.data.shareholders);
+      }
+    } catch (error) {
+      toast.error('Failed to fetch shareholders');
+    } finally {
+      setLoadingShareholders(false);
+    }
+  }, [user?.is_superuser]);
+
+  // Handle opening create dialog
+  const handleOpenCreateDialog = () => {
+    setShowCreateDialog(true);
+    setCreateForm({ amount: '', remarks: '', user_id: '' });
+    setSelectedShareholder(null);
+    if (user?.is_superuser) {
+      fetchShareholders();
+    }
+  };
+
+  // Handle shareholder selection change
+  const handleShareholderChange = (shareholderId: string) => {
+    setCreateForm({ ...createForm, user_id: shareholderId });
+    const selected = shareholders.find(s => s.id.toString() === shareholderId);
+    setSelectedShareholder(selected || null);
+  };
+
   const handleCreateWithdrawal = async () => {
     if (!createForm.amount || parseInt(createForm.amount) <= 0) {
       toast.error('Please enter a valid amount');
       return;
     }
 
+    // Superuser must select a shareholder
+    if (user?.is_superuser && !createForm.user_id) {
+      toast.error('Please select a shareholder');
+      return;
+    }
+
     setCreating(true);
     try {
-      const response = await api.post('/api/withdrawals/create/', createForm);
+      // Build request payload
+      const payload: { amount: string; remarks: string; user_id?: string } = {
+        amount: createForm.amount,
+        remarks: createForm.remarks,
+      };
+      
+      // Include user_id only for superusers
+      if (user?.is_superuser && createForm.user_id) {
+        payload.user_id = createForm.user_id;
+      }
+
+      const response = await api.post('/api/withdrawals/create/', payload);
 
       if (response.error) {
         toast.error(response.error);
       } else {
         toast.success('Withdrawal request created');
         setShowCreateDialog(false);
-        setCreateForm({ amount: '', remarks: '' });
+        setCreateForm({ amount: '', remarks: '', user_id: '' });
+        setSelectedShareholder(null);
         fetchWithdrawals();
       }
     } catch (error) {
@@ -347,7 +410,7 @@ export default function WithdrawalsList() {
     { label: 'Failed', value: stats.failed, icon: XCircle, color: 'text-red-600' },
   ];
 
-  const canRequestWithdrawal = user?.is_shareholder && !user?.is_superuser;
+  const canRequestWithdrawal = user?.is_shareholder || user?.is_superuser;
 
   return (
     <DashboardLayout>
@@ -356,11 +419,11 @@ export default function WithdrawalsList() {
         description="Manage shareholder withdrawal requests"
         action={canRequestWithdrawal && (
           <Button 
-            onClick={() => setShowCreateDialog(true)}
+            onClick={handleOpenCreateDialog}
             className="bg-green-600 hover:bg-green-700 text-white shadow-lg"
           >
             <Plus className="h-4 w-4 mr-2" />
-            Request Withdrawal
+            {user?.is_superuser ? 'Create Withdrawal' : 'Request Withdrawal'}
           </Button>
         )}
       />
@@ -398,20 +461,23 @@ export default function WithdrawalsList() {
               <div>
                 <h3 className="text-lg font-semibold text-gray-800">No Withdrawals Yet</h3>
                 <p className="text-sm text-gray-500 mt-1">
-                  {canRequestWithdrawal 
-                    ? "You haven't made any withdrawal requests. Click below to request your first withdrawal."
-                    : "No withdrawal requests have been made yet."
+                  {user?.is_superuser 
+                    ? "No withdrawal requests have been made yet. Click below to create a withdrawal for a shareholder."
+                    : (canRequestWithdrawal 
+                        ? "You haven't made any withdrawal requests. Click below to request your first withdrawal."
+                        : "No withdrawal requests have been made yet."
+                      )
                   }
                 </p>
               </div>
               {canRequestWithdrawal && (
                 <Button 
-                  onClick={() => setShowCreateDialog(true)}
+                  onClick={handleOpenCreateDialog}
                   size="lg"
                   className="bg-green-600 hover:bg-green-700 text-white mt-2"
                 >
                   <Plus className="h-5 w-5 mr-2" />
-                  Request Your First Withdrawal
+                  {user?.is_superuser ? 'Create First Withdrawal' : 'Request Your First Withdrawal'}
                 </Button>
               )}
             </div>
@@ -438,7 +504,7 @@ export default function WithdrawalsList() {
       {canRequestWithdrawal && (
         <div className="fixed bottom-6 right-6 z-50 md:hidden">
           <Button
-            onClick={() => setShowCreateDialog(true)}
+            onClick={handleOpenCreateDialog}
             size="lg"
             className="h-14 w-14 rounded-full bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-600/30 p-0"
           >
@@ -451,12 +517,48 @@ export default function WithdrawalsList() {
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Request Withdrawal</DialogTitle>
+            <DialogTitle>{user?.is_superuser ? 'Create Withdrawal for Shareholder' : 'Request Withdrawal'}</DialogTitle>
             <DialogDescription>
-              Current balance: ₹{(user as any)?.balance?.toLocaleString() || 0}
+              {user?.is_superuser 
+                ? (selectedShareholder 
+                    ? `${selectedShareholder.name}'s balance: ₹${selectedShareholder.balance?.toLocaleString() || 0}`
+                    : 'Select a shareholder to create a withdrawal request')
+                : `Current balance: ₹${(user as any)?.balance?.toLocaleString() || 0}`
+              }
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {/* Shareholder selector for superusers */}
+            {user?.is_superuser && (
+              <div className="space-y-2">
+                <Label>Select Shareholder</Label>
+                <Select 
+                  value={createForm.user_id} 
+                  onValueChange={handleShareholderChange}
+                  disabled={loadingShareholders}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={loadingShareholders ? "Loading shareholders..." : "Select a shareholder"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {shareholders.length === 0 && !loadingShareholders ? (
+                      <SelectItem value="" disabled>No shareholders available</SelectItem>
+                    ) : (
+                      shareholders.map((shareholder) => (
+                        <SelectItem key={shareholder.id} value={shareholder.id.toString()}>
+                          <div className="flex items-center gap-2">
+                            <span>{shareholder.name}</span>
+                            <span className="text-muted-foreground text-xs">
+                              (Balance: ₹{shareholder.balance?.toLocaleString() || 0})
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Amount (₹)</Label>
               <Input
@@ -478,7 +580,7 @@ export default function WithdrawalsList() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreateDialog(false)}>Cancel</Button>
-            <Button onClick={handleCreateWithdrawal} disabled={creating}>
+            <Button onClick={handleCreateWithdrawal} disabled={creating || (user?.is_superuser && !createForm.user_id)}>
               {creating ? 'Submitting...' : 'Submit Request'}
             </Button>
           </DialogFooter>
