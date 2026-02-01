@@ -2,8 +2,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, CreditCard, Wallet, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,8 +18,6 @@ export default function PayDues() {
   const { user } = useAuth();
   const [dueStatus, setDueStatus] = useState<DueStatus | null>(null);
   const [loading, setLoading] = useState(true);
-  const [paymentAmount, setPaymentAmount] = useState('');
-  const [utr, setUtr] = useState('');
   const [processing, setProcessing] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
 
@@ -31,11 +27,6 @@ export default function PayDues() {
         const response = await api.get<DueStatus>('/api/dues/status/');
         if (response.data) {
           setDueStatus(response.data);
-          // Pre-fill amount to pay the minimum required to unblock
-          const minimumPayment = response.data.due_balance - response.data.due_threshold + 1;
-          if (minimumPayment > 0) {
-            setPaymentAmount(String(Math.min(minimumPayment, response.data.due_balance)));
-          }
         }
       } catch (error) {
         console.error('Error fetching due status:', error);
@@ -49,31 +40,22 @@ export default function PayDues() {
   }, []);
 
   const handlePayment = async () => {
-    if (!dueStatus || !paymentAmount) {
-      toast.error('Please enter a payment amount');
+    if (!dueStatus) {
+      toast.error('Unable to process payment');
       return;
     }
 
-    const amount = parseInt(paymentAmount);
-    if (isNaN(amount) || amount <= 0) {
-      toast.error('Please enter a valid payment amount');
-      return;
-    }
-
-    if (amount > dueStatus.due_balance) {
-      toast.error('Amount cannot exceed due balance');
+    const minimumPayment = Math.max(0, dueStatus.due_balance - dueStatus.due_threshold + 1);
+    if (minimumPayment <= 0) {
+      toast.error('No payment required');
       return;
     }
 
     setProcessing(true);
     try {
       const payload: Record<string, string | number> = {
-        amount: amount,
+        amount: minimumPayment,
       };
-      
-      if (utr.trim()) {
-        payload.utr = utr.trim();
-      }
 
       const response = await api.post<{
         message: string;
@@ -101,8 +83,6 @@ export default function PayDues() {
             due_balance: newDueBalance,
             is_blocked: newDueBalance >= dueStatus.due_threshold,
           });
-          setPaymentAmount('');
-          setUtr('');
           setPaymentSuccess(false);
         }
       }
@@ -163,19 +143,11 @@ export default function PayDues() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-muted rounded-lg p-4">
-                <p className="text-sm text-muted-foreground">Your Due Balance</p>
-                <p className="text-2xl font-bold text-red-600">
-                  ₹{dueStatus.due_balance.toLocaleString()}
-                </p>
-              </div>
-              <div className="bg-muted rounded-lg p-4">
-                <p className="text-sm text-muted-foreground">Threshold Limit</p>
-                <p className="text-2xl font-bold">
-                  ₹{dueStatus.due_threshold.toLocaleString()}
-                </p>
-              </div>
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+              <p className="text-sm text-amber-700 dark:text-amber-300">Your Due Balance</p>
+              <p className="text-2xl font-bold text-red-600">
+                ₹{dueStatus.due_balance.toLocaleString()}
+              </p>
             </div>
             
             {minimumPaymentToUnblock > 0 && (
@@ -185,14 +157,10 @@ export default function PayDues() {
                 </p>
               </div>
             )}
-          </CardContent>
-        </Card>
 
-        {/* Payment Form */}
-        {paymentSuccess ? (
-          <Card className="border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-900">
-            <CardContent className="pt-6">
-              <div className="flex flex-col items-center gap-4 text-center">
+            {/* Payment Button */}
+            {paymentSuccess ? (
+              <div className="flex flex-col items-center gap-4 text-center p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 rounded-lg">
                 <div className="rounded-full bg-green-100 dark:bg-green-900/50 p-4">
                   <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
                 </div>
@@ -203,71 +171,31 @@ export default function PayDues() {
                   </p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5" />
-                Pay Now
-              </CardTitle>
-              <CardDescription>
-                Clear your dues to continue using the app
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="amount">Payment Amount (₹)</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  min="1"
-                  max={dueStatus.due_balance}
-                  value={paymentAmount}
-                  onChange={(e) => setPaymentAmount(e.target.value)}
-                  placeholder="Enter amount to pay"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Maximum payable: ₹{dueStatus.due_balance.toLocaleString()}
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="utr">UTR / Reference Number (Optional)</Label>
-                <Input
-                  id="utr"
-                  type="text"
-                  value={utr}
-                  onChange={(e) => setUtr(e.target.value)}
-                  placeholder="Enter payment reference"
-                />
-              </div>
-
+            ) : (
               <Button 
                 className="w-full" 
                 size="lg"
                 onClick={handlePayment}
-                disabled={processing || !paymentAmount}
+                disabled={processing || minimumPaymentToUnblock <= 0}
               >
                 {processing ? (
                   <>Processing...</>
                 ) : (
                   <>
                     <CreditCard className="h-4 w-4 mr-2" />
-                    Pay ₹{paymentAmount ? parseInt(paymentAmount).toLocaleString() : '0'}
+                    Pay ₹{minimumPaymentToUnblock.toLocaleString()}
                   </>
                 )}
               </Button>
+            )}
 
-              {user && (
-                <p className="text-xs text-center text-muted-foreground">
-                  Paying as: {user.name} ({user.phone})
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        )}
+            {user && (
+              <p className="text-xs text-center text-muted-foreground">
+                Paying as: {user.name} ({user.phone})
+              </p>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
