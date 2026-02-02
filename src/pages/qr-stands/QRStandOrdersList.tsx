@@ -424,17 +424,17 @@ export default function QRStandOrdersList() {
           onApply={handleApplyFilters}
           onClear={handleClearFilters}
           showUserFilter={false}
+          placeholder="Search QR orders..."
           additionalFilters={
-            <div className="w-full">
-              <DateFilterButtons
-                activeFilter={dateFilter}
-                onFilterChange={handleDateFilterChange}
-                startDate={startDate}
-                endDate={endDate}
-                onStartDateChange={setStartDate}
-                onEndDateChange={setEndDate}
-              />
-            </div>
+            <DateFilterButtons
+              activeFilter={dateFilter}
+              onFilterChange={handleDateFilterChange}
+              startDate={startDate}
+              endDate={endDate}
+              onStartDateChange={setStartDate}
+              onEndDateChange={setEndDate}
+              compact
+            />
           }
         />
 

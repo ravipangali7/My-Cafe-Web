@@ -431,18 +431,24 @@ export default function WithdrawalsList() {
           onSearchChange={setSearch}
           onApply={handleApplyFilters}
           onClear={handleClearFilters}
+          placeholder="Search withdrawals..."
           additionalFilters={
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="All Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="failed">Failed</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="w-full sm:w-36">
+              <label className="text-xs text-muted-foreground mb-1 block font-medium">
+                Status
+              </label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="text-xs">All Status</SelectItem>
+                  <SelectItem value="pending" className="text-xs">Pending</SelectItem>
+                  <SelectItem value="approved" className="text-xs">Approved</SelectItem>
+                  <SelectItem value="failed" className="text-xs">Failed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           }
         />
 

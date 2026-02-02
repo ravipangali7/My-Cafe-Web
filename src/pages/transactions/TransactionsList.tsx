@@ -434,26 +434,27 @@ export default function TransactionsList() {
           onApply={handleApplyFilters}
           onClear={handleClearFilters}
           showUserFilter={user?.is_superuser && transactionFilter === 'individual'}
+          placeholder="Search transactions..."
           additionalFilters={
-            <div className="w-full space-y-4">
+            <>
               {user?.is_superuser && (
-                <div className="flex flex-col md:flex-row gap-4">
-                  <div className="w-full md:w-48">
-                    <Select
-                      value={transactionFilter}
-                      onValueChange={(value: TransactionFilterType) => setTransactionFilter(value)}
-                    >
-                      <SelectTrigger>
-                        <Filter className="h-4 w-4 mr-2" />
-                        <SelectValue placeholder="Filter transactions" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="system">System</SelectItem>
-                        <SelectItem value="all_users">All Users</SelectItem>
-                        <SelectItem value="individual">Individual User</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="w-full sm:w-40">
+                  <label className="text-xs text-muted-foreground mb-1 block font-medium">
+                    Type
+                  </label>
+                  <Select
+                    value={transactionFilter}
+                    onValueChange={(value: TransactionFilterType) => setTransactionFilter(value)}
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Filter" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="system" className="text-xs">System</SelectItem>
+                      <SelectItem value="all_users" className="text-xs">All Users</SelectItem>
+                      <SelectItem value="individual" className="text-xs">Individual</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
               <DateFilterButtons
@@ -463,8 +464,9 @@ export default function TransactionsList() {
                 endDate={endDate}
                 onStartDateChange={setStartDate}
                 onEndDateChange={setEndDate}
+                compact
               />
-            </div>
+            </>
           }
         />
 

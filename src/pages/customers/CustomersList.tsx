@@ -291,6 +291,7 @@ export default function CustomersList() {
         onApply={handleApplyFilters}
         onClear={handleClearFilters}
         showUserFilter={false}
+        placeholder="Search customers..."
       />
 
       {isMobile ? (

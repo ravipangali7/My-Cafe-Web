@@ -434,6 +434,7 @@ export default function VendorsList() {
               onApply={handleApplyFilters}
               onClear={handleClearFilters}
               showUserFilter={false}
+              placeholder="Search vendors..."
             />
           </>
         )}

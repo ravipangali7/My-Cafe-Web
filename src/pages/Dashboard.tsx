@@ -10,7 +10,6 @@ import { getAndSaveFCMToken } from '@/lib/fcm';
 import { getFirebaseMessaging } from '@/lib/firebase-config';
 import { onMessage } from 'firebase/messaging';
 import { toast } from 'sonner';
-import { ViewToggle } from '@/components/dashboard/ViewToggle';
 import { VendorDashboard } from '@/components/dashboard/vendor';
 import { SystemDashboard } from '@/components/dashboard/system';
 import {
@@ -154,9 +153,6 @@ export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  
-  // View mode state (for super admins)
-  const [viewMode, setViewMode] = useState<'superAdmin' | 'vendor'>('vendor');
   
   // Vendor dashboard data
   const [vendorData, setVendorData] = useState<VendorDashboardData | null>(null);
@@ -431,9 +427,9 @@ export default function Dashboard() {
     }
   }, []);
 
-  // Determine which view to show
-  const showSuperAdminView = user?.is_superuser && viewMode === 'superAdmin';
-  const showVendorView = !user?.is_superuser || viewMode === 'vendor';
+  // Determine which view to show based on user role
+  const showSuperAdminView = user?.is_superuser;
+  const showVendorView = !user?.is_superuser;
 
   const getDashboardTitle = () => {
     if (showSuperAdminView) {
@@ -455,16 +451,6 @@ export default function Dashboard() {
         title={getDashboardTitle()}
         description={getDashboardDescription()}
       />
-
-      {/* View Toggle for Super Admins */}
-      {user?.is_superuser && (
-        <div className="mb-6">
-          <ViewToggle
-            currentView={viewMode}
-            onViewChange={setViewMode}
-          />
-        </div>
-      )}
 
       {/* Super Admin View - System Dashboard */}
       {showSuperAdminView && (

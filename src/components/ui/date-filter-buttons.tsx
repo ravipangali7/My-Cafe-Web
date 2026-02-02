@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Calendar } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export type DateFilterType = 'today' | 'yesterday' | 'week' | 'month' | 'year' | 'custom' | 'all';
 
@@ -14,6 +14,7 @@ interface DateFilterButtonsProps {
   onEndDateChange?: (date: string) => void;
   showDateInputs?: boolean;
   className?: string;
+  compact?: boolean;
 }
 
 /**
@@ -53,12 +54,12 @@ export function getDateRange(filter: DateFilterType): { startDate?: string; endD
   }
 }
 
-const filterButtons: { label: string; value: DateFilterType }[] = [
-  { label: 'Today', value: 'today' },
-  { label: 'Yesterday', value: 'yesterday' },
-  { label: 'Week', value: 'week' },
-  { label: 'Month', value: 'month' },
-  { label: 'Year', value: 'year' },
+const filterButtons: { label: string; shortLabel: string; value: DateFilterType }[] = [
+  { label: 'Today', shortLabel: '1D', value: 'today' },
+  { label: 'Yesterday', shortLabel: 'Y', value: 'yesterday' },
+  { label: 'Week', shortLabel: '1W', value: 'week' },
+  { label: 'Month', shortLabel: '1M', value: 'month' },
+  { label: 'Year', shortLabel: '1Y', value: 'year' },
 ];
 
 export function DateFilterButtons({
@@ -70,6 +71,7 @@ export function DateFilterButtons({
   onEndDateChange,
   showDateInputs = true,
   className = '',
+  compact = false,
 }: DateFilterButtonsProps) {
   const handleFilterClick = (filter: DateFilterType) => {
     const range = getDateRange(filter);
@@ -90,50 +92,115 @@ export function DateFilterButtons({
     }
   };
 
-  return (
-    <div className={`space-y-3 ${className}`}>
-      {showDateInputs && (
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="flex-1">
-            <Label htmlFor="start-date" className="text-xs text-muted-foreground mb-1 block">
-              Start Date
-            </Label>
+  if (compact) {
+    return (
+      <div className={cn('flex flex-wrap items-center gap-2', className)}>
+        {/* Compact Date Inputs */}
+        {showDateInputs && (
+          <div className="flex items-center gap-1.5">
             <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Calendar className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
               <Input
-                id="start-date"
                 type="date"
                 value={startDate || ''}
                 onChange={(e) => handleDateInputChange('start', e.target.value)}
-                className="pl-10"
+                className="pl-7 h-8 w-32 text-xs border-muted"
+              />
+            </div>
+            <span className="text-muted-foreground text-xs">to</span>
+            <div className="relative">
+              <Calendar className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+              <Input
+                type="date"
+                value={endDate || ''}
+                onChange={(e) => handleDateInputChange('end', e.target.value)}
+                className="pl-7 h-8 w-32 text-xs border-muted"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Compact Quick Buttons */}
+        <div className="flex items-center gap-1 flex-wrap">
+          {filterButtons.map((btn) => (
+            <Button
+              key={btn.value}
+              type="button"
+              variant={activeFilter === btn.value ? 'default' : 'outline'}
+              size="sm"
+              className={cn(
+                'h-7 px-2 text-[10px] font-medium transition-all duration-200',
+                activeFilter === btn.value && 'shadow-sm'
+              )}
+              onClick={() => handleFilterClick(btn.value)}
+            >
+              <span className="hidden sm:inline">{btn.label}</span>
+              <span className="sm:hidden">{btn.shortLabel}</span>
+            </Button>
+          ))}
+          <Button
+            type="button"
+            variant={activeFilter === 'all' ? 'default' : 'outline'}
+            size="sm"
+            className={cn(
+              'h-7 px-2 text-[10px] font-medium transition-all duration-200',
+              activeFilter === 'all' && 'shadow-sm'
+            )}
+            onClick={() => handleFilterClick('all')}
+          >
+            All
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn('space-y-2', className)}>
+      {showDateInputs && (
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex-1">
+            <label className="text-xs text-muted-foreground mb-1 block font-medium">
+              Start Date
+            </label>
+            <div className="relative">
+              <Calendar className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                type="date"
+                value={startDate || ''}
+                onChange={(e) => handleDateInputChange('start', e.target.value)}
+                className="pl-8 h-8 text-sm"
               />
             </div>
           </div>
           <div className="flex-1">
-            <Label htmlFor="end-date" className="text-xs text-muted-foreground mb-1 block">
+            <label className="text-xs text-muted-foreground mb-1 block font-medium">
               End Date
-            </Label>
+            </label>
             <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Calendar className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
-                id="end-date"
                 type="date"
                 value={endDate || ''}
                 onChange={(e) => handleDateInputChange('end', e.target.value)}
-                className="pl-10"
+                className="pl-8 h-8 text-sm"
               />
             </div>
           </div>
         </div>
       )}
       
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1.5">
         {filterButtons.map((btn) => (
           <Button
             key={btn.value}
             type="button"
             variant={activeFilter === btn.value ? 'default' : 'outline'}
             size="sm"
+            className={cn(
+              'h-7 px-2.5 text-xs font-medium transition-all duration-200',
+              activeFilter === btn.value && 'shadow-sm'
+            )}
             onClick={() => handleFilterClick(btn.value)}
           >
             {btn.label}
@@ -143,6 +210,10 @@ export function DateFilterButtons({
           type="button"
           variant={activeFilter === 'all' ? 'default' : 'outline'}
           size="sm"
+          className={cn(
+            'h-7 px-2.5 text-xs font-medium transition-all duration-200',
+            activeFilter === 'all' && 'shadow-sm'
+          )}
           onClick={() => handleFilterClick('all')}
         >
           All Time

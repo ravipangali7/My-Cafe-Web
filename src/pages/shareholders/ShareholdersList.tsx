@@ -289,6 +289,7 @@ export default function ShareholdersList() {
           onSearchChange={setSearch}
           onApply={handleApplyFilters}
           onClear={handleClearFilters}
+          placeholder="Search shareholders..."
         />
 
         <PremiumTable

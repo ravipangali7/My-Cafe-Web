@@ -233,6 +233,7 @@ export default function DuesList() {
           onSearchChange={setSearch}
           onApply={handleApplyFilters}
           onClear={handleClearFilters}
+          placeholder="Search vendors..."
           additionalFilters={
             <Button
               variant={overThresholdOnly ? 'default' : 'outline'}
@@ -241,10 +242,10 @@ export default function DuesList() {
                 setOverThresholdOnly(!overThresholdOnly);
                 setPage(1);
               }}
-              className={overThresholdOnly ? '' : 'text-destructive hover:text-destructive'}
+              className={`h-8 text-xs ${overThresholdOnly ? '' : 'text-destructive hover:text-destructive'}`}
             >
-              <AlertTriangle className="h-4 w-4 mr-2" />
-              Over Threshold Only
+              <AlertTriangle className="h-3.5 w-3.5 mr-1.5" />
+              Over Threshold
             </Button>
           }
         />

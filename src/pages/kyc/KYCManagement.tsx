@@ -2,8 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, CheckCircle, XCircle, Eye, Shield, Clock, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { FilterBar } from '@/components/ui/filter-bar';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/ui/page-header';
 import { PremiumTable, MobileCardRow } from '@/components/ui/premium-table';
@@ -329,47 +328,31 @@ export default function KYCManagement() {
 
         <PremiumStatsCards stats={statCards} loading={loading} columns={4} />
 
-        {/* Filters */}
-        <Card className="mb-6">
-          <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1">
-                <Label htmlFor="search">Search</Label>
-                <Input
-                  id="search"
-                  placeholder="Search by name or phone..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      handleApplyFilters();
-                    }
-                  }}
-                />
-              </div>
-              <div className="w-full md:w-48">
-                <Label htmlFor="status">Status</Label>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger id="status">
-                    <SelectValue placeholder="All Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="approved">Approved</SelectItem>
-                    <SelectItem value="rejected">Rejected</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-end gap-2">
-                <Button onClick={handleApplyFilters}>Apply</Button>
-                <Button variant="outline" onClick={handleClearFilters}>
-                  Clear
-                </Button>
-              </div>
+        <FilterBar
+          search={search}
+          onSearchChange={setSearch}
+          onApply={handleApplyFilters}
+          onClear={handleClearFilters}
+          placeholder="Search by name or phone..."
+          additionalFilters={
+            <div className="w-full sm:w-36">
+              <label className="text-xs text-muted-foreground mb-1 block font-medium">
+                Status
+              </label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="text-xs">All</SelectItem>
+                  <SelectItem value="pending" className="text-xs">Pending</SelectItem>
+                  <SelectItem value="approved" className="text-xs">Approved</SelectItem>
+                  <SelectItem value="rejected" className="text-xs">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          </CardContent>
-        </Card>
+          }
+        />
 
         <PremiumTable
           columns={columns}
