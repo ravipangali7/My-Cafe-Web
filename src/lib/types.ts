@@ -273,3 +273,260 @@ export const TRANSACTION_TYPE_LABELS: Record<TransactionType, string> = {
   in: 'Incoming',
   out: 'Outgoing',
 };
+
+// =====================
+// DASHBOARD TYPES
+// =====================
+
+// Period type for charts
+export type DashboardPeriod = 'daily' | 'weekly' | 'monthly';
+
+// Revenue trend data point
+export interface RevenueTrendPoint {
+  date: string;
+  revenue: number;
+  orders: number;
+}
+
+// Product insight item
+export interface ProductInsight {
+  product_id: number;
+  product_name: string;
+  product_image: string | null;
+  total_quantity: number;
+  total_revenue: number;
+}
+
+// Repeat customer item
+export interface RepeatCustomer {
+  id: number;
+  name: string;
+  phone: string;
+  country_code: string;
+  order_count: number;
+  total_spend: number;
+}
+
+// Pending order (simplified for dashboard)
+export interface PendingOrder {
+  id: number;
+  name: string;
+  phone: string;
+  table_no: string;
+  total: string;
+  status: string;
+  created_at: string;
+}
+
+// Pending QR Stand Order (simplified for dashboard)
+export interface PendingQROrder {
+  id: number;
+  vendor: number;
+  vendor_info?: {
+    id: number;
+    name: string;
+    phone: string;
+    logo_url: string | null;
+  } | null;
+  quantity: number;
+  total_price: string;
+  order_status: string;
+  payment_status: string;
+  created_at: string;
+}
+
+// Vendor Dashboard Data
+export interface VendorDashboardData {
+  // Stats
+  due_balance: number;
+  subscription_status: 'active' | 'expired' | 'none';
+  subscription_end_date: string | null;
+  total_orders: number;
+  total_sales: number;
+  total_products: number;
+  total_qr_stand_orders: number;
+  
+  // Pending items
+  pending_orders: PendingOrder[];
+  pending_orders_count: number;
+  pending_qr_orders: PendingQROrder[];
+  pending_qr_orders_count: number;
+  
+  // Revenue trends (by period)
+  revenue_trends: {
+    daily: RevenueTrendPoint[];
+    weekly: RevenueTrendPoint[];
+    monthly: RevenueTrendPoint[];
+  };
+  
+  // Product insights
+  top_selling_products: ProductInsight[];
+  top_revenue_products: ProductInsight[];
+  
+  // Repeat customers
+  repeat_customers: RepeatCustomer[];
+  
+  // Transactions
+  transactions: Transaction[];
+  
+  // Legacy fields for compatibility
+  subscription?: {
+    type: string | null;
+    start_date: string | null;
+    end_date: string | null;
+    amount_paid: string;
+    status: string;
+  };
+  payment_status_breakdown?: {
+    paid: number;
+    pending: number;
+    failed: number;
+  };
+  subscription_history?: Array<{
+    date: string;
+    event: string;
+    amount?: string;
+    status?: string;
+  }>;
+  finance_summary?: {
+    today: string;
+    week: string;
+    month: string;
+  };
+  best_selling_products?: ProductInsight[];
+  order_trends?: {
+    daily: RevenueTrendPoint[];
+    monthly: RevenueTrendPoint[];
+  };
+  recent_orders?: Order[];
+  total_revenue?: string;
+}
+
+// Shareholder distribution item
+export interface ShareholderDistribution {
+  id: number;
+  name: string;
+  phone: string;
+  share_percentage: number;
+  amount: number;
+  logo_url: string | null;
+}
+
+// Revenue breakdown
+export interface RevenueBreakdown {
+  qr_stand_earnings: number;
+  due_collection: number;
+  subscription_earnings: number;
+  transaction_earnings: number;
+  whatsapp_earnings: number;
+  total: number;
+}
+
+// Financial trend point
+export interface FinancialTrendPoint {
+  date: string;
+  income: number;
+  outgoing: number;
+  profit: number;
+  loss: number;
+}
+
+// Top vendor item
+export interface TopVendor {
+  id: number;
+  name: string;
+  phone: string;
+  logo_url: string | null;
+  total_revenue: number;
+  total_orders: number;
+}
+
+// Pending KYC request
+export interface PendingKYCRequest {
+  id: number;
+  name: string;
+  phone: string;
+  country_code: string;
+  kyc_status: string;
+  kyc_document_type: string | null;
+  kyc_document_url: string | null;
+  created_at: string;
+}
+
+// System Dashboard Data
+export interface SystemDashboardData {
+  // System balance (prominent)
+  system_balance: number;
+  
+  // Vendor stats
+  total_vendors: number;
+  active_vendors: number;
+  inactive_vendors: number;
+  pending_kyc_vendors: number;
+  expired_vendors: number;
+  due_blocked_vendors: number;
+  
+  // Shareholder stats
+  total_shareholders: number;
+  total_shareholder_balance: number;
+  total_distributed_balance: number;
+  total_shareholder_withdrawals: number;
+  pending_shareholder_withdrawals_count: number;
+  
+  // Financial stats
+  total_due_amount: number;
+  total_system_revenue: number;
+  qr_stand_earnings: number;
+  subscription_earnings: number;
+  transaction_earnings: number;
+  whatsapp_earnings: number;
+  
+  // Shareholder distribution
+  shareholder_distribution: ShareholderDistribution[];
+  
+  // Revenue breakdown
+  revenue_breakdown: RevenueBreakdown;
+  
+  // Financial trends
+  financial_trends: FinancialTrendPoint[];
+  
+  // Pending items
+  pending_qr_orders: PendingQROrder[];
+  pending_kyc_requests: PendingKYCRequest[];
+  pending_withdrawals: ShareholderWithdrawal[];
+  
+  // Top vendors
+  top_revenue_vendors: TopVendor[];
+  
+  // Legacy fields for compatibility
+  users?: {
+    total: number;
+    active: number;
+    deactivated: number;
+  };
+  revenue?: {
+    total: string;
+    trends: Array<{
+      date: string;
+      revenue: string;
+    }>;
+  };
+  pending_kyc_count?: number;
+  transactions?: Transaction[];
+  total_transactions?: number;
+  pending_qr_orders_count?: number;
+  transactions_trend?: Array<{
+    date: string;
+    count: number;
+  }>;
+  users_overview?: Array<{
+    id: number;
+    name: string;
+    phone: string;
+    is_active: boolean;
+    is_superuser: boolean;
+    total_orders: number;
+    total_revenue: string;
+    kyc_status: string;
+  }>;
+}
