@@ -10,7 +10,7 @@ import { ChartCard, ChartEmptyState } from '../shared/ChartCard';
 import { ShareholderDistribution } from '@/lib/types';
 import { formatCurrency } from '@/components/ui/premium-stats-card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { getMediaUrl } from '@/lib/api';
+import { getMediaProxyUrl } from '@/lib/api';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ShareholderPieChartProps {
@@ -149,7 +149,7 @@ export function ShareholderPieChart({
                     />
                     <Avatar className="h-7 w-7">
                       {item.logo_url ? (
-                        <AvatarImage src={getMediaUrl(item.logo_url)} />
+                        <AvatarImage src={getMediaProxyUrl(item.logo_url)} />
                       ) : null}
                       <AvatarFallback className="text-xs bg-accent">
                         {item.name.slice(0, 2).toUpperCase()}

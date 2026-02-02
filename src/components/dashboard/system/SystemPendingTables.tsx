@@ -15,7 +15,7 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { PendingQROrder, PendingKYCRequest, ShareholderWithdrawal } from '@/lib/types';
 import { formatCurrency } from '@/components/ui/premium-stats-card';
-import { getMediaUrl } from '@/lib/api';
+import { getMediaProxyUrl } from '@/lib/api';
 import {
   Eye,
   QrCode,
@@ -71,7 +71,7 @@ export function SystemPendingTables({
         <div className="flex items-center gap-2">
           <Avatar className="h-8 w-8">
             {item.vendor_info?.logo_url ? (
-              <AvatarImage src={getMediaUrl(item.vendor_info.logo_url)} />
+              <AvatarImage src={getMediaProxyUrl(item.vendor_info.logo_url)} />
             ) : null}
             <AvatarFallback className="text-xs">
               {item.vendor_info?.name?.slice(0, 2).toUpperCase() || 'V'}
@@ -159,7 +159,7 @@ export function SystemPendingTables({
         <div className="flex items-center gap-2">
           <Avatar className="h-8 w-8">
             {item.user_info?.logo_url ? (
-              <AvatarImage src={getMediaUrl(item.user_info.logo_url)} />
+              <AvatarImage src={getMediaProxyUrl(item.user_info.logo_url)} />
             ) : null}
             <AvatarFallback className="text-xs">
               {item.user_info?.name?.slice(0, 2).toUpperCase() || 'S'}
@@ -250,7 +250,7 @@ export function SystemPendingTables({
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10">
             {item.user_info?.logo_url ? (
-              <AvatarImage src={getMediaUrl(item.user_info.logo_url)} />
+              <AvatarImage src={getMediaProxyUrl(item.user_info.logo_url)} />
             ) : null}
             <AvatarFallback>
               {item.user_info?.name?.slice(0, 2).toUpperCase() || 'S'}

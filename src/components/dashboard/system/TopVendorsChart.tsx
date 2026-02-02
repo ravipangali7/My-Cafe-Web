@@ -15,7 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ChartEmptyState } from '../shared/ChartCard';
 import { TopVendor } from '@/lib/types';
 import { formatCurrency } from '@/components/ui/premium-stats-card';
-import { getMediaUrl } from '@/lib/api';
+import { getMediaProxyUrl } from '@/lib/api';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { TrendingUp, Trophy, Store } from 'lucide-react';
 
@@ -59,7 +59,7 @@ export function TopVendorsChart({ data, loading = false }: TopVendorsChartProps)
           <div className="flex items-center gap-2 mb-2">
             <Avatar className="h-8 w-8">
               {item.logo_url ? (
-                <AvatarImage src={getMediaUrl(item.logo_url)} />
+                <AvatarImage src={getMediaProxyUrl(item.logo_url)} />
               ) : null}
               <AvatarFallback className="text-xs">
                 {item.name?.slice(0, 2).toUpperCase()}
@@ -179,7 +179,7 @@ export function TopVendorsChart({ data, loading = false }: TopVendorsChartProps)
                   </span>
                   <Avatar className="h-10 w-10">
                     {vendor.logo_url ? (
-                      <AvatarImage src={getMediaUrl(vendor.logo_url)} />
+                      <AvatarImage src={getMediaProxyUrl(vendor.logo_url)} />
                     ) : null}
                     <AvatarFallback className="bg-accent">
                       <Store className="h-4 w-4" />

@@ -14,7 +14,7 @@ import { ProductInsight } from '@/lib/types';
 import { formatCurrency } from '@/components/ui/premium-stats-card';
 import { TrendingUp, DollarSign, Package } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { getMediaUrl } from '@/lib/api';
+import { getMediaProxyUrl } from '@/lib/api';
 
 interface ProductInsightsSectionProps {
   topSellingProducts: ProductInsight[];
@@ -189,7 +189,7 @@ function ProductList({
           </span>
           <Avatar className="h-10 w-10">
             {product.product_image ? (
-              <AvatarImage src={getMediaUrl(product.product_image)} alt={product.product_name} />
+              <AvatarImage src={getMediaProxyUrl(product.product_image)} alt={product.product_name} />
             ) : null}
             <AvatarFallback className="bg-accent text-xs">
               {product.product_name.slice(0, 2).toUpperCase()}
