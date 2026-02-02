@@ -120,6 +120,15 @@
     box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   }
 
+  /* Premium card shadows */
+  .card-shadow-premium {
+    box-shadow: 0 4px 12px -2px rgb(0 0 0 / 0.08), 0 2px 6px -2px rgb(0 0 0 / 0.04);
+  }
+
+  .card-shadow-premium-hover {
+    box-shadow: 0 8px 24px -4px rgb(0 0 0 / 0.12), 0 4px 12px -4px rgb(0 0 0 / 0.08);
+  }
+
   /* Hide scrollbar for category pills */
   .scrollbar-hide {
     -ms-overflow-style: none;
@@ -128,5 +137,111 @@
   
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+
+  /* Mobile-first touch targets */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Native app feel animations */
+  .press-scale {
+    transition: transform 0.1s ease-out;
+  }
+
+  .press-scale:active {
+    transform: scale(0.98);
+  }
+
+  /* Gradient backgrounds for premium cards */
+  .gradient-success {
+    background: linear-gradient(135deg, hsl(var(--success) / 0.1), hsl(var(--success) / 0.05));
+  }
+
+  .gradient-warning {
+    background: linear-gradient(135deg, hsl(var(--warning) / 0.1), hsl(var(--warning) / 0.05));
+  }
+
+  .gradient-destructive {
+    background: linear-gradient(135deg, hsl(var(--destructive) / 0.1), hsl(var(--destructive) / 0.05));
+  }
+
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.1), hsl(var(--primary) / 0.05));
+  }
+
+  .gradient-info {
+    background: linear-gradient(135deg, hsl(220 70% 50% / 0.1), hsl(220 70% 50% / 0.05));
+  }
+
+  /* Premium highlight card */
+  .highlight-card {
+    background: linear-gradient(135deg, hsl(45 100% 97%), hsl(45 100% 94%));
+    border-color: hsl(45 100% 80%);
+  }
+
+  .dark .highlight-card {
+    background: linear-gradient(135deg, hsl(45 50% 15%), hsl(45 50% 10%));
+    border-color: hsl(45 50% 25%);
+  }
+
+  /* Smooth page transitions */
+  .page-transition {
+    animation: fadeIn 0.2s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Safe area padding for mobile */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+
+  /* Glass morphism effect */
+  .glass {
+    background: hsl(var(--background) / 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  /* Status indicator dot */
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .status-dot-success {
+    background-color: hsl(var(--success));
+    box-shadow: 0 0 0 2px hsl(var(--success) / 0.2);
+  }
+
+  .status-dot-warning {
+    background-color: hsl(var(--warning));
+    box-shadow: 0 0 0 2px hsl(var(--warning) / 0.2);
+  }
+
+  .status-dot-destructive {
+    background-color: hsl(var(--destructive));
+    box-shadow: 0 0 0 2px hsl(var(--destructive) / 0.2);
+  }
+
+  /* List item dividers */
+  .divide-subtle > * + * {
+    border-top: 1px solid hsl(var(--border) / 0.5);
   }
 }

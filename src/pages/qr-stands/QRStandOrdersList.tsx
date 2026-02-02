@@ -1,37 +1,23 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Eye, Edit, Trash2 } from 'lucide-react';
+import { Plus, Eye, Edit, Trash2, QrCode, Clock, CheckCircle, Truck, IndianRupee } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/ui/page-header';
-import { DataTable } from '@/components/ui/data-table';
+import { PremiumTable, MobileCardRow } from '@/components/ui/premium-table';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FilterBar } from '@/components/ui/filter-bar';
 import { DateFilterButtons, DateFilterType } from '@/components/ui/date-filter-buttons';
+import { PremiumStatsCards, formatCurrency } from '@/components/ui/premium-stats-card';
+import { VendorInfoCell } from '@/components/ui/vendor-info-cell';
+import { ConfirmationModal } from '@/components/ui/confirmation-modal';
 import { SimplePagination } from '@/components/ui/simple-pagination';
-import { Card, CardContent } from '@/components/ui/card';
-import { api, fetchPaginated, PaginatedResponse } from '@/lib/api';
+import { CardContent } from '@/components/ui/card';
+import { api, fetchPaginated } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 
 interface QRStandOrder {
   id: number;
@@ -50,6 +36,14 @@ interface QRStandOrder {
   updated_at: string;
 }
 
+interface QRStandStats {
+  total: number;
+  pending: number;
+  accepted: number;
+  delivered: number;
+  revenue: string;
+}
+
 export default function QRStandOrdersList() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -57,7 +51,6 @@ export default function QRStandOrdersList() {
   const [orders, setOrders] = useState<QRStandOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
   const [dateFilter, setDateFilter] = useState<DateFilterType>('all');
@@ -70,6 +63,14 @@ export default function QRStandOrdersList() {
   const [totalPages, setTotalPages] = useState(1);
   const [count, setCount] = useState(0);
   const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null);
+  const [stats, setStats] = useState<QRStandStats>({
+    total: 0,
+    pending: 0,
+    accepted: 0,
+    delivered: 0,
+    revenue: '0',
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
 
   const fetchOrders = useCallback(async () => {
     if (!user) return;
@@ -108,6 +109,23 @@ export default function QRStandOrdersList() {
     }
   }, [user, page, pageSize, appliedSearch, appliedStartDate, appliedEndDate]);
 
+  const fetchStats = useCallback(async () => {
+    if (!user) return;
+    
+    setLoadingStats(true);
+    try {
+      const response = await api.get<QRStandStats>('/api/stats/qr-stands/');
+      
+      if (response.data) {
+        setStats(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch QR stand stats:', error);
+    } finally {
+      setLoadingStats(false);
+    }
+  }, [user]);
+
   const handleDateFilterChange = (filter: DateFilterType, start?: string, end?: string) => {
     setDateFilter(filter);
     setStartDate(start || '');
@@ -117,8 +135,9 @@ export default function QRStandOrdersList() {
   useEffect(() => {
     if (user) {
       fetchOrders();
+      fetchStats();
     }
-  }, [user, fetchOrders]);
+  }, [user, fetchOrders, fetchStats]);
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -131,13 +150,14 @@ export default function QRStandOrdersList() {
         toast.success('Order deleted successfully');
         setDeleteId(null);
         fetchOrders();
+        fetchStats();
       }
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete order');
     }
   };
 
-  const getOrderStatusVariant = (status: string) => {
+  const getOrderStatusVariant = (status: string): 'success' | 'warning' | 'default' | 'destructive' => {
     switch (status) {
       case 'delivered':
         return 'success';
@@ -151,7 +171,7 @@ export default function QRStandOrdersList() {
     }
   };
 
-  const getPaymentStatusVariant = (status: string) => {
+  const getPaymentStatusVariant = (status: string): 'success' | 'warning' | 'destructive' | 'default' => {
     switch (status) {
       case 'paid':
         return 'success';
@@ -177,10 +197,10 @@ export default function QRStandOrdersList() {
         toast.error(response.error || 'Failed to update order');
       } else {
         toast.success('Order updated successfully');
-        // Update local state
         setOrders(prev => prev.map(order => 
           order.id === orderId ? { ...order, [field]: value } : order
         ));
+        fetchStats();
       }
     } catch (error: any) {
       toast.error(error.message || 'Failed to update order');
@@ -189,30 +209,67 @@ export default function QRStandOrdersList() {
     }
   };
 
+  const handleApplyFilters = () => {
+    setAppliedSearch(search);
+    setAppliedStartDate(startDate);
+    setAppliedEndDate(endDate);
+    setPage(1);
+  };
+
+  const handleClearFilters = () => {
+    setSearch('');
+    setAppliedSearch('');
+    setDateFilter('all');
+    setStartDate('');
+    setEndDate('');
+    setAppliedStartDate('');
+    setAppliedEndDate('');
+    setPage(1);
+  };
+
   const columns = [
     {
       key: 'id',
-      label: 'ID',
-      render: (item: QRStandOrder) => `#${item.id}`,
+      label: 'Order',
+      render: (item: QRStandOrder) => (
+        <span className="font-mono font-medium">#{item.id}</span>
+      ),
     },
     {
       key: 'vendor',
       label: 'Vendor',
-      render: (item: QRStandOrder) => item.vendor_info?.name || `Vendor #${item.vendor}`,
+      render: (item: QRStandOrder) => {
+        if (!item.vendor_info) return <span className="text-muted-foreground">Vendor #{item.vendor}</span>;
+        return (
+          <VendorInfoCell
+            name={item.vendor_info.name}
+            phone={item.vendor_info.phone}
+            logoUrl={item.vendor_info.logo_url}
+            size="sm"
+          />
+        );
+      },
     },
     {
       key: 'quantity',
-      label: 'Quantity',
-      render: (item: QRStandOrder) => item.quantity,
+      label: 'Qty',
+      align: 'center' as const,
+      render: (item: QRStandOrder) => (
+        <span className="font-medium">{item.quantity}</span>
+      ),
     },
     {
       key: 'total_price',
-      label: 'Total Price',
-      render: (item: QRStandOrder) => `₹${parseFloat(item.total_price).toFixed(2)}`,
+      label: 'Total',
+      align: 'right' as const,
+      render: (item: QRStandOrder) => (
+        <span className="font-semibold">{formatCurrency(item.total_price)}</span>
+      ),
     },
     {
       key: 'order_status',
       label: 'Order Status',
+      hideOnMobile: true,
       render: (item: QRStandOrder) => (
         user?.is_superuser ? (
           <Select
@@ -220,7 +277,7 @@ export default function QRStandOrdersList() {
             onValueChange={(value) => handleStatusChange(item.id, 'order_status', value)}
             disabled={updatingOrderId === item.id}
           >
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-[130px] h-8">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -237,7 +294,8 @@ export default function QRStandOrdersList() {
     },
     {
       key: 'payment_status',
-      label: 'Payment Status',
+      label: 'Payment',
+      hideOnMobile: true,
       render: (item: QRStandOrder) => (
         user?.is_superuser ? (
           <Select
@@ -245,7 +303,7 @@ export default function QRStandOrdersList() {
             onValueChange={(value) => handleStatusChange(item.id, 'payment_status', value)}
             disabled={updatingOrderId === item.id}
           >
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-[120px] h-8">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -259,187 +317,164 @@ export default function QRStandOrdersList() {
         )
       ),
     },
-    {
-      key: 'created_at',
-      label: 'Created',
-      render: (item: QRStandOrder) => new Date(item.created_at).toLocaleDateString(),
-    },
   ];
 
-  const selectedOrder = selectedOrderId ? orders.find((o) => o.id === selectedOrderId) : null;
+  const statCards = [
+    { label: 'Total Orders', value: stats.total, icon: QrCode, variant: 'default' as const },
+    { label: 'Pending', value: stats.pending || 0, icon: Clock, variant: 'warning' as const },
+    { label: 'Accepted', value: stats.accepted || 0, icon: CheckCircle, variant: 'info' as const },
+    { label: 'Delivered', value: stats.delivered || 0, icon: Truck, variant: 'success' as const },
+    { label: 'Revenue', value: formatCurrency(stats.revenue || '0'), icon: IndianRupee, variant: 'highlight' as const },
+  ];
+
+  const renderMobileCard = (order: QRStandOrder, index: number) => (
+    <CardContent className="p-4">
+      <div className="flex justify-between items-start mb-3">
+        <div>
+          <div className="font-mono font-semibold text-foreground">Order #{order.id}</div>
+          {order.vendor_info ? (
+            <VendorInfoCell
+              name={order.vendor_info.name}
+              phone={order.vendor_info.phone}
+              logoUrl={order.vendor_info.logo_url}
+              size="sm"
+              className="mt-1"
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground mt-1">Vendor #{order.vendor}</p>
+          )}
+        </div>
+        <div className="text-right">
+          <div className="font-bold text-lg text-foreground">{formatCurrency(order.total_price)}</div>
+          <div className="text-xs text-muted-foreground">Qty: {order.quantity}</div>
+        </div>
+      </div>
+      
+      <div className="flex items-center gap-2 flex-wrap">
+        <StatusBadge status={order.order_status} variant={getOrderStatusVariant(order.order_status)} />
+        <StatusBadge status={order.payment_status} variant={getPaymentStatusVariant(order.payment_status)} />
+      </div>
+
+      <MobileCardRow
+        label="Created"
+        value={new Date(order.created_at).toLocaleDateString()}
+        className="mt-2"
+      />
+      
+      <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-border">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/qr-stands/${order.id}`);
+          }}
+        >
+          <Eye className="h-4 w-4 mr-1" />
+          View
+        </Button>
+        {user?.is_superuser && (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/qr-stands/${order.id}`);
+              }}
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-destructive hover:text-destructive"
+              onClick={(e) => {
+                e.stopPropagation();
+                setDeleteId(order.id);
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </>
+        )}
+      </div>
+    </CardContent>
+  );
 
   return (
     <DashboardLayout>
-      <PageHeader
-        title="QR Stand Orders"
-        description="Manage QR stand orders"
-        action={
-          <Button onClick={() => navigate('/qr-stands/new')}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Order
-          </Button>
-        }
-      />
+      <div className="page-transition">
+        <PageHeader
+          title="QR Stand Orders"
+          description="Manage QR stand orders"
+          action={
+            <Button onClick={() => navigate('/qr-stands/new')} className="touch-target">
+              <Plus className="h-4 w-4 mr-2" />
+              New Order
+            </Button>
+          }
+        />
 
-      <FilterBar
-        search={search}
-        onSearchChange={setSearch}
-        onApply={() => {
-          setAppliedSearch(search);
-          setAppliedStartDate(startDate);
-          setAppliedEndDate(endDate);
-          setPage(1);
-        }}
-        onClear={() => {
-          setSearch('');
-          setAppliedSearch('');
-          setDateFilter('all');
-          setStartDate('');
-          setEndDate('');
-          setAppliedStartDate('');
-          setAppliedEndDate('');
-          setPage(1);
-        }}
-        showUserFilter={false}
-        additionalFilters={
-          <div className="w-full">
-            <DateFilterButtons
-              activeFilter={dateFilter}
-              onFilterChange={handleDateFilterChange}
-              startDate={startDate}
-              endDate={endDate}
-              onStartDateChange={setStartDate}
-              onEndDateChange={setEndDate}
-            />
-          </div>
-        }
-      />
+        <PremiumStatsCards stats={statCards} loading={loadingStats} columns={3} />
 
-      {isMobile ? (
-        <div className="grid grid-cols-1 gap-4">
-          {loading ? (
-            <div className="text-center py-8 text-muted-foreground">Loading orders...</div>
-          ) : orders.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">No QR stand orders found</div>
-          ) : (
-            orders.map((order) => (
-              <Card
-                key={order.id}
-                className="cursor-pointer hover:bg-accent transition-colors"
-                onClick={() => setSelectedOrderId(order.id)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <div className="font-medium text-base">Order #{order.id}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {order.vendor_info?.name || `Vendor #${order.vendor}`}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-semibold text-base">₹{parseFloat(order.total_price).toFixed(2)}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {new Date(order.created_at).toLocaleDateString()}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap mt-2">
-                    <StatusBadge status={order.order_status} variant={getOrderStatusVariant(order.order_status)} />
-                    <StatusBadge status={order.payment_status} variant={getPaymentStatusVariant(order.payment_status)} />
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </div>
-      ) : (
-        <DataTable 
-          columns={columns} 
-          data={orders} 
-          loading={loading} 
+        <FilterBar
+          search={search}
+          onSearchChange={setSearch}
+          onApply={handleApplyFilters}
+          onClear={handleClearFilters}
+          showUserFilter={false}
+          additionalFilters={
+            <div className="w-full">
+              <DateFilterButtons
+                activeFilter={dateFilter}
+                onFilterChange={handleDateFilterChange}
+                startDate={startDate}
+                endDate={endDate}
+                onStartDateChange={setStartDate}
+                onEndDateChange={setEndDate}
+              />
+            </div>
+          }
+        />
+
+        <PremiumTable
+          columns={columns}
+          data={orders}
+          loading={loading}
+          showSerialNumber={false}
           emptyMessage="No QR stand orders found"
           onRowClick={(item) => navigate(`/qr-stands/${item.id}`)}
+          actions={user?.is_superuser ? {
+            onView: (item) => navigate(`/qr-stands/${item.id}`),
+            onEdit: (item) => navigate(`/qr-stands/${item.id}`),
+            onDelete: (item) => setDeleteId(item.id),
+          } : {
+            onView: (item) => navigate(`/qr-stands/${item.id}`),
+          }}
+          mobileCard={renderMobileCard}
         />
-      )}
 
-      {count > pageSize && (
-        <div className="mt-4">
-          <SimplePagination
-            currentPage={page}
-            totalPages={totalPages}
-            onPageChange={setPage}
-          />
-        </div>
-      )}
+        {count > pageSize && (
+          <div className="mt-4">
+            <SimplePagination
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
+          </div>
+        )}
 
-      {selectedOrder && (
-        <Dialog open={!!selectedOrderId} onOpenChange={(open) => !open && setSelectedOrderId(null)}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>QR Stand Order #{selectedOrder.id}</DialogTitle>
-              <DialogDescription>
-                {selectedOrder.vendor_info?.name || `Vendor #${selectedOrder.vendor}`} • ₹{parseFloat(selectedOrder.total_price).toFixed(2)}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex flex-col gap-2 py-4">
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => {
-                  setSelectedOrderId(null);
-                  navigate(`/qr-stands/${selectedOrder.id}`);
-                }}
-              >
-                <Eye className="h-4 w-4 mr-2" />
-                View
-              </Button>
-              {user?.is_superuser && (
-                <>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => {
-                      setSelectedOrderId(null);
-                      navigate(`/qr-stands/${selectedOrder.id}`);
-                    }}
-                  >
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    className="w-full justify-start"
-                    onClick={() => {
-                      setSelectedOrderId(null);
-                      setDeleteId(selectedOrder.id);
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </Button>
-                </>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete QR Stand Order</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this order? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        <ConfirmationModal
+          open={!!deleteId}
+          onOpenChange={(open) => !open && setDeleteId(null)}
+          title="Delete QR Stand Order"
+          description="Are you sure you want to delete this order? This action cannot be undone."
+          variant="destructive"
+          confirmLabel="Delete"
+          onConfirm={handleDelete}
+        />
+      </div>
     </DashboardLayout>
   );
 }

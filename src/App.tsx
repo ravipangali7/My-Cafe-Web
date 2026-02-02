@@ -74,8 +74,11 @@ import QRStandOrderView from "./pages/qr-stands/QRStandOrderView";
 
 // Shareholders, Withdrawals, Dues
 import ShareholdersList from "./pages/shareholders/ShareholdersList";
+import ShareholderView from "./pages/shareholders/ShareholderView";
 import WithdrawalsList from "./pages/withdrawals/WithdrawalsList";
+import WithdrawalView from "./pages/withdrawals/WithdrawalView";
 import DuesList from "./pages/dues/DuesList";
+import DueView from "./pages/dues/DueView";
 import PayDues from "./pages/dues/PayDues";
 
 // Customers
@@ -375,8 +378,11 @@ const App = () => (
 
             {/* Shareholders, Withdrawals, Dues */}
             <Route path="/shareholders" element={<ProtectedRoute><ShareholdersList /></ProtectedRoute>} />
+            <Route path="/shareholders/:id" element={<ProtectedRoute><ShareholderView /></ProtectedRoute>} />
             <Route path="/withdrawals" element={<ProtectedRoute><WithdrawalsList /></ProtectedRoute>} />
+            <Route path="/withdrawals/:id" element={<ProtectedRoute><WithdrawalView /></ProtectedRoute>} />
             <Route path="/dues" element={<ProtectedRoute><DuesList /></ProtectedRoute>} />
+            <Route path="/dues/:id" element={<ProtectedRoute><DueView /></ProtectedRoute>} />
             <Route path="/pay-dues" element={<ProtectedRoute><PayDues /></ProtectedRoute>} />
 
             {/* Customers */}

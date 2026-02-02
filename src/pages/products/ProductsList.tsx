@@ -1,38 +1,24 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Eye, Edit, Trash2, Package, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Eye, Edit, Trash2, Package, CheckCircle, XCircle, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/ui/page-header';
-import { DataTable } from '@/components/ui/data-table';
+import { PremiumTable, MobileCardRow } from '@/components/ui/premium-table';
 import { StatusBadge, getActiveStatusVariant } from '@/components/ui/status-badge';
 import { FilterBar } from '@/components/ui/filter-bar';
 import { DateFilterButtons, DateFilterType } from '@/components/ui/date-filter-buttons';
-import { StatsCards } from '@/components/ui/stats-cards';
+import { PremiumStatsCards } from '@/components/ui/premium-stats-card';
+import { VendorInfoCell } from '@/components/ui/vendor-info-cell';
+import { ConfirmationModal } from '@/components/ui/confirmation-modal';
 import { SimplePagination } from '@/components/ui/simple-pagination';
-import { Card, CardContent } from '@/components/ui/card';
-import { api, fetchPaginated, PaginatedResponse } from '@/lib/api';
+import { CardContent } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { api, fetchPaginated } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { canEditItem, canDeleteItem } from '@/lib/permissions';
 import { toast } from 'sonner';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 
 interface Product {
   id: number;
@@ -50,6 +36,13 @@ interface Product {
   } | null;
 }
 
+interface ProductStats {
+  total: number;
+  active: number;
+  inactive: number;
+  top_selling?: number;
+}
+
 export default function ProductsList() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -57,7 +50,6 @@ export default function ProductsList() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
   const [userId, setUserId] = useState<number | null>(null);
@@ -71,10 +63,11 @@ export default function ProductsList() {
   const [pageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [count, setCount] = useState(0);
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<ProductStats>({
     total: 0,
     active: 0,
     inactive: 0,
+    top_selling: 0,
   });
   const [loadingStats, setLoadingStats] = useState(true);
 
@@ -130,11 +123,7 @@ export default function ProductsList() {
       }
       
       const queryString = api.buildQueryString(params);
-      const response = await api.get<{
-        total: number;
-        active: number;
-        inactive: number;
-      }>(`/api/stats/products/${queryString}`);
+      const response = await api.get<ProductStats>(`/api/stats/products/${queryString}`);
       
       if (response.data) {
         setStats(response.data);
@@ -197,50 +186,43 @@ export default function ProductsList() {
 
   const columns = [
     {
-      key: 'image',
-      label: 'Image',
-      render: (item: Product) =>
-        item.image_url ? (
-          <img src={item.image_url} alt={item.name} className="h-10 w-10 rounded object-cover" />
-        ) : (
-          <div className="h-10 w-10 rounded bg-accent" />
-        ),
+      key: 'product',
+      label: 'Product',
+      render: (item: Product) => (
+        <div className="flex items-center gap-3">
+          <Avatar className="h-10 w-10 rounded-lg">
+            <AvatarImage src={item.image_url || undefined} alt={item.name} className="object-cover" />
+            <AvatarFallback className="rounded-lg bg-accent">
+              <Package className="h-5 w-5 text-muted-foreground" />
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0">
+            <p className="font-medium text-foreground truncate">{item.name}</p>
+            <p className="text-xs text-muted-foreground">{item.category_name || 'No category'}</p>
+          </div>
+        </div>
+      ),
     },
-    { key: 'name', label: 'Name' },
     ...(user?.is_superuser ? [{
       key: 'user',
-      label: 'User',
+      label: 'Vendor',
+      hideOnMobile: true,
       render: (item: Product) => {
-        if (!item.user_info) return '—';
+        if (!item.user_info) return <span className="text-muted-foreground">—</span>;
         return (
-          <div className="flex items-center gap-2">
-            {item.user_info.logo_url ? (
-              <img 
-                src={item.user_info.logo_url} 
-                alt={item.user_info.name} 
-                className="h-8 w-8 rounded-full object-cover"
-              />
-            ) : (
-              <div className="h-8 w-8 rounded-full bg-accent flex items-center justify-center text-xs">
-                {item.user_info.name.charAt(0).toUpperCase()}
-              </div>
-            )}
-            <div>
-              <div className="font-medium text-sm">{item.user_info.name}</div>
-              <div className="text-xs text-muted-foreground">{item.user_info.phone}</div>
-            </div>
-          </div>
+          <VendorInfoCell
+            name={item.user_info.name}
+            phone={item.user_info.phone}
+            logoUrl={item.user_info.logo_url}
+            size="sm"
+          />
         );
       },
     }] : []),
     {
-      key: 'category',
-      label: 'Category',
-      render: (item: Product) => item.category_name || '—',
-    },
-    {
       key: 'type',
       label: 'Type',
+      hideOnMobile: true,
       render: (item: Product) => (
         <StatusBadge status={item.type} variant={item.type === 'veg' ? 'success' : 'destructive'} />
       ),
@@ -248,6 +230,7 @@ export default function ProductsList() {
     {
       key: 'is_active',
       label: 'Status',
+      hideOnMobile: true,
       render: (item: Product) => (
         <StatusBadge
           status={item.is_active ? 'Active' : 'Inactive'}
@@ -255,233 +238,157 @@ export default function ProductsList() {
         />
       ),
     },
-    {
-      key: 'actions',
-      label: 'Actions',
-      render: (item: Product) => {
-        const canEdit = canEditItem(user, item);
-        const canDelete = canDeleteItem(user, item);
-        return (
-          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-            <Button
-              variant="ghost"
-              size="sm"
-              title="View"
-              onClick={() => navigate(`/products/${item.id}`)}
-            >
-              <Eye className="h-4 w-4" />
-            </Button>
-            {canEdit && (
-              <Button
-                variant="ghost"
-                size="sm"
-                title="Edit"
-                onClick={() => navigate(`/products/${item.id}/edit`)}
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-            )}
-            {canDelete && (
-              <Button
-                variant="ghost"
-                size="sm"
-                title="Delete"
-                onClick={() => setDeleteId(item.id)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-        );
-      },
-    },
   ];
 
   const statCards = [
-    { label: 'Total Products', value: stats.total, icon: Package, color: 'text-foreground' },
-    { label: 'Active', value: stats.active, icon: CheckCircle, color: 'text-green-600' },
-    { label: 'Inactive', value: stats.inactive, icon: XCircle, color: 'text-red-600' },
+    { label: 'Total Products', value: stats.total, icon: Package, variant: 'default' as const },
+    { label: 'Active', value: stats.active, icon: CheckCircle, variant: 'success' as const },
+    { label: 'Inactive', value: stats.inactive, icon: XCircle, variant: 'destructive' as const },
+    { label: 'Top Selling', value: stats.top_selling || 0, icon: TrendingUp, variant: 'highlight' as const },
   ];
+
+  const renderMobileCard = (product: Product, index: number) => (
+    <CardContent className="p-4">
+      <div className="flex items-start gap-3">
+        <Avatar className="h-16 w-16 rounded-lg flex-shrink-0">
+          <AvatarImage src={product.image_url || undefined} alt={product.name} className="object-cover" />
+          <AvatarFallback className="rounded-lg bg-accent">
+            <Package className="h-8 w-8 text-muted-foreground" />
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="font-medium text-foreground truncate">{product.name}</p>
+              <p className="text-sm text-muted-foreground">{product.category_name || 'No category'}</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
+            <StatusBadge status={product.type} variant={product.type === 'veg' ? 'success' : 'destructive'} />
+            <StatusBadge
+              status={product.is_active ? 'Active' : 'Inactive'}
+              variant={getActiveStatusVariant(product.is_active)}
+            />
+          </div>
+        </div>
+      </div>
+      
+      <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-border">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/products/${product.id}`);
+          }}
+        >
+          <Eye className="h-4 w-4 mr-1" />
+          View
+        </Button>
+        {canEditItem(user, product) && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/products/${product.id}/edit`);
+            }}
+          >
+            <Edit className="h-4 w-4 mr-1" />
+            Edit
+          </Button>
+        )}
+        {canDeleteItem(user, product) && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-destructive hover:text-destructive"
+            onClick={(e) => {
+              e.stopPropagation();
+              setDeleteId(product.id);
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+    </CardContent>
+  );
 
   return (
     <DashboardLayout>
-      <PageHeader
-        title="Products"
-        description="Manage your menu items"
-        action={
-          <Button onClick={() => navigate('/products/new')}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Product
-          </Button>
-        }
-      />
+      <div className="page-transition">
+        <PageHeader
+          title="Products"
+          description="Manage your menu items"
+          action={
+            <Button onClick={() => navigate('/products/new')} className="touch-target">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Product
+            </Button>
+          }
+        />
 
-      <StatsCards stats={statCards} loading={loadingStats} />
-      
-      <FilterBar
-        search={search}
-        onSearchChange={setSearch}
-        userId={userId}
-        onUserIdChange={setUserId}
-        onApply={handleApplyFilters}
-        onClear={handleClearFilters}
-        showUserFilter={user?.is_superuser}
-        additionalFilters={
-          <div className="w-full">
-            <DateFilterButtons
-              activeFilter={dateFilter}
-              onFilterChange={handleDateFilterChange}
-              startDate={startDate}
-              endDate={endDate}
-              onStartDateChange={setStartDate}
-              onEndDateChange={setEndDate}
-            />
-          </div>
-        }
-      />
+        <PremiumStatsCards stats={statCards} loading={loadingStats} columns={4} />
+        
+        <FilterBar
+          search={search}
+          onSearchChange={setSearch}
+          userId={userId}
+          onUserIdChange={setUserId}
+          onApply={handleApplyFilters}
+          onClear={handleClearFilters}
+          showUserFilter={user?.is_superuser}
+          additionalFilters={
+            <div className="w-full">
+              <DateFilterButtons
+                activeFilter={dateFilter}
+                onFilterChange={handleDateFilterChange}
+                startDate={startDate}
+                endDate={endDate}
+                onStartDateChange={setStartDate}
+                onEndDateChange={setEndDate}
+              />
+            </div>
+          }
+        />
 
-      {isMobile ? (
-        <div className="grid grid-cols-1 gap-4">
-          {loading ? (
-            <div className="text-center py-8 text-muted-foreground">Loading products...</div>
-          ) : products.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">No products found</div>
-          ) : (
-            products.map((product) => (
-              <Card
-                key={product.id}
-                className="cursor-pointer hover:bg-accent transition-colors"
-                onClick={() => setSelectedProductId(product.id)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex gap-4">
-                    {product.image_url ? (
-                      <img
-                        src={product.image_url}
-                        alt={product.name}
-                        className="h-16 w-16 rounded object-cover flex-shrink-0"
-                      />
-                    ) : (
-                      <div className="h-16 w-16 rounded bg-accent flex items-center justify-center flex-shrink-0">
-                        <Package className="h-8 w-8 text-muted-foreground" />
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-base mb-1 truncate">{product.name}</div>
-                      <div className="text-sm text-muted-foreground mb-2">
-                        {product.category_name || 'No category'}
-                      </div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <StatusBadge
-                          status={product.type}
-                          variant={product.type === 'veg' ? 'success' : 'destructive'}
-                        />
-                        <StatusBadge
-                          status={product.is_active ? 'Active' : 'Inactive'}
-                          variant={getActiveStatusVariant(product.is_active)}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </div>
-      ) : (
-        <DataTable 
-          columns={columns} 
-          data={products} 
-          loading={loading} 
+        <PremiumTable
+          columns={columns}
+          data={products}
+          loading={loading}
+          showSerialNumber={true}
           emptyMessage="No products found"
           onRowClick={(item) => navigate(`/products/${item.id}`)}
+          actions={{
+            onView: (item) => navigate(`/products/${item.id}`),
+            onEdit: canEditItem(user, {}) ? (item) => navigate(`/products/${item.id}/edit`) : undefined,
+            onDelete: canDeleteItem(user, {}) ? (item) => setDeleteId(item.id) : undefined,
+          }}
+          mobileCard={renderMobileCard}
         />
-      )}
 
-      {count > pageSize && (
-        <div className="mt-4">
-          <SimplePagination
-            currentPage={page}
-            totalPages={totalPages}
-            onPageChange={setPage}
-          />
-        </div>
-      )}
+        {count > pageSize && (
+          <div className="mt-4">
+            <SimplePagination
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
+          </div>
+        )}
 
-      {selectedProductId && (() => {
-        const selectedProduct = products.find((p) => p.id === selectedProductId);
-        if (!selectedProduct) return null;
-        const canEditSelected = canEditItem(user, selectedProduct);
-        const canDeleteSelected = canDeleteItem(user, selectedProduct);
-        return (
-          <Dialog open={!!selectedProductId} onOpenChange={(open) => !open && setSelectedProductId(null)}>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>{selectedProduct.name}</DialogTitle>
-                <DialogDescription>
-                  {selectedProduct.category_name || 'No category'} • {selectedProduct.type}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="flex flex-col gap-2 py-4">
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => {
-                    setSelectedProductId(null);
-                    navigate(`/products/${selectedProduct.id}`);
-                  }}
-                >
-                  <Eye className="h-4 w-4 mr-2" />
-                  View
-                </Button>
-                {canEditSelected && (
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => {
-                      setSelectedProductId(null);
-                      navigate(`/products/${selectedProduct.id}/edit`);
-                    }}
-                  >
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit
-                  </Button>
-                )}
-                {canDeleteSelected && (
-                  <Button
-                    variant="destructive"
-                    className="w-full justify-start"
-                    onClick={() => {
-                      setSelectedProductId(null);
-                      setDeleteId(selectedProduct.id);
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </Button>
-                )}
-              </div>
-            </DialogContent>
-          </Dialog>
-        );
-      })()}
-
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Product</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will delete the product and all its variants.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        <ConfirmationModal
+          open={!!deleteId}
+          onOpenChange={(open) => !open && setDeleteId(null)}
+          title="Delete Product"
+          description="This will delete the product and all its variants. This action cannot be undone."
+          variant="destructive"
+          confirmLabel="Delete"
+          onConfirm={handleDelete}
+        />
+      </div>
     </DashboardLayout>
   );
 }

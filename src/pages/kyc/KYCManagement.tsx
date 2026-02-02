@@ -1,43 +1,29 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FileText, CheckCircle, XCircle, Eye, Shield, Clock, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/ui/page-header';
-import { DataTable } from '@/components/ui/data-table';
+import { PremiumTable, MobileCardRow } from '@/components/ui/premium-table';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { api, fetchPaginated, PaginatedResponse } from '@/lib/api';
+import { PremiumStatsCards } from '@/components/ui/premium-stats-card';
+import { VendorInfoCell } from '@/components/ui/vendor-info-cell';
+import { ConfirmationModal } from '@/components/ui/confirmation-modal';
+import { SimplePagination } from '@/components/ui/simple-pagination';
+import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { SimplePagination } from '@/components/ui/simple-pagination';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileText, CheckCircle, XCircle, Eye, QrCode } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 interface KYCItem {
   id: number;
   name: string;
   phone: string;
+  logo_url: string | null;
   kyc_status: string;
   kyc_reject_reason: string | null;
   kyc_document_type: string | null;
@@ -46,12 +32,11 @@ interface KYCItem {
   updated_at: string;
 }
 
-interface KYCListResponse {
-  kyc_list: KYCItem[];
-  count: number;
-  page: number;
-  total_pages: number;
-  page_size: number;
+interface KYCStats {
+  total: number;
+  pending: number;
+  approved: number;
+  rejected: number;
 }
 
 export default function KYCManagement() {
@@ -67,12 +52,16 @@ export default function KYCManagement() {
   const [pageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [count, setCount] = useState(0);
+  const [stats, setStats] = useState<KYCStats>({
+    total: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+  });
   
-  // Approve/Reject dialogs
+  // Approve/Reject modals
   const [approveId, setApproveId] = useState<number | null>(null);
   const [rejectId, setRejectId] = useState<number | null>(null);
-  const [rejectReason, setRejectReason] = useState('');
-  const [processing, setProcessing] = useState(false);
 
   const fetchKYCList = useCallback(async () => {
     if (!user?.is_superuser) return;
@@ -93,7 +82,12 @@ export default function KYCManagement() {
       }
 
       const queryString = api.buildQueryString(params);
-      const response = await api.get<KYCListResponse>(`/api/kyc/list/${queryString}`);
+      const response = await api.get<{
+        kyc_list: KYCItem[];
+        count: number;
+        total_pages: number;
+        stats?: KYCStats;
+      }>(`/api/kyc/list/${queryString}`);
       
       if (response.error) {
         toast.error('Failed to fetch KYC list');
@@ -101,6 +95,21 @@ export default function KYCManagement() {
         setKycList(response.data.kyc_list);
         setCount(response.data.count);
         setTotalPages(response.data.total_pages);
+        
+        // Calculate stats from list if not provided
+        if (response.data.stats) {
+          setStats(response.data.stats);
+        } else {
+          const pending = response.data.kyc_list.filter(k => k.kyc_status === 'pending').length;
+          const approved = response.data.kyc_list.filter(k => k.kyc_status === 'approved').length;
+          const rejected = response.data.kyc_list.filter(k => k.kyc_status === 'rejected').length;
+          setStats({
+            total: response.data.count,
+            pending,
+            approved,
+            rejected,
+          });
+        }
       }
     } catch (error) {
       toast.error('Failed to fetch KYC list');
@@ -129,63 +138,50 @@ export default function KYCManagement() {
     setPage(1);
   };
 
-  const handleApprove = useCallback(async () => {
+  const handleApprove = async () => {
     if (!approveId) return;
 
-    setProcessing(true);
-    try {
-      const response = await api.post(`/api/kyc/approve/${approveId}/`);
+    const response = await api.post(`/api/kyc/approve/${approveId}/`);
 
-      if (response.error) {
-        toast.error(response.error || 'Failed to approve KYC');
-      } else {
-        toast.success('KYC approved successfully');
-        setApproveId(null);
-        fetchKYCList();
-      }
-    } catch (error) {
-      toast.error('Failed to approve KYC');
-    } finally {
-      setProcessing(false);
+    if (response.error) {
+      toast.error(response.error || 'Failed to approve KYC');
+      throw new Error(response.error);
+    } else {
+      toast.success('KYC approved successfully');
+      fetchKYCList();
     }
-  }, [approveId, fetchKYCList]);
+  };
 
-  const handleReject = useCallback(async () => {
-    if (!rejectId || !rejectReason.trim()) {
+  const handleReject = async (remarks?: string) => {
+    if (!rejectId) return;
+
+    if (!remarks?.trim()) {
       toast.error('Please provide a rejection reason');
-      return;
+      throw new Error('Please provide a rejection reason');
     }
 
-    setProcessing(true);
-    try {
-      const response = await api.post(`/api/kyc/reject/${rejectId}/`, {
-        reject_reason: rejectReason,
-      });
+    const response = await api.post(`/api/kyc/reject/${rejectId}/`, {
+      reject_reason: remarks,
+    });
 
-      if (response.error) {
-        toast.error(response.error || 'Failed to reject KYC');
-      } else {
-        toast.success('KYC rejected');
-        setRejectId(null);
-        setRejectReason('');
-        fetchKYCList();
-      }
-    } catch (error) {
-      toast.error('Failed to reject KYC');
-    } finally {
-      setProcessing(false);
+    if (response.error) {
+      toast.error(response.error || 'Failed to reject KYC');
+      throw new Error(response.error);
+    } else {
+      toast.success('KYC rejected');
+      fetchKYCList();
     }
-  }, [rejectId, rejectReason, fetchKYCList]);
+  };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusVariant = (status: string): 'success' | 'warning' | 'destructive' | 'default' => {
     switch (status) {
       case 'approved':
-        return <StatusBadge status="Approved" variant="success" />;
+        return 'success';
       case 'rejected':
-        return <StatusBadge status="Rejected" variant="destructive" />;
+        return 'destructive';
       case 'pending':
       default:
-        return <StatusBadge status="Pending" variant="warning" />;
+        return 'warning';
     }
   };
 
@@ -195,79 +191,118 @@ export default function KYCManagement() {
   };
 
   const columns = [
-    { key: 'name', label: 'Vendor Name' },
-    { key: 'phone', label: 'Phone' },
+    {
+      key: 'vendor',
+      label: 'Vendor',
+      render: (item: KYCItem) => (
+        <VendorInfoCell
+          name={item.name}
+          phone={item.phone}
+          logoUrl={item.logo_url}
+          size="md"
+        />
+      ),
+    },
     {
       key: 'kyc_document_type',
-      label: 'Document Type',
-      render: (item: KYCItem) => getDocumentTypeLabel(item.kyc_document_type),
+      label: 'Document',
+      hideOnMobile: true,
+      render: (item: KYCItem) => (
+        <Badge variant="outline" className="bg-accent/50">
+          {getDocumentTypeLabel(item.kyc_document_type)}
+        </Badge>
+      ),
     },
     {
       key: 'kyc_status',
       label: 'Status',
-      render: (item: KYCItem) => getStatusBadge(item.kyc_status),
+      render: (item: KYCItem) => (
+        <StatusBadge status={item.kyc_status} variant={getStatusVariant(item.kyc_status)} />
+      ),
     },
     {
       key: 'created_at',
       label: 'Submitted',
-      render: (item: KYCItem) => new Date(item.created_at).toLocaleDateString(),
-    },
-    {
-      key: 'actions',
-      label: 'Actions',
+      hideOnMobile: true,
       render: (item: KYCItem) => (
-        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate(`/kyc-management/${item.id}`)}
-          >
-            <Eye className="h-4 w-4 mr-1" />
-            View
-          </Button>
-          {item.kyc_document_url && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate(`/kyc-management/${item.id}/document`)}
-            >
-              <FileText className="h-4 w-4 mr-1" />
-              Document
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate(`/qr/${item.phone}`)}
-          >
-            <QrCode className="h-4 w-4 mr-1" />
-            QR View
-          </Button>
-          {item.kyc_status === 'pending' && (
-            <>
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => setApproveId(item.id)}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <CheckCircle className="h-4 w-4 mr-1" />
-                Approve
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => setRejectId(item.id)}
-              >
-                <XCircle className="h-4 w-4 mr-1" />
-                Reject
-              </Button>
-            </>
-          )}
-        </div>
+        <span className="text-sm text-muted-foreground">
+          {new Date(item.created_at).toLocaleDateString()}
+        </span>
       ),
     },
   ];
+
+  const statCards = [
+    { label: 'Total KYC', value: stats.total, icon: Shield, variant: 'default' as const },
+    { label: 'Pending', value: stats.pending, icon: Clock, variant: 'warning' as const },
+    { label: 'Approved', value: stats.approved, icon: CheckCircle, variant: 'success' as const },
+    { label: 'Rejected', value: stats.rejected, icon: XCircle, variant: 'destructive' as const },
+  ];
+
+  const renderMobileCard = (item: KYCItem, index: number) => (
+    <CardContent className="p-4">
+      <div className="flex items-start justify-between gap-3">
+        <VendorInfoCell
+          name={item.name}
+          phone={item.phone}
+          logoUrl={item.logo_url}
+          size="md"
+        />
+        <StatusBadge status={item.kyc_status} variant={getStatusVariant(item.kyc_status)} />
+      </div>
+
+      <div className="mt-3 space-y-1">
+        <MobileCardRow
+          label="Document"
+          value={getDocumentTypeLabel(item.kyc_document_type)}
+        />
+        <MobileCardRow
+          label="Submitted"
+          value={new Date(item.created_at).toLocaleDateString()}
+        />
+      </div>
+      
+      <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-border">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/kyc-management/${item.id}`);
+          }}
+        >
+          <Eye className="h-4 w-4 mr-1" />
+          View
+        </Button>
+        {item.kyc_status === 'pending' && (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-success hover:text-success"
+              onClick={(e) => {
+                e.stopPropagation();
+                setApproveId(item.id);
+              }}
+            >
+              <CheckCircle className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-destructive hover:text-destructive"
+              onClick={(e) => {
+                e.stopPropagation();
+                setRejectId(item.id);
+              }}
+            >
+              <XCircle className="h-4 w-4" />
+            </Button>
+          </>
+        )}
+      </div>
+    </CardContent>
+  );
 
   // Redirect if not superuser
   if (user && !user.is_superuser) {
@@ -286,129 +321,143 @@ export default function KYCManagement() {
 
   return (
     <DashboardLayout>
-      <PageHeader
-        title="KYC Management"
-        description="Review and manage KYC document submissions"
-      />
+      <div className="page-transition">
+        <PageHeader
+          title="KYC Management"
+          description="Review and manage KYC document submissions"
+        />
 
-      {/* Filters */}
-      <Card className="mb-6">
-        <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <Label htmlFor="search">Search</Label>
-              <Input
-                id="search"
-                placeholder="Search by name or phone..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleApplyFilters();
-                  }
-                }}
-              />
+        <PremiumStatsCards stats={statCards} loading={loading} columns={4} />
+
+        {/* Filters */}
+        <Card className="mb-6">
+          <CardContent className="p-4">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <Label htmlFor="search">Search</Label>
+                <Input
+                  id="search"
+                  placeholder="Search by name or phone..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleApplyFilters();
+                    }
+                  }}
+                />
+              </div>
+              <div className="w-full md:w-48">
+                <Label htmlFor="status">Status</Label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger id="status">
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="approved">Approved</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end gap-2">
+                <Button onClick={handleApplyFilters}>Apply</Button>
+                <Button variant="outline" onClick={handleClearFilters}>
+                  Clear
+                </Button>
+              </div>
             </div>
-            <div className="w-full md:w-48">
-              <Label htmlFor="status">Status</Label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger id="status">
-                  <SelectValue placeholder="All Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-end gap-2">
-              <Button onClick={handleApplyFilters}>Apply</Button>
-              <Button variant="outline" onClick={handleClearFilters}>
-                Clear
+          </CardContent>
+        </Card>
+
+        <PremiumTable
+          columns={columns}
+          data={kycList}
+          loading={loading}
+          showSerialNumber={true}
+          emptyMessage="No KYC submissions found"
+          emptyIcon={<Shield className="h-12 w-12 text-muted-foreground" />}
+          onRowClick={(item) => navigate(`/kyc-management/${item.id}`)}
+          actions={{
+            onView: (item) => navigate(`/kyc-management/${item.id}`),
+            custom: (item) => item.kyc_status === 'pending' ? (
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => navigate(`/kyc-management/${item.id}`)}
+                >
+                  <Eye className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-success hover:text-success"
+                  onClick={() => setApproveId(item.id)}
+                >
+                  <CheckCircle className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-destructive hover:text-destructive"
+                  onClick={() => setRejectId(item.id)}
+                >
+                  <XCircle className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => navigate(`/kyc-management/${item.id}`)}
+              >
+                <Eye className="h-4 w-4" />
               </Button>
-            </div>
+            ),
+          }}
+          mobileCard={renderMobileCard}
+        />
+
+        {count > pageSize && (
+          <div className="mt-4">
+            <SimplePagination
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
           </div>
-        </CardContent>
-      </Card>
+        )}
 
-      <DataTable columns={columns} data={kycList} loading={loading} emptyMessage="No KYC submissions found" />
+        {/* Approve Modal */}
+        <ConfirmationModal
+          open={!!approveId}
+          onOpenChange={(open) => !open && setApproveId(null)}
+          title="Approve KYC"
+          description="Are you sure you want to approve this KYC submission? This will grant the vendor full access to the platform."
+          variant="success"
+          confirmLabel="Approve"
+          onConfirm={handleApprove}
+        />
 
-      {count > pageSize && (
-        <div className="mt-4">
-          <SimplePagination
-            currentPage={page}
-            totalPages={totalPages}
-            onPageChange={setPage}
-          />
-        </div>
-      )}
-
-      {/* Approve Dialog */}
-      <AlertDialog open={!!approveId} onOpenChange={() => !processing && setApproveId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Approve KYC</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to approve this KYC submission? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={processing}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleApprove}
-              disabled={processing}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              {processing ? 'Approving...' : 'Approve'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Reject Dialog */}
-      <Dialog open={!!rejectId} onOpenChange={() => !processing && setRejectId(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Reject KYC</DialogTitle>
-            <DialogDescription>
-              Please provide a reason for rejecting this KYC submission.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="reject-reason">Rejection Reason</Label>
-              <Textarea
-                id="reject-reason"
-                placeholder="Enter the reason for rejection..."
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-                rows={4}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setRejectId(null);
-                setRejectReason('');
-              }}
-              disabled={processing}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleReject}
-              disabled={processing || !rejectReason.trim()}
-            >
-              {processing ? 'Rejecting...' : 'Reject'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        {/* Reject Modal */}
+        <ConfirmationModal
+          open={!!rejectId}
+          onOpenChange={(open) => !open && setRejectId(null)}
+          title="Reject KYC"
+          description="Please provide a reason for rejecting this KYC submission."
+          variant="destructive"
+          confirmLabel="Reject"
+          onConfirm={handleReject}
+          showRemarks={true}
+          remarksLabel="Rejection Reason"
+          remarksPlaceholder="Enter the reason for rejection..."
+          remarksRequired={true}
+        />
+      </div>
     </DashboardLayout>
   );
 }

@@ -1,27 +1,32 @@
 import { useEffect, useState, useCallback } from 'react';
-import { AlertTriangle, Wallet, Users, CreditCard } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { AlertTriangle, Wallet, Users, IndianRupee, Eye, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/ui/page-header';
-import { DataTable } from '@/components/ui/data-table';
+import { PremiumTable, MobileCardRow } from '@/components/ui/premium-table';
 import { FilterBar } from '@/components/ui/filter-bar';
-import { StatsCards } from '@/components/ui/stats-cards';
+import { PremiumStatsCards, formatCurrency } from '@/components/ui/premium-stats-card';
+import { VendorInfoCell } from '@/components/ui/vendor-info-cell';
 import { SimplePagination } from '@/components/ui/simple-pagination';
-import { Card, CardContent } from '@/components/ui/card';
+import { CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { VendorDue } from '@/lib/types';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from '@/components/ui/dialog';
+
+interface DueStats {
+  total_dues: number;
+  total_due_amount: number;
+  over_threshold_dues: number;
+  over_threshold_amount: number;
+  outstanding_dues: number;
+  outstanding_amount: number;
+}
 
 export default function DuesList() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [vendors, setVendors] = useState<VendorDue[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,13 +37,15 @@ export default function DuesList() {
   const [pageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [count, setCount] = useState(0);
-  const [totalDues, setTotalDues] = useState(0);
+  const [stats, setStats] = useState<DueStats>({
+    total_dues: 0,
+    total_due_amount: 0,
+    over_threshold_dues: 0,
+    over_threshold_amount: 0,
+    outstanding_dues: 0,
+    outstanding_amount: 0,
+  });
   const [dueThreshold, setDueThreshold] = useState(1000);
-  const [overThresholdCount, setOverThresholdCount] = useState(0);
-  
-  // Payment dialog
-  const [payingVendor, setPayingVendor] = useState<VendorDue | null>(null);
-  const [processing, setProcessing] = useState(false);
 
   const fetchDues = useCallback(async () => {
     setLoading(true);
@@ -67,9 +74,21 @@ export default function DuesList() {
         setVendors(response.data.vendors);
         setCount(response.data.count);
         setTotalPages(response.data.total_pages);
-        setTotalDues(response.data.total_dues);
         setDueThreshold(response.data.due_threshold);
-        setOverThresholdCount(response.data.over_threshold_count);
+        
+        // Calculate stats from vendors
+        const totalDueAmount = response.data.vendors.reduce((sum, v) => sum + v.due_balance, 0);
+        const overThresholdVendors = response.data.vendors.filter(v => v.is_over_threshold);
+        const overThresholdAmount = overThresholdVendors.reduce((sum, v) => sum + v.due_balance, 0);
+        
+        setStats({
+          total_dues: response.data.count,
+          total_due_amount: response.data.total_dues || totalDueAmount,
+          over_threshold_dues: response.data.over_threshold_count,
+          over_threshold_amount: overThresholdAmount,
+          outstanding_dues: response.data.count,
+          outstanding_amount: response.data.total_dues || totalDueAmount,
+        });
       }
     } catch (error) {
       toast.error('Failed to fetch dues');
@@ -94,70 +113,30 @@ export default function DuesList() {
     setPage(1);
   };
 
-  const handlePay = async () => {
-    if (!payingVendor) return;
-
-    const amount = payingVendor.due_balance;
-    if (amount <= 0) {
-      toast.error('No dues to collect');
-      return;
-    }
-
-    setProcessing(true);
-    try {
-      const response = await api.post('/api/dues/pay/', {
-        vendor_id: payingVendor.id,
-        amount: amount,
-      });
-
-      if (response.error) {
-        toast.error(response.error);
-      } else {
-        toast.success('Due payment processed successfully');
-        setPayingVendor(null);
-        fetchDues();
-      }
-    } catch (error) {
-      toast.error('Failed to process payment');
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const openPayDialog = (vendor: VendorDue) => {
-    setPayingVendor(vendor);
-  };
-
   const columns = [
     {
-      key: 'name',
+      key: 'vendor',
       label: 'Vendor',
       render: (item: VendorDue) => (
-        <div className="flex items-center gap-2">
-          {item.logo_url ? (
-            <img src={item.logo_url} alt={item.name} className="h-8 w-8 rounded-full object-cover" />
-          ) : (
-            <div className="h-8 w-8 rounded-full bg-accent flex items-center justify-center text-xs">
-              {item.name.charAt(0).toUpperCase()}
-            </div>
-          )}
-          <div>
-            <div className="font-medium">{item.name}</div>
-            <div className="text-xs text-muted-foreground">{item.phone}</div>
-          </div>
-        </div>
+        <VendorInfoCell
+          name={item.name}
+          phone={item.phone}
+          logoUrl={item.logo_url}
+          size="md"
+        />
       ),
     },
     {
       key: 'due_balance',
       label: 'Due Amount',
+      align: 'right' as const,
       render: (item: VendorDue) => (
-        <div className="flex items-center gap-2">
-          <span className={item.is_over_threshold ? 'text-red-600 font-bold' : ''}>
-            ₹{item.due_balance.toLocaleString()}
+        <div className="flex items-center justify-end gap-2">
+          <span className={`font-semibold ${item.is_over_threshold ? 'text-destructive' : ''}`}>
+            {formatCurrency(item.due_balance)}
           </span>
           {item.is_over_threshold && (
-            <AlertTriangle className="h-4 w-4 text-red-600" />
+            <AlertTriangle className="h-4 w-4 text-destructive" />
           )}
         </div>
       ),
@@ -165,90 +144,135 @@ export default function DuesList() {
     {
       key: 'balance',
       label: 'Balance',
-      render: (item: VendorDue) => `₹${item.balance.toLocaleString()}`,
-    },
-    ...(user?.is_superuser ? [{
-      key: 'actions',
-      label: 'Actions',
+      align: 'right' as const,
+      hideOnMobile: true,
       render: (item: VendorDue) => (
-        <Button variant="outline" size="sm" onClick={() => openPayDialog(item)}>
-          <CreditCard className="h-4 w-4 mr-2" />
-          Collect
-        </Button>
+        <span className="text-muted-foreground">{formatCurrency(item.balance)}</span>
       ),
-    }] : []),
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      hideOnMobile: true,
+      render: (item: VendorDue) => item.is_over_threshold ? (
+        <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">
+          Over Threshold
+        </Badge>
+      ) : (
+        <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20">
+          Outstanding
+        </Badge>
+      ),
+    },
   ];
 
   const statCards = [
-    { label: 'Total Vendors with Dues', value: count, icon: Users, color: 'text-foreground' },
-    { label: 'Total Outstanding Dues', value: `₹${totalDues.toLocaleString()}`, icon: Wallet, color: 'text-red-600' },
-    { label: 'Over Threshold', value: overThresholdCount, icon: AlertTriangle, color: 'text-yellow-600' },
+    { label: 'Total Dues', value: stats.total_dues, icon: Users, variant: 'default' as const },
+    { label: 'Total Due Amount', value: formatCurrency(stats.total_due_amount), icon: IndianRupee, variant: 'highlight' as const },
+    { label: 'Over-Threshold Dues', value: stats.over_threshold_dues, icon: AlertTriangle, variant: 'destructive' as const },
+    { label: 'Over-Threshold Amount', value: formatCurrency(stats.over_threshold_amount), icon: IndianRupee, variant: 'destructive' as const },
+    { label: 'Outstanding Dues', value: stats.outstanding_dues, icon: AlertCircle, variant: 'warning' as const },
+    { label: 'Outstanding Amount', value: formatCurrency(stats.outstanding_amount), icon: Wallet, variant: 'warning' as const },
   ];
+
+  const renderMobileCard = (vendor: VendorDue, index: number) => (
+    <CardContent className="p-4">
+      <div className="flex items-start justify-between gap-3">
+        <VendorInfoCell
+          name={vendor.name}
+          phone={vendor.phone}
+          logoUrl={vendor.logo_url}
+          size="md"
+        />
+        <div className="text-right flex-shrink-0">
+          <p className={`text-lg font-bold ${vendor.is_over_threshold ? 'text-destructive' : 'text-foreground'}`}>
+            {formatCurrency(vendor.due_balance)}
+          </p>
+          {vendor.is_over_threshold && (
+            <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 text-xs mt-1">
+              Over Threshold
+            </Badge>
+          )}
+        </div>
+      </div>
+
+      <MobileCardRow
+        label="Balance"
+        value={formatCurrency(vendor.balance)}
+        className="mt-3"
+      />
+      
+      <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-border">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/dues/${vendor.id}`);
+          }}
+        >
+          <Eye className="h-4 w-4 mr-1" />
+          View
+        </Button>
+      </div>
+    </CardContent>
+  );
 
   return (
     <DashboardLayout>
-      <PageHeader 
-        title="Dues" 
-        description={`Manage vendor dues (Threshold: ₹${dueThreshold.toLocaleString()})`}
-      />
+      <div className="page-transition">
+        <PageHeader 
+          title="Dues" 
+          description={`Manage vendor dues (Threshold: ${formatCurrency(dueThreshold)})`}
+        />
 
-      <StatsCards stats={statCards} loading={loading} />
+        <PremiumStatsCards stats={statCards} loading={loading} columns={3} />
 
-      <FilterBar
-        search={search}
-        onSearchChange={setSearch}
-        onApply={handleApplyFilters}
-        onClear={handleClearFilters}
-        additionalFilters={
-          <Button
-            variant={overThresholdOnly ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setOverThresholdOnly(!overThresholdOnly)}
-          >
-            <AlertTriangle className="h-4 w-4 mr-2" />
-            Over Threshold Only
-          </Button>
-        }
-      />
-
-      <Card className="mt-4">
-        <CardContent className="p-0">
-          <DataTable columns={columns} data={vendors} loading={loading} />
-        </CardContent>
-      </Card>
-
-      <SimplePagination
-        page={page}
-        totalPages={totalPages}
-        onPageChange={setPage}
-        totalItems={count}
-      />
-
-      {/* Payment Dialog */}
-      <Dialog open={!!payingVendor} onOpenChange={() => setPayingVendor(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Collect Due Payment</DialogTitle>
-            <DialogDescription>
-              Vendor: {payingVendor?.name} | Outstanding: ₹{payingVendor?.due_balance.toLocaleString()}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-              <p className="text-sm text-amber-700 dark:text-amber-300">Full payment to be collected</p>
-              <p className="text-2xl font-bold text-red-600">
-                ₹{payingVendor?.due_balance.toLocaleString()}
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPayingVendor(null)}>Cancel</Button>
-            <Button onClick={handlePay} disabled={processing}>
-              {processing ? 'Processing...' : `Collect ₹${payingVendor?.due_balance.toLocaleString()}`}
+        <FilterBar
+          search={search}
+          onSearchChange={setSearch}
+          onApply={handleApplyFilters}
+          onClear={handleClearFilters}
+          additionalFilters={
+            <Button
+              variant={overThresholdOnly ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => {
+                setOverThresholdOnly(!overThresholdOnly);
+                setPage(1);
+              }}
+              className={overThresholdOnly ? '' : 'text-destructive hover:text-destructive'}
+            >
+              <AlertTriangle className="h-4 w-4 mr-2" />
+              Over Threshold Only
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          }
+        />
+
+        <PremiumTable
+          columns={columns}
+          data={vendors}
+          loading={loading}
+          showSerialNumber={true}
+          emptyMessage="No dues found"
+          emptyIcon={<Wallet className="h-12 w-12 text-muted-foreground" />}
+          onRowClick={(item) => navigate(`/dues/${item.id}`)}
+          actions={{
+            onView: (item) => navigate(`/dues/${item.id}`),
+          }}
+          mobileCard={renderMobileCard}
+        />
+
+        {count > pageSize && (
+          <div className="mt-4">
+            <SimplePagination
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
+          </div>
+        )}
+      </div>
     </DashboardLayout>
   );
 }
