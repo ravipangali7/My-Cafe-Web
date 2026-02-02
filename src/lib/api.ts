@@ -227,15 +227,46 @@ export async function generateOrderInvoice(orderId: number): Promise<ApiResponse
   return api.post(`/api/orders/${orderId}/invoice/generate/`);
 }
 
-export async function downloadOrderInvoice(orderId: number): Promise<void> {
-  const url = `${API_BASE_URL}/api/orders/${orderId}/invoice/download/`;
-
-  if (isWebView()) {
-    // In WebView, blob-URL + click often doesn't trigger save; open URL in new window so OS handles attachment.
+/** Open a URL in external browser via Flutter WebView channel, or fallback to window.open */
+export function openInBrowser(url: string): void {
+  const w = typeof window !== 'undefined' 
+    ? (window as Window & { OpenInBrowser?: { postMessage?: (msg: string) => void } }) 
+    : null;
+  if (w?.OpenInBrowser?.postMessage) {
+    w.OpenInBrowser.postMessage(url);
+  } else {
     window.open(url, '_blank');
+  }
+}
+
+export async function downloadOrderInvoice(orderId: number): Promise<void> {
+  if (isWebView()) {
+    // In WebView, get the public URL and open it in Chrome browser
+    // This allows the user to view and download the invoice without auth issues
+    try {
+      const response = await api.get<{ url: string; order_id: number; token: string }>(
+        `/api/orders/${orderId}/invoice/public-url/`
+      );
+      
+      if (response.error || !response.data?.url) {
+        // Fallback to direct download URL if public URL generation fails
+        const fallbackUrl = `${API_BASE_URL}/api/orders/${orderId}/invoice/download/`;
+        window.open(fallbackUrl, '_blank');
+        return;
+      }
+      
+      // Open the public invoice page in external browser (Chrome)
+      openInBrowser(response.data.url);
+    } catch (error) {
+      // Fallback to direct download URL on error
+      const fallbackUrl = `${API_BASE_URL}/api/orders/${orderId}/invoice/download/`;
+      window.open(fallbackUrl, '_blank');
+    }
     return;
   }
 
+  // Regular browser: download directly
+  const url = `${API_BASE_URL}/api/orders/${orderId}/invoice/download/`;
   const headers: HeadersInit = {};
   const config: RequestInit = {
     method: 'GET',

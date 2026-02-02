@@ -93,6 +93,9 @@ import MenuPage from "./pages/menu/MenuPage";
 // QR page (public - no auth)
 import QRPage from "./pages/qr/QRPage";
 
+// Public Invoice page (no auth)
+import PublicInvoicePage from "./pages/invoices/PublicInvoicePage";
+
 import NotFound from "./pages/NotFound";
 import Index from "./pages/Index";
 
@@ -314,6 +317,7 @@ const App = () => (
             <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
             <Route path="/menu/:vendorPhone" element={<MenuPage />} />
             <Route path="/qr/:vendorPhone" element={<QRPage />} />
+            <Route path="/invoice/public/:orderId/:token" element={<PublicInvoicePage />} />
 
             {/* Protected routes */}
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
