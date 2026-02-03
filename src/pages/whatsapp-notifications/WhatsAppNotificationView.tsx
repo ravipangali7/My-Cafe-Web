@@ -79,8 +79,8 @@ export default function WhatsAppNotificationView() {
           <Button variant="outline" onClick={() => navigate('/whatsapp-notifications')}>
             Back to list
           </Button>
-        </DashboardLayout>
-      );
+        </div>
+      </DashboardLayout>
     );
   }
 
