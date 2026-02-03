@@ -189,17 +189,17 @@ export function MenuQRCode({
 
   return (
     <div
-      className="flex flex-col items-center gap-4 w-full"
+      className="flex flex-col items-center gap-4 w-full min-w-0"
       style={{ touchAction: 'manipulation' }}
     >
       <div
         ref={qrCodeRef}
-        className="rounded-xl w-full overflow-hidden flex flex-col items-center flex-shrink-0 mx-auto"
+        className="rounded-xl w-full overflow-hidden flex flex-col items-center flex-shrink-0 mx-auto min-w-0"
         style={{
           backgroundColor: dark,
           padding: cardPadding,
           boxSizing: 'border-box',
-          maxWidth: 'min(100%, 360px)',
+          maxWidth: compact ? 'min(100%, calc(100vw - 32px))' : 'min(100%, 360px)',
         }}
       >
         {/* Circular logo with gold ring */}

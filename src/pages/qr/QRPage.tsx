@@ -61,9 +61,21 @@ export default function QRPage() {
     fetchVendor();
   }, [fetchVendor]);
 
+  // Lock viewport scale on mobile so QR maintains actual size (no pinch/double-tap zoom)
+  useEffect(() => {
+    if (!isMobile || typeof document === 'undefined') return;
+    const meta = document.querySelector('meta[name="viewport"]');
+    if (!meta || !meta.getAttribute('content')) return;
+    const original = meta.getAttribute('content');
+    meta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no');
+    return () => {
+      meta.setAttribute('content', original ?? 'width=device-width, initial-scale=1.0');
+    };
+  }, [isMobile]);
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4 overflow-x-hidden" style={{ maxWidth: '100vw' }}>
         <div className="animate-pulse text-muted-foreground">Loading...</div>
       </div>
     );
@@ -71,7 +83,7 @@ export default function QRPage() {
 
   if (error || !vendor) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4 overflow-x-hidden" style={{ maxWidth: '100vw' }}>
         <Card className="max-w-md w-full">
           <CardContent className="p-6 text-center">
             <p className="text-destructive font-medium">{error || 'Vendor not found'}</p>
@@ -93,10 +105,17 @@ export default function QRPage() {
 
   return (
     <div
-      className="min-h-screen bg-background overflow-y-auto flex flex-col items-center p-4"
-      style={{ touchAction: 'manipulation' }}
+      className="min-h-screen bg-background overflow-x-hidden overflow-y-auto flex flex-col items-center p-4"
+      style={{
+        touchAction: 'manipulation',
+        maxWidth: '100vw',
+        ...(isMobile && {
+          paddingLeft: 'max(1rem, env(safe-area-inset-left, 0px))',
+          paddingRight: 'max(1rem, env(safe-area-inset-right, 0px))',
+        }),
+      }}
     >
-      <div className="w-full max-w-sm space-y-4 flex flex-col items-center flex-shrink-0">
+      <div className="w-full max-w-sm space-y-4 flex flex-col items-center flex-shrink-0 min-w-0">
         <Button
           variant="ghost"
           size="sm"
