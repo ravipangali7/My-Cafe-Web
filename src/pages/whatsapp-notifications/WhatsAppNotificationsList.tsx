@@ -135,12 +135,13 @@ export default function WhatsAppNotificationsList() {
       <PageHeader
         title="WhatsApp Notifications"
         description="View past WhatsApp notifications sent to customers"
-      >
-        <Button onClick={() => navigate('/whatsapp-notifications/new')}>
-          <Plus className="h-4 w-4 mr-2" />
-          Create Notification
-        </Button>
-      </PageHeader>
+        action={
+          <Button onClick={() => navigate('/whatsapp-notifications/new')}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Notification
+          </Button>
+        }
+      />
       <FilterBar
         search={search}
         onSearchChange={setSearch}
