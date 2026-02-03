@@ -109,8 +109,7 @@
 
   /* Safe area padding for mobile */
   .safe-area-bottom {
-    /* padding-bottom: env(safe-area-inset-bottom, "1000px"); */
-    padding-bottom: '1000px';
+    padding-bottom: env(safe-area-inset-bottom, 0);
   }
 
   .safe-area-top {

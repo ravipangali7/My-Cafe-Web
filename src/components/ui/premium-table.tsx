@@ -162,7 +162,7 @@ export function PremiumTable<T extends { id: string | number }>({
   // Mobile card view - full-width cards, app-style
   if (isMobile && mobileCard) {
     return (
-      <div className={cn('space-y-3 w-full', className)}>
+      <div className={cn('space-y-2 md:space-y-3 w-full', className)}>
         {safeData.map((item, index) => (
           <Card
             key={item.id}

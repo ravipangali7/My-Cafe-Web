@@ -29,7 +29,7 @@ export function BottomNavigation() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 border-t border-border backdrop-blur-sm safe-area-bottom lg:hidden">
-      <div className="flex items-center justify-around h-16 min-h-[64px] px-2 pb-[env(safe-area-inset-bottom)]">
+      <div className="flex items-center justify-around h-14 min-h-[56px] md:h-16 md:min-h-[64px] px-2 pb-[env(safe-area-inset-bottom)]">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path ||
@@ -40,14 +40,14 @@ export function BottomNavigation() {
               key={item.path}
               to={item.path}
               className={cn(
-                'flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors',
+                'flex flex-col items-center justify-center gap-0.5 md:gap-1 flex-1 h-full transition-colors',
                 isActive
                   ? 'text-primary'
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              <Icon className={cn('h-5 w-5', isActive && 'text-primary')} />
-              <span className={cn('text-xs', isActive && 'font-semibold')}>
+              <Icon className={cn('h-4 w-4 md:h-5 md:w-5', isActive && 'text-primary')} />
+              <span className={cn('text-[10px] md:text-xs', isActive && 'font-semibold')}>
                 {item.label}
               </span>
             </Link>

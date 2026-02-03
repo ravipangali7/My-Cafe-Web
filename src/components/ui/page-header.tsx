@@ -22,7 +22,7 @@ export function PageHeader({ title, description, backLink, action }: PageHeaderP
   };
 
   return (
-    <div className="mb-6">
+    <div className="mb-4 md:mb-6">
       {backLink && (
         <Button
           variant="ghost"
@@ -34,11 +34,11 @@ export function PageHeader({ title, description, backLink, action }: PageHeaderP
           Back
         </Button>
       )}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 md:gap-4">
         <div>
-          <h1 className="text-xl md:text-2xl font-semibold text-foreground">{title}</h1>
+          <h1 className="text-lg md:text-2xl font-semibold text-foreground">{title}</h1>
           {description && (
-            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+            <p className="mt-0.5 md:mt-1 text-xs md:text-sm text-muted-foreground">{description}</p>
           )}
         </div>
         {action && <div>{action}</div>}

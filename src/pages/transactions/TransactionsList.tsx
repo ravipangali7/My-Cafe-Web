@@ -368,17 +368,17 @@ export default function TransactionsList() {
   const renderMobileCard = (transaction: Transaction, index: number) => {
     const CategoryIcon = getCategoryIcon(transaction.transaction_category);
     return (
-      <CardContent className="p-4">
-        <div className="flex justify-between items-start mb-3">
+      <CardContent className="p-3">
+        <div className="flex justify-between items-start mb-2">
           <div>
-            <div className="font-mono font-medium text-foreground">#{transaction.id}</div>
-            <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+            <div className="font-mono text-sm font-medium text-foreground">#{transaction.id}</div>
+            <div className="flex items-center gap-1 mt-0.5 text-xs text-muted-foreground">
               <CategoryIcon className="h-3 w-3" />
               <span>{getCategoryLabel(transaction.transaction_category)}</span>
             </div>
           </div>
           <div className="text-right">
-            <div className={`font-bold text-lg ${transaction.transaction_type === 'in' ? 'text-success' : 'text-destructive'}`}>
+            <div className={`font-bold text-base ${transaction.transaction_type === 'in' ? 'text-success' : 'text-destructive'}`}>
               {transaction.transaction_type === 'in' ? '+' : '-'}{formatCurrency(transaction.amount)}
             </div>
             <div className="text-xs text-muted-foreground">
@@ -387,7 +387,7 @@ export default function TransactionsList() {
           </div>
         </div>
         
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <StatusBadge 
             status={TRANSACTION_TYPE_LABELS[transaction.transaction_type] || transaction.transaction_type} 
             variant={getTypeVariant(transaction.transaction_type)} 
@@ -404,20 +404,21 @@ export default function TransactionsList() {
           <MobileCardRow
             label="Reference"
             value={transaction.order_id ? `Order #${transaction.order_id}` : `QR #${transaction.qr_stand_order_id}`}
-            className="mt-2"
+            className="mt-1.5"
           />
         )}
         
-        <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-border">
+        <div className="flex items-center justify-end gap-2 mt-3 pt-2 border-t border-border">
           <Button
             variant="outline"
             size="sm"
+            className="h-8 text-xs"
             onClick={(e) => {
               e.stopPropagation();
               navigate(`/transactions/${transaction.id}`);
             }}
           >
-            <Eye className="h-4 w-4 mr-1" />
+            <Eye className="h-3.5 w-3.5 mr-1" />
             View
           </Button>
         </div>

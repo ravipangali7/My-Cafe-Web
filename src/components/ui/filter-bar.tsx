@@ -80,18 +80,18 @@ export function FilterBar({
   };
 
   return (
-    <div className={cn('mb-4', className)}>
+    <div className={cn('mb-3 md:mb-4', className)}>
       {/* Main Filter Row - Always Visible */}
-      <div className="flex items-center gap-2 p-2 bg-card border rounded-lg shadow-sm transition-all duration-200">
+      <div className="flex items-center gap-1.5 md:gap-2 p-1.5 md:p-2 bg-card border rounded-lg shadow-sm transition-all duration-200">
         {/* Search Input */}
         <div className="relative flex-1 min-w-0">
-          <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Search className="absolute left-2 md:left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
             placeholder={placeholder}
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="pl-8 h-8 text-sm border-0 bg-muted/50 focus-visible:ring-1 focus-visible:ring-primary/50 transition-all duration-200"
+            className="pl-7 md:pl-8 h-7 md:h-8 text-sm border-0 bg-muted/50 focus-visible:ring-1 focus-visible:ring-primary/50 transition-all duration-200"
           />
         </div>
 
@@ -104,7 +104,7 @@ export function FilterBar({
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    'h-8 px-2 gap-1 text-xs transition-all duration-200',
+                    'h-7 md:h-8 px-1.5 md:px-2 gap-1 text-xs transition-all duration-200',
                     showAdvanced && 'bg-muted'
                   )}
                   onClick={() => setShowAdvanced(!showAdvanced)}
@@ -126,14 +126,14 @@ export function FilterBar({
         )}
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5 md:gap-1">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button 
                   onClick={onApply} 
                   size="sm"
-                  className="h-8 px-3 text-xs gap-1.5 transition-all duration-200 hover:scale-[1.02]"
+                  className="h-7 md:h-8 px-2 md:px-3 text-xs gap-1 md:gap-1.5 transition-all duration-200 hover:scale-[1.02]"
                 >
                   <Check className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">Apply</span>
@@ -153,7 +153,7 @@ export function FilterBar({
                   variant="ghost" 
                   size="sm"
                   className={cn(
-                    'h-8 px-2 text-xs transition-all duration-200',
+                    'h-7 md:h-8 px-1.5 md:px-2 text-xs transition-all duration-200',
                     hasActiveFilters && 'text-destructive hover:text-destructive hover:bg-destructive/10'
                   )}
                 >

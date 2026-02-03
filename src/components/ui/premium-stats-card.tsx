@@ -74,29 +74,29 @@ export function PremiumStatsCard({
       )}
       onClick={onClick}
     >
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-3">
+      <CardContent className="p-3 md:p-4">
+        <div className="flex items-start justify-between gap-2 md:gap-3">
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide truncate">
               {label}
             </p>
-            <div className="mt-1 flex items-baseline gap-1">
+            <div className="mt-0.5 md:mt-1 flex items-baseline gap-1">
               {prefix && (
-                <span className={cn('text-lg font-semibold', styles.value)}>
+                <span className={cn('text-base md:text-lg font-semibold', styles.value)}>
                   {prefix}
                 </span>
               )}
-              <span className={cn('text-2xl font-bold tracking-tight', styles.value)}>
+              <span className={cn('text-xl md:text-2xl font-bold tracking-tight', styles.value)}>
                 {value}
               </span>
               {suffix && (
-                <span className="text-sm font-medium text-muted-foreground">
+                <span className="text-xs md:text-sm font-medium text-muted-foreground">
                   {suffix}
                 </span>
               )}
             </div>
             {trend && (
-              <div className="mt-1 flex items-center gap-1">
+              <div className="mt-0.5 md:mt-1 flex items-center gap-1">
                 {trend.isPositive ? (
                   <TrendingUp className="h-3 w-3 text-success" />
                 ) : (
@@ -115,11 +115,11 @@ export function PremiumStatsCard({
           </div>
           <div
             className={cn(
-              'flex-shrink-0 p-2.5 rounded-xl',
+              'flex-shrink-0 p-2 rounded-lg md:p-2.5 md:rounded-xl',
               styles.icon
             )}
           >
-            <Icon className="h-5 w-5" />
+            <Icon className="h-4 w-4 md:h-5 md:w-5" />
           </div>
         </div>
       </CardContent>
@@ -141,16 +141,16 @@ export function PremiumStatsCards({
 
   if (loading) {
     return (
-      <div className={cn('grid gap-3 mb-6', gridCols[columns], className)}>
+      <div className={cn('grid gap-2 md:gap-3 mb-4 md:mb-6', gridCols[columns], className)}>
         {Array.from({ length: stats.length || 4 }).map((_, i) => (
           <Card key={i} className="overflow-hidden">
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between gap-3">
+            <CardContent className="p-3 md:p-4">
+              <div className="flex items-start justify-between gap-2 md:gap-3">
                 <div className="flex-1">
-                  <div className="h-3 w-20 bg-muted rounded animate-pulse" />
-                  <div className="mt-2 h-7 w-16 bg-muted rounded animate-pulse" />
+                  <div className="h-3 w-16 md:w-20 bg-muted rounded animate-pulse" />
+                  <div className="mt-2 h-6 md:h-7 w-12 md:w-16 bg-muted rounded animate-pulse" />
                 </div>
-                <div className="h-10 w-10 bg-muted rounded-xl animate-pulse" />
+                <div className="h-8 w-8 md:h-10 md:w-10 bg-muted rounded-lg md:rounded-xl animate-pulse" />
               </div>
             </CardContent>
           </Card>
@@ -160,7 +160,7 @@ export function PremiumStatsCards({
   }
 
   return (
-    <div className={cn('grid gap-3 mb-6', gridCols[columns], className)}>
+    <div className={cn('grid gap-2 md:gap-3 mb-4 md:mb-6', gridCols[columns], className)}>
       {stats.map((stat) => (
         <PremiumStatsCard key={stat.label} {...stat} />
       ))}
@@ -176,12 +176,12 @@ export function ScrollableStatsCards({
 }: Omit<PremiumStatsCardsProps, 'columns'>) {
   if (loading) {
     return (
-      <div className={cn('flex gap-3 overflow-x-auto pb-2 mb-6 scrollbar-hide', className)}>
+      <div className={cn('flex gap-2 md:gap-3 overflow-x-auto pb-2 mb-4 md:mb-6 scrollbar-hide', className)}>
         {Array.from({ length: 6 }).map((_, i) => (
-          <Card key={i} className="flex-shrink-0 w-40 overflow-hidden">
-            <CardContent className="p-4">
-              <div className="h-3 w-16 bg-muted rounded animate-pulse" />
-              <div className="mt-2 h-7 w-12 bg-muted rounded animate-pulse" />
+          <Card key={i} className="flex-shrink-0 w-32 md:w-40 overflow-hidden">
+            <CardContent className="p-3 md:p-4">
+              <div className="h-3 w-14 md:w-16 bg-muted rounded animate-pulse" />
+              <div className="mt-2 h-6 md:h-7 w-10 md:w-12 bg-muted rounded animate-pulse" />
             </CardContent>
           </Card>
         ))}
@@ -190,9 +190,9 @@ export function ScrollableStatsCards({
   }
 
   return (
-    <div className={cn('flex gap-3 overflow-x-auto pb-2 mb-6 scrollbar-hide', className)}>
+    <div className={cn('flex gap-2 md:gap-3 overflow-x-auto pb-2 mb-4 md:mb-6 scrollbar-hide', className)}>
       {stats.map((stat) => (
-        <div key={stat.label} className="flex-shrink-0 w-40">
+        <div key={stat.label} className="flex-shrink-0 w-32 md:w-40">
           <PremiumStatsCard {...stat} />
         </div>
       ))}
