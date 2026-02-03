@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Coffee } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -37,9 +36,7 @@ export default function Login() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <div className="p-3 rounded-full bg-primary">
-              <Coffee className="h-8 w-8 text-primary-foreground" />
-            </div>
+            <img src="/logo.png" alt="My Cafe" className="h-12 w-auto max-h-16 object-contain" />
           </div>
           <CardTitle className="text-2xl">Welcome to My Cafe</CardTitle>
           <CardDescription>Sign in to manage your cafe</CardDescription>

@@ -14,7 +14,6 @@ import {
   Menu,
   X,
   LogOut,
-  Coffee,
   FileText,
   QrCode,
   ShieldCheck,
@@ -92,9 +91,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center justify-between h-16 px-6 border-b border-border">
-            <Link to="/dashboard" className="flex items-center gap-2">
-              <Coffee className="h-7 w-7 text-foreground" />
-              <span className="text-xl font-semibold text-foreground">My Cafe</span>
+            <Link to="/dashboard" className="flex items-center">
+              <img src="/logo.png" alt="My Cafe" className="h-9 w-auto" />
             </Link>
             <Button 
               variant="ghost" 
@@ -170,9 +168,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 >
                   <Menu className="h-5 w-5" />
                 </Button>
-                <Link to="/dashboard" className="flex items-center gap-2 ml-2">
-                  <Coffee className="h-6 w-6 text-foreground" />
-                  <span className="text-lg font-semibold text-foreground">My Cafe</span>
+                <Link to="/dashboard" className="flex items-center ml-2">
+                  <img src="/logo.png" alt="My Cafe" className="h-8 w-auto" />
                 </Link>
               </>
             )}
