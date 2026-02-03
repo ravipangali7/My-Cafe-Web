@@ -239,6 +239,17 @@ export function openInBrowser(url: string): void {
   }
 }
 
+/** Get public invoice view URL (requires auth). Use for opening invoice in browser from WebView. */
+export async function getPublicInvoiceUrl(orderId: number): Promise<string> {
+  const response = await api.get<{ url: string; order_id: number; token: string }>(
+    `/api/orders/${orderId}/invoice/public-url/`
+  );
+  if (response.error || !response.data?.url) {
+    throw new Error(response.error || 'Failed to get invoice link');
+  }
+  return response.data.url;
+}
+
 export async function downloadOrderInvoice(orderId: number): Promise<void> {
   const url = `${API_BASE_URL}/api/orders/${orderId}/invoice/download/`;
   const headers: HeadersInit = {};

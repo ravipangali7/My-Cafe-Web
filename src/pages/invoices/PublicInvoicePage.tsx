@@ -318,6 +318,19 @@ export default function PublicInvoicePage() {
         <p className="text-center text-xs text-muted-foreground">
           Generated on {new Date(invoice.generated_at).toLocaleString()}
         </p>
+
+        {/* Download Invoice button at bottom */}
+        <div className="flex justify-center pt-6">
+          <Button
+            onClick={handleDownload}
+            disabled={downloading}
+            size="lg"
+            className="min-w-[200px]"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            {downloading ? 'Downloading...' : 'Download Invoice'}
+          </Button>
+        </div>
       </div>
     </div>
   );

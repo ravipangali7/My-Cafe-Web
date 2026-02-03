@@ -13,7 +13,7 @@ import { VendorInfoCell, CustomerInfoCell } from '@/components/ui/vendor-info-ce
 import { ConfirmationModal } from '@/components/ui/confirmation-modal';
 import { SimplePagination } from '@/components/ui/simple-pagination';
 import { CardContent } from '@/components/ui/card';
-import { api, fetchPaginated, downloadOrderInvoice } from '@/lib/api';
+import { api, fetchPaginated, downloadOrderInvoice, getPublicInvoiceUrl, openInBrowser, isWebView } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { canEditItem, canDeleteOrder } from '@/lib/permissions';
@@ -127,8 +127,14 @@ export default function OrdersList() {
     }
     setDownloadingInvoiceId(orderId);
     try {
-      await downloadOrderInvoice(orderId);
-      toast.success('Invoice downloaded successfully');
+      if (isWebView()) {
+        const url = await getPublicInvoiceUrl(orderId);
+        openInBrowser(url);
+        toast.success('Opening invoice in browser');
+      } else {
+        await downloadOrderInvoice(orderId);
+        toast.success('Invoice downloaded successfully');
+      }
     } catch (error: any) {
       toast.error(error.message || 'Failed to download invoice');
     } finally {
