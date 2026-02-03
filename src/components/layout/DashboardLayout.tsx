@@ -19,7 +19,8 @@ import {
   ShieldCheck,
   Radio,
   Banknote,
-  Wallet
+  Wallet,
+  MessageCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -42,6 +43,7 @@ const allNavItems = [
   { path: '/orders', label: 'Orders', icon: ShoppingCart, superuserOnly: false },
   { path: '/qr-stands', label: 'QR Stand Orders', icon: QrCode, superuserOnly: false },
   { path: '/transactions', label: 'Transactions', icon: Receipt, superuserOnly: false },
+  { path: '/whatsapp-notifications', label: 'WhatsApp Notifications', icon: MessageCircle, superuserOnly: false },
   { path: '/reports', label: 'Reports', icon: FileText, superuserOnly: false },
   { path: '/shareholders', label: 'Shareholders', icon: Users2, superuserOnly: true },
   { path: '/withdrawals', label: 'Withdrawals', icon: Banknote, superuserOnly: true },

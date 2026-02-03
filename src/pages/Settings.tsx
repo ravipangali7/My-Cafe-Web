@@ -25,6 +25,8 @@ export default function Settings() {
   const [dueThreshold, setDueThreshold] = useState('1000');
   const [isWhatsappUsage, setIsWhatsappUsage] = useState(true);
   const [whatsappPerUsage, setWhatsappPerUsage] = useState('0');
+  const [whatsappTemplateMarketing, setWhatsappTemplateMarketing] = useState('mycafemarketing');
+  const [whatsappTemplateImagemarketing, setWhatsappTemplateImagemarketing] = useState('mycafeimagemarketing');
   const [shareDistributionDay, setShareDistributionDay] = useState('7');
   const [saving, setSaving] = useState(false);
 
@@ -47,6 +49,8 @@ export default function Settings() {
         setDueThreshold(String(s.due_threshold ?? 1000));
         setIsWhatsappUsage(s.is_whatsapp_usage ?? true);
         setWhatsappPerUsage(String(s.whatsapp_per_usage ?? 0));
+        setWhatsappTemplateMarketing(s.whatsapp_template_marketing ?? 'mycafemarketing');
+        setWhatsappTemplateImagemarketing(s.whatsapp_template_imagemarketing ?? 'mycafeimagemarketing');
         setShareDistributionDay(String(s.share_distribution_day ?? 7));
         setIsEditing(false);
       } else {
@@ -125,6 +129,8 @@ export default function Settings() {
         due_threshold: dueThresholdInt,
         is_whatsapp_usage: isWhatsappUsage,
         whatsapp_per_usage: whatsappPerUsageInt,
+        whatsapp_template_marketing: whatsappTemplateMarketing || 'mycafemarketing',
+        whatsapp_template_imagemarketing: whatsappTemplateImagemarketing || 'mycafeimagemarketing',
         share_distribution_day: shareDistributionDayInt,
       });
 
@@ -291,6 +297,28 @@ export default function Settings() {
                   />
                   <p className="text-xs text-muted-foreground">Cost per WhatsApp message</p>
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="whatsappTemplateMarketing">Marketing Template (text only)</Label>
+                  <Input
+                    id="whatsappTemplateMarketing"
+                    type="text"
+                    value={whatsappTemplateMarketing}
+                    onChange={(e) => setWhatsappTemplateMarketing(e.target.value)}
+                    placeholder="mycafemarketing"
+                  />
+                  <p className="text-xs text-muted-foreground">MSG91 template name when no image</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="whatsappTemplateImagemarketing">Marketing Template (with image)</Label>
+                  <Input
+                    id="whatsappTemplateImagemarketing"
+                    type="text"
+                    value={whatsappTemplateImagemarketing}
+                    onChange={(e) => setWhatsappTemplateImagemarketing(e.target.value)}
+                    placeholder="mycafeimagemarketing"
+                  />
+                  <p className="text-xs text-muted-foreground">MSG91 template name when image is attached</p>
+                </div>
               </div>
 
               {/* QR Stand & Share Settings */}
@@ -349,6 +377,8 @@ export default function Settings() {
                     setDueThreshold(String(setting.due_threshold ?? 1000));
                     setIsWhatsappUsage(setting.is_whatsapp_usage ?? true);
                     setWhatsappPerUsage(String(setting.whatsapp_per_usage ?? 0));
+                    setWhatsappTemplateMarketing(setting.whatsapp_template_marketing ?? 'mycafemarketing');
+                    setWhatsappTemplateImagemarketing(setting.whatsapp_template_imagemarketing ?? 'mycafeimagemarketing');
                     setShareDistributionDay(String(setting.share_distribution_day ?? 7));
                   }
                 }}>
@@ -389,6 +419,8 @@ export default function Settings() {
                 <h3 className="font-medium text-sm text-muted-foreground">WhatsApp Settings</h3>
                 <DetailRow label="WhatsApp Usage Tracking" value={setting?.is_whatsapp_usage ? 'Enabled' : 'Disabled'} />
                 <DetailRow label="WhatsApp Per Usage" value={`₹${setting?.whatsapp_per_usage ?? 0}`} />
+                <DetailRow label="Marketing Template (text)" value={setting?.whatsapp_template_marketing ?? 'mycafemarketing'} />
+                <DetailRow label="Marketing Template (image)" value={setting?.whatsapp_template_imagemarketing ?? 'mycafeimagemarketing'} />
               </div>
 
               {/* QR Stand & Share Settings */}

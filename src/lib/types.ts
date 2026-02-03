@@ -38,6 +38,8 @@ export interface SuperSetting {
   due_threshold: number;
   is_whatsapp_usage: boolean;
   whatsapp_per_usage: number;
+  whatsapp_template_marketing?: string;
+  whatsapp_template_imagemarketing?: string;
   share_distribution_day: number;
   balance: number;
   created_at: string;

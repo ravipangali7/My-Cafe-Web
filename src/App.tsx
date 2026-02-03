@@ -84,6 +84,11 @@ import PayDues from "./pages/dues/PayDues";
 // Customers
 import CustomersList from "./pages/customers/CustomersList";
 
+// WhatsApp Notifications
+import WhatsAppNotificationsList from "./pages/whatsapp-notifications/WhatsAppNotificationsList";
+import WhatsAppNotificationCreate from "./pages/whatsapp-notifications/WhatsAppNotificationCreate";
+import WhatsAppNotificationView from "./pages/whatsapp-notifications/WhatsAppNotificationView";
+
 // Payment
 import PaymentStatus from "./pages/payment/PaymentStatus";
 
@@ -395,6 +400,11 @@ const App = () => (
 
             {/* Customers */}
             <Route path="/customers" element={<ProtectedRoute><CustomersList /></ProtectedRoute>} />
+
+            {/* WhatsApp Notifications */}
+            <Route path="/whatsapp-notifications" element={<ProtectedRoute><WhatsAppNotificationsList /></ProtectedRoute>} />
+            <Route path="/whatsapp-notifications/new" element={<ProtectedRoute><WhatsAppNotificationCreate /></ProtectedRoute>} />
+            <Route path="/whatsapp-notifications/:id" element={<ProtectedRoute><WhatsAppNotificationView /></ProtectedRoute>} />
 
             {/* Payment (public - for payment callbacks) */}
             <Route path="/payment/status/:txnId" element={<PaymentStatus />} />
