@@ -142,6 +142,19 @@ export default function ProductsList() {
     }
   }, [user, fetchProducts, fetchStats]);
 
+  // Refetch when user returns to tab (real-time data)
+  useEffect(() => {
+    if (!user) return;
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchProducts();
+        fetchStats();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, [user, fetchProducts, fetchStats]);
+
   const handleDelete = useCallback(async () => {
     if (!deleteId) return;
 

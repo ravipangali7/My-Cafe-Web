@@ -101,6 +101,18 @@ export default function CustomersList() {
     }
   }, [user, fetchCustomers]);
 
+  // Refetch when user returns to tab (real-time data)
+  useEffect(() => {
+    if (!user) return;
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchCustomers();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, [user, fetchCustomers]);
+
   const handleDelete = useCallback(async () => {
     if (!deleteId) return;
 

@@ -139,6 +139,19 @@ export default function QRStandOrdersList() {
     }
   }, [user, fetchOrders, fetchStats]);
 
+  // Refetch when user returns to tab (real-time data)
+  useEffect(() => {
+    if (!user) return;
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchOrders();
+        fetchStats();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, [user, fetchOrders, fetchStats]);
+
   const handleDelete = async () => {
     if (!deleteId) return;
     

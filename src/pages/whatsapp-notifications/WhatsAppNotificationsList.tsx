@@ -67,6 +67,18 @@ export default function WhatsAppNotificationsList() {
     if (user) fetchList();
   }, [user, fetchList]);
 
+  // Refetch when user returns to tab (real-time data)
+  useEffect(() => {
+    if (!user) return;
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchList();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, [user, fetchList]);
+
   const handleApplyFilters = () => {
     setAppliedSearch(search);
     setPage(1);

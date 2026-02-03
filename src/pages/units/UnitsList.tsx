@@ -145,6 +145,19 @@ export default function UnitsList() {
     }
   }, [user, fetchUnits, fetchStats]);
 
+  // Refetch when user returns to tab (real-time data)
+  useEffect(() => {
+    if (!user) return;
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchUnits();
+        fetchStats();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, [user, fetchUnits, fetchStats]);
+
   const handleDelete = useCallback(async () => {
     if (!deleteId) return;
 

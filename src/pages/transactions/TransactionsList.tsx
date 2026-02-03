@@ -183,6 +183,19 @@ export default function TransactionsList() {
     }
   }, [user, fetchTransactions, fetchStats]);
 
+  // Refetch when user returns to tab (real-time data)
+  useEffect(() => {
+    if (!user) return;
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchTransactions();
+        fetchStats();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, [user, fetchTransactions, fetchStats]);
+
   const handleApplyFilters = () => {
     setAppliedSearch(search);
     setAppliedUserId(userId);

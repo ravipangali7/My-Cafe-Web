@@ -133,6 +133,19 @@ export default function VendorsList() {
     }
   }, [user, fetchVendors, fetchStats]);
 
+  // Refetch when user returns to tab (real-time data)
+  useEffect(() => {
+    if (!user) return;
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchVendors();
+        fetchStats();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, [user, fetchVendors, fetchStats]);
+
   const handleDelete = useCallback(async () => {
     if (!deleteId) return;
 

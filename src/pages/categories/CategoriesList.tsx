@@ -145,6 +145,19 @@ export default function CategoriesList() {
     }
   }, [user, fetchCategories, fetchStats]);
 
+  // Refetch when user returns to tab (real-time data)
+  useEffect(() => {
+    if (!user) return;
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchCategories();
+        fetchStats();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, [user, fetchCategories, fetchStats]);
+
   const handleDelete = useCallback(async () => {
     if (!deleteId) return;
 
