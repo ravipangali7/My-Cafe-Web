@@ -251,7 +251,7 @@ export default function PublicInvoicePage() {
                           <p className="font-medium">{item.product_name}</p>
                           {item.variant?.unit_name && (
                             <p className="text-xs text-muted-foreground">
-                              {item.variant.unit_value} {item.variant.unit_name}
+                              {item.variant?.unit_value != null ? `${item.variant.unit_value} ` : ''}{item.variant.unit_name}
                             </p>
                           )}
                         </td>
@@ -273,7 +273,7 @@ export default function PublicInvoicePage() {
                         <p className="font-medium">{item.product_name}</p>
                         {item.variant?.unit_name && (
                           <p className="text-xs text-muted-foreground">
-                            {item.variant.unit_value} {item.variant.unit_name}
+                            {item.variant?.unit_value != null ? `${item.variant.unit_value} ` : ''}{item.variant.unit_name}
                           </p>
                         )}
                       </div>
