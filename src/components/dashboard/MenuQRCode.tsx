@@ -288,11 +288,11 @@ export function MenuQRCode({
           <div className="flex gap-2 w-full">
             <Button onClick={handleDownloadPNG} variant="outline" className="flex-1">
               <Download className="h-4 w-4 mr-2" />
-              ⬇️ PNG
+              PNG
             </Button>
             <Button onClick={handleDownloadPDF} className="flex-1">
               <FileDown className="h-4 w-4 mr-2" />
-              ⬇️ PDF
+              PDF
             </Button>
           </div>
         </>
