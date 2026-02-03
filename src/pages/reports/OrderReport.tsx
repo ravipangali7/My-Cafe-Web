@@ -5,9 +5,24 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { FilterBar } from '@/components/ui/filter-bar';
 import { DateFilterButtons, DateFilterType } from '@/components/ui/date-filter-buttons';
+import { PremiumStatsCards, formatCurrency } from '@/components/ui/premium-stats-card';
+import { ChartCard } from '@/components/dashboard/shared/ChartCard';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import {
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
+import { ShoppingCart, DollarSign, CheckCircle, Clock, XCircle } from 'lucide-react';
 
 interface OrderReportData {
   summary: {
@@ -18,6 +33,7 @@ interface OrderReportData {
   };
   orders_by_status: Array<{ status: string; count: number; revenue: string; avg_order_value: string }>;
   orders_by_payment_status: Array<{ payment_status: string; count: number; revenue: string }>;
+  daily_breakdown?: Array<{ date: string; orders: number; revenue: string }>;
   detailed_orders: Array<{
     id: number;
     name: string;
@@ -158,31 +174,124 @@ export function OrderReport() {
       {reportData && (
         <div className="space-y-6">
           {reportData.summary && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Summary</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Orders</p>
-                    <p className="text-2xl font-bold">{reportData.summary.total_orders || 0}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Revenue</p>
-                    <p className="text-2xl font-bold">₹{parseFloat(reportData.summary.total_revenue || '0').toFixed(2)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Date Range</p>
-                    <p className="text-sm">
-                      {reportData.summary.start_date && reportData.summary.end_date
-                        ? `${new Date(reportData.summary.start_date).toLocaleDateString()} - ${new Date(reportData.summary.end_date).toLocaleDateString()}`
-                        : '—'}
-                    </p>
-                  </div>
+            <>
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3 uppercase tracking-wider">
+                  Summary
+                </h3>
+                <PremiumStatsCards
+                  stats={[
+                    { label: 'Total Orders', value: (reportData.summary.total_orders || 0).toLocaleString(), icon: ShoppingCart, variant: 'default' },
+                    { label: 'Total Revenue', value: formatCurrency(parseFloat(reportData.summary.total_revenue || '0')), icon: DollarSign, variant: 'success' },
+                    { label: 'Paid Orders', value: (reportData.orders_by_payment_status?.find((p) => p.payment_status === 'paid')?.count ?? 0).toLocaleString(), icon: CheckCircle, variant: 'success' },
+                    { label: 'Pending Payment', value: (reportData.orders_by_payment_status?.find((p) => p.payment_status === 'pending')?.count ?? 0).toLocaleString(), icon: Clock, variant: 'warning' },
+                    { label: 'Completed', value: (reportData.orders_by_status?.find((s) => s.status === 'completed')?.count ?? 0).toLocaleString(), icon: CheckCircle, variant: 'default' },
+                    { label: 'Rejected', value: (reportData.orders_by_status?.find((s) => s.status === 'rejected')?.count ?? 0).toLocaleString(), icon: XCircle, variant: 'destructive' },
+                    {
+                      label: 'Avg Order Value',
+                      value: reportData.summary.total_orders
+                        ? formatCurrency(parseFloat(reportData.summary.total_revenue || '0') / reportData.summary.total_orders)
+                        : '—',
+                      icon: DollarSign,
+                      variant: 'info',
+                    },
+                  ]}
+                  columns={4}
+                />
+              </div>
+              {(reportData.orders_by_status?.length > 0 || reportData.orders_by_payment_status?.length > 0 || (reportData.daily_breakdown?.length ?? 0) > 0) && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {reportData.orders_by_status && reportData.orders_by_status.length > 0 && (
+                    <ChartCard title="Orders by Status" description="Count by status">
+                      <ResponsiveContainer width="100%" height={240}>
+                        <PieChart>
+                          <Pie
+                            data={reportData.orders_by_status}
+                            dataKey="count"
+                            nameKey="status"
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={70}
+                            label={({ status, count }) => `${status}: ${count}`}
+                          >
+                            {reportData.orders_by_status.map((_, i) => (
+                              <Cell key={i} fill={['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#6b7280'][i % 6]} />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </ChartCard>
+                  )}
+                  {reportData.orders_by_payment_status && reportData.orders_by_payment_status.length > 0 && (
+                    <ChartCard title="Orders by Payment Status" description="Count by payment">
+                      <ResponsiveContainer width="100%" height={240}>
+                        <PieChart>
+                          <Pie
+                            data={reportData.orders_by_payment_status}
+                            dataKey="count"
+                            nameKey="payment_status"
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={70}
+                            label={({ payment_status, count }) => `${payment_status}: ${count}`}
+                          >
+                            {reportData.orders_by_payment_status.map((_, i) => (
+                              <Cell key={i} fill={['#10b981', '#f59e0b', '#ef4444'][i % 3]} />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </ChartCard>
+                  )}
+                  {reportData.daily_breakdown && reportData.daily_breakdown.length > 0 && (
+                    <ChartCard title="Revenue Over Time" description="Daily revenue" className="lg:col-span-2">
+                      <ResponsiveContainer width="100%" height={240}>
+                        <LineChart
+                          data={reportData.daily_breakdown.map((d) => ({
+                            date: d.date,
+                            revenue: parseFloat(d.revenue || '0'),
+                            orders: d.orders,
+                          }))}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                          <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `₹${v / 1000}k`} />
+                          <Tooltip formatter={(v: number) => [`₹${v.toLocaleString()}`, 'Revenue']} />
+                          <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} name="Revenue" />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </ChartCard>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
+              )}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Summary</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Orders</p>
+                      <p className="text-2xl font-bold">{reportData.summary.total_orders || 0}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Revenue</p>
+                      <p className="text-2xl font-bold">₹{parseFloat(reportData.summary.total_revenue || '0').toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Date Range</p>
+                      <p className="text-sm">
+                        {reportData.summary.start_date && reportData.summary.end_date
+                          ? `${new Date(reportData.summary.start_date).toLocaleDateString()} - ${new Date(reportData.summary.end_date).toLocaleDateString()}`
+                          : '—'}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
           )}
 
           {reportData.orders_by_status && reportData.orders_by_status.length > 0 && (

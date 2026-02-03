@@ -5,9 +5,21 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { FilterBar } from '@/components/ui/filter-bar';
 import { DateFilterButtons, DateFilterType } from '@/components/ui/date-filter-buttons';
+import { PremiumStatsCards, formatCurrency } from '@/components/ui/premium-stats-card';
+import { ChartCard } from '@/components/dashboard/shared/ChartCard';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
+import { DollarSign, CreditCard, Clock, Receipt, TrendingUp } from 'lucide-react';
 
 interface FinanceReportData {
   summary: {
@@ -165,45 +177,89 @@ export function FinanceReport() {
 
       {reportData && (
         <div className="space-y-6">
-          {/* Summary */}
           {reportData.summary && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Financial Summary</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Order Revenue</p>
-                    <p className="text-2xl font-bold">₹{parseFloat(reportData.summary.total_order_revenue || '0').toFixed(2)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Paid Order Revenue</p>
-                    <p className="text-2xl font-bold text-green-600">₹{parseFloat(reportData.summary.paid_order_revenue || '0').toFixed(2)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Pending Order Revenue</p>
-                    <p className="text-2xl font-bold text-yellow-600">₹{parseFloat(reportData.summary.pending_order_revenue || '0').toFixed(2)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Transactions</p>
-                    <p className="text-2xl font-bold">{reportData.summary.total_transactions || 0}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Transaction Amount</p>
-                    <p className="text-2xl font-bold">₹{parseFloat(reportData.summary.total_transaction_amount || '0').toFixed(2)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Date Range</p>
-                    <p className="text-sm">
-                      {reportData.summary.start_date && reportData.summary.end_date
+            <>
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3 uppercase tracking-wider">
+                  Summary
+                </h3>
+                <PremiumStatsCards
+                  stats={[
+                    { label: 'Total Order Revenue', value: formatCurrency(parseFloat(reportData.summary.total_order_revenue || '0')), icon: DollarSign, variant: 'default' },
+                    { label: 'Paid Order Revenue', value: formatCurrency(parseFloat(reportData.summary.paid_order_revenue || '0')), icon: CreditCard, variant: 'success' },
+                    { label: 'Pending Order Revenue', value: formatCurrency(parseFloat(reportData.summary.pending_order_revenue || '0')), icon: Clock, variant: 'warning' },
+                    { label: 'Total Transactions', value: (reportData.summary.total_transactions || 0).toLocaleString(), icon: Receipt, variant: 'info' },
+                    { label: 'Transaction Amount', value: formatCurrency(parseFloat(reportData.summary.total_transaction_amount || '0')), icon: TrendingUp, variant: 'success' },
+                    {
+                      label: 'Date Range',
+                      value: reportData.summary.start_date && reportData.summary.end_date
                         ? `${new Date(reportData.summary.start_date).toLocaleDateString()} - ${new Date(reportData.summary.end_date).toLocaleDateString()}`
-                        : '—'}
-                    </p>
+                        : '—',
+                      icon: DollarSign,
+                      variant: 'default',
+                    },
+                  ]}
+                  columns={3}
+                />
+              </div>
+              {reportData.daily_breakdown && reportData.daily_breakdown.length > 0 && (
+                <ChartCard title="Daily Financial Breakdown" description="Order revenue and transaction amount per day">
+                  <ResponsiveContainer width="100%" height={260}>
+                    <LineChart
+                      data={reportData.daily_breakdown.map((d) => ({
+                        date: d.date,
+                        order_revenue: parseFloat(d.order_revenue || '0'),
+                        transaction_amount: parseFloat(d.transaction_amount || '0'),
+                      }))}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                      <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `₹${v / 1000}k`} />
+                      <Tooltip formatter={(v: number) => [`₹${v.toLocaleString()}`, '']} />
+                      <Line type="monotone" dataKey="order_revenue" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} name="Order Revenue" />
+                      <Line type="monotone" dataKey="transaction_amount" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} name="Transaction Amount" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+              )}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Financial Summary</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Order Revenue</p>
+                      <p className="text-2xl font-bold">₹{parseFloat(reportData.summary.total_order_revenue || '0').toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Paid Order Revenue</p>
+                      <p className="text-2xl font-bold text-green-600">₹{parseFloat(reportData.summary.paid_order_revenue || '0').toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Pending Order Revenue</p>
+                      <p className="text-2xl font-bold text-yellow-600">₹{parseFloat(reportData.summary.pending_order_revenue || '0').toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Transactions</p>
+                      <p className="text-2xl font-bold">{reportData.summary.total_transactions || 0}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Transaction Amount</p>
+                      <p className="text-2xl font-bold">₹{parseFloat(reportData.summary.total_transaction_amount || '0').toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Date Range</p>
+                      <p className="text-sm">
+                        {reportData.summary.start_date && reportData.summary.end_date
+                          ? `${new Date(reportData.summary.start_date).toLocaleDateString()} - ${new Date(reportData.summary.end_date).toLocaleDateString()}`
+                          : '—'}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </>
           )}
 
           {/* Transactions by Status */}

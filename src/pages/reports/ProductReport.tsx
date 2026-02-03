@@ -5,9 +5,24 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { FilterBar } from '@/components/ui/filter-bar';
 import { DateFilterButtons, DateFilterType } from '@/components/ui/date-filter-buttons';
+import { PremiumStatsCards, formatCurrency } from '@/components/ui/premium-stats-card';
+import { ChartCard } from '@/components/dashboard/shared/ChartCard';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import {
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
+import { Package, DollarSign, Layers, TrendingUp } from 'lucide-react';
 
 interface ProductReportData {
   summary: {
@@ -157,35 +172,115 @@ export function ProductReport() {
       {reportData && (
         <div className="space-y-6">
           {reportData.summary && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Summary</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Products Sold</p>
-                    <p className="text-2xl font-bold">{reportData.summary.total_products_sold || 0}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Revenue</p>
-                    <p className="text-2xl font-bold">₹{parseFloat(reportData.summary.total_revenue || '0').toFixed(2)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Quantity</p>
-                    <p className="text-2xl font-bold">{reportData.summary.total_quantity || 0}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Date Range</p>
-                    <p className="text-sm">
-                      {reportData.summary.start_date && reportData.summary.end_date
+            <>
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3 uppercase tracking-wider">
+                  Summary
+                </h3>
+                <PremiumStatsCards
+                  stats={[
+                    { label: 'Products Sold (distinct)', value: (reportData.summary.total_products_sold || 0).toLocaleString(), icon: Package, variant: 'default' },
+                    { label: 'Total Revenue', value: formatCurrency(parseFloat(reportData.summary.total_revenue || '0')), icon: DollarSign, variant: 'success' },
+                    { label: 'Total Quantity', value: (reportData.summary.total_quantity || 0).toLocaleString(), icon: Layers, variant: 'info' },
+                    {
+                      label: 'Avg Price/Order',
+                      value: reportData.summary.total_quantity
+                        ? formatCurrency(parseFloat(reportData.summary.total_revenue || '0') / reportData.summary.total_quantity)
+                        : '—',
+                      icon: TrendingUp,
+                      variant: 'default',
+                    },
+                    {
+                      label: 'Date Range',
+                      value: reportData.summary.start_date && reportData.summary.end_date
                         ? `${new Date(reportData.summary.start_date).toLocaleDateString()} - ${new Date(reportData.summary.end_date).toLocaleDateString()}`
-                        : '—'}
-                    </p>
-                  </div>
+                        : '—',
+                      icon: Package,
+                      variant: 'default',
+                    },
+                  ]}
+                  columns={4}
+                />
+              </div>
+              {(reportData.products_by_category?.length > 0 || reportData.top_products?.length > 0) && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {reportData.products_by_category && reportData.products_by_category.length > 0 && (
+                    <ChartCard title="Revenue by Category" description="By category">
+                      <ResponsiveContainer width="100%" height={260}>
+                        <PieChart>
+                          <Pie
+                            data={reportData.products_by_category.map((c) => ({
+                              name: c.product__category__name || 'Uncategorized',
+                              value: parseFloat(c.total_revenue || '0'),
+                            }))}
+                            dataKey="value"
+                            nameKey="name"
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={80}
+                            label={({ name, value }) => `${name?.slice(0, 10)} ₹${(value / 1000).toFixed(0)}k`}
+                          >
+                            {reportData.products_by_category.map((_, i) => (
+                              <Cell key={i} fill={['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899'][i % 5]} />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={(v: number) => [`₹${v.toLocaleString()}`, 'Revenue']} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </ChartCard>
+                  )}
+                  {reportData.top_products && reportData.top_products.length > 0 && (
+                    <ChartCard title="Top Products by Revenue" description="Top 10">
+                      <ResponsiveContainer width="100%" height={260}>
+                        <BarChart
+                          data={reportData.top_products.slice(0, 10).map((p) => ({
+                            name: (p.product__name || '—').length > 12 ? (p.product__name || '—').slice(0, 12) + '…' : p.product__name || '—',
+                            revenue: parseFloat(p.total_revenue || '0'),
+                            quantity: p.total_quantity,
+                          }))}
+                          margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                          <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `₹${v / 1000}k`} />
+                          <Tooltip formatter={(v: number) => [`₹${v.toLocaleString()}`, 'Revenue']} />
+                          <Bar dataKey="revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </ChartCard>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
+              )}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Summary</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Products Sold</p>
+                      <p className="text-2xl font-bold">{reportData.summary.total_products_sold || 0}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Revenue</p>
+                      <p className="text-2xl font-bold">₹{parseFloat(reportData.summary.total_revenue || '0').toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Quantity</p>
+                      <p className="text-2xl font-bold">{reportData.summary.total_quantity || 0}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Date Range</p>
+                      <p className="text-sm">
+                        {reportData.summary.start_date && reportData.summary.end_date
+                          ? `${new Date(reportData.summary.start_date).toLocaleDateString()} - ${new Date(reportData.summary.end_date).toLocaleDateString()}`
+                          : '—'}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
           )}
 
           {reportData.products_by_category && reportData.products_by_category.length > 0 && (
