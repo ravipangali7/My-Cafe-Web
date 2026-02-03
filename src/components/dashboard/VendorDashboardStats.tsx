@@ -31,25 +31,25 @@ export function VendorDashboardStats({
       label: 'Total Orders',
       value: totalOrders.toLocaleString(),
       icon: ShoppingCart,
-      color: 'text-blue-600',
+      color: 'text-info',
     },
     {
       label: 'Total Sales',
       value: `₹${parseFloat(totalSales || '0').toLocaleString('en-IN', { maximumFractionDigits: 2 })}`,
       icon: DollarSign,
-      color: 'text-green-600',
+      color: 'text-success',
     },
     {
       label: 'Total Revenue',
       value: `₹${parseFloat(totalRevenue || '0').toLocaleString('en-IN', { maximumFractionDigits: 2 })}`,
       icon: TrendingUp,
-      color: 'text-purple-600',
+      color: 'text-primary',
     },
     {
       label: `Finance Summary (${financePeriod === 'today' ? 'Today' : financePeriod === 'week' ? 'This Week' : 'This Month'})`,
       value: `₹${parseFloat(financeSummary[financePeriod] || '0').toLocaleString('en-IN', { maximumFractionDigits: 2 })}`,
       icon: Calendar,
-      color: 'text-orange-600',
+      color: 'text-warning',
     },
   ];
 

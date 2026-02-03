@@ -12,25 +12,12 @@ import { formatCurrency } from '@/components/ui/premium-stats-card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { getMediaProxyUrl } from '@/lib/api';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { chartColors } from '@/lib/theme';
 
 interface ShareholderPieChartProps {
   data: ShareholderDistribution[];
   loading?: boolean;
 }
-
-// Modern color palette
-const COLORS = [
-  '#3b82f6', // blue
-  '#10b981', // green
-  '#f59e0b', // amber
-  '#ef4444', // red
-  '#8b5cf6', // violet
-  '#06b6d4', // cyan
-  '#f97316', // orange
-  '#ec4899', // pink
-  '#84cc16', // lime
-  '#6366f1', // indigo
-];
 
 export function ShareholderPieChart({
   data,
@@ -43,7 +30,7 @@ export function ShareholderPieChart({
     name: item.name,
     value: item.amount,
     percentage: item.share_percentage,
-    color: COLORS[index % COLORS.length],
+    color: chartColors[index % chartColors.length],
     phone: item.phone,
     logo_url: item.logo_url,
   }));

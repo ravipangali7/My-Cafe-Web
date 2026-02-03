@@ -16,6 +16,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { CheckCircle2, XCircle, Clock, ShoppingCart } from 'lucide-react';
+import { chartColors, theme } from '@/lib/theme';
 
 interface VendorAnalyticsProps {
   subscription: {
@@ -55,7 +56,7 @@ interface VendorAnalyticsProps {
   };
 }
 
-const COLORS = ['#10b981', '#f59e0b', '#ef4444']; // green, amber, red
+const PIE_COLORS = [chartColors[0], chartColors[2], theme.destructive] as const;
 
 export function VendorAnalytics({
   subscription,
@@ -92,13 +93,13 @@ export function VendorAnalytics({
       label: 'Active Subscription',
       value: isActive ? 'Yes' : 'No',
       icon: isActive ? CheckCircle2 : XCircle,
-      color: isActive ? 'text-green-600' : 'text-red-600',
+      color: isActive ? 'text-success' : 'text-destructive',
     },
     {
       label: 'Expiry Status',
       value: isExpired ? 'Expired' : 'Active',
       icon: isExpired ? XCircle : CheckCircle2,
-      color: isExpired ? 'text-red-600' : 'text-green-600',
+      color: isExpired ? 'text-destructive' : 'text-success',
     },
     {
       label: 'Total Orders',
@@ -150,11 +151,11 @@ export function VendorAnalytics({
                     labelLine={false}
                     label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                     outerRadius={80}
-                    fill="#8884d8"
+                    fill={chartColors[1]}
                     dataKey="value"
                   >
                     {paymentStatusData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip />
@@ -186,7 +187,7 @@ export function VendorAnalytics({
                   <Line
                     type="monotone"
                     dataKey="amount"
-                    stroke="#10b981"
+                    stroke={chartColors[0]}
                     name="Amount (₹)"
                     strokeWidth={2}
                   />
@@ -216,7 +217,7 @@ export function VendorAnalytics({
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="quantity" fill="#3b82f6" name="Quantity Sold" />
+                <Bar dataKey="quantity" fill={chartColors[1]} name="Quantity Sold" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -241,7 +242,7 @@ export function VendorAnalytics({
                 <Line
                   type="monotone"
                   dataKey="revenue"
-                  stroke="#10b981"
+                  stroke={chartColors[0]}
                   name="Revenue (₹)"
                   strokeWidth={2}
                 />
@@ -266,7 +267,7 @@ export function VendorAnalytics({
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="orders" fill="#8b5cf6" name="Orders" />
+                <Bar dataKey="orders" fill={chartColors[3]} name="Orders" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>

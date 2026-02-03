@@ -12,19 +12,12 @@ import { ChartCard, ChartEmptyState } from '../shared/ChartCard';
 import { FinancialTrendPoint } from '@/lib/types';
 import { formatCurrency } from '@/components/ui/premium-stats-card';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { financialTrendColors } from '@/lib/theme';
 
 interface FinancialTrendsChartProps {
   data: FinancialTrendPoint[];
   loading?: boolean;
 }
-
-// Line colors
-const LINE_COLORS = {
-  income: '#10b981',    // green
-  outgoing: '#ef4444',  // red
-  profit: '#3b82f6',    // blue
-  loss: '#f97316',      // orange
-};
 
 export function FinancialTrendsChart({
   data,
@@ -132,7 +125,7 @@ export function FinancialTrendsChart({
               type="monotone"
               dataKey="income"
               name="Income"
-              stroke={LINE_COLORS.income}
+              stroke={financialTrendColors.income}
               strokeWidth={2}
               dot={false}
               activeDot={{ r: 5, strokeWidth: 0 }}
@@ -141,7 +134,7 @@ export function FinancialTrendsChart({
               type="monotone"
               dataKey="outgoing"
               name="Outgoing"
-              stroke={LINE_COLORS.outgoing}
+              stroke={financialTrendColors.outgoing}
               strokeWidth={2}
               dot={false}
               activeDot={{ r: 5, strokeWidth: 0 }}
@@ -150,7 +143,7 @@ export function FinancialTrendsChart({
               type="monotone"
               dataKey="profit"
               name="Profit"
-              stroke={LINE_COLORS.profit}
+              stroke={financialTrendColors.profit}
               strokeWidth={2}
               dot={false}
               activeDot={{ r: 5, strokeWidth: 0 }}
@@ -159,7 +152,7 @@ export function FinancialTrendsChart({
               type="monotone"
               dataKey="loss"
               name="Loss"
-              stroke={LINE_COLORS.loss}
+              stroke={financialTrendColors.loss}
               strokeWidth={2}
               strokeDasharray="5 5"
               dot={false}

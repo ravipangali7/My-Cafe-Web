@@ -23,6 +23,7 @@ import {
   Line,
 } from 'recharts';
 import { Users, Wallet, Share2, ArrowDownCircle, Clock, Calendar } from 'lucide-react';
+import { chartColors } from '@/lib/theme';
 
 interface ShareholderReportData {
   summary: {
@@ -70,8 +71,6 @@ interface ShareholderReportData {
     breakdown: Array<{ user_id: number; amount: string }>;
   }>;
 }
-
-const PIE_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16', '#f97316'];
 
 export function ShareholderReport() {
   const defaultRange = getDateRange('month');
@@ -185,7 +184,7 @@ export function ShareholderReport() {
                     label={({ name, share_percentage }) => `${name?.slice(0, 8)} ${share_percentage}%`}
                   >
                     {reportData.shareholder_distribution.map((_, index) => (
-                      <Cell key={index} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                      <Cell key={index} fill={chartColors[index % chartColors.length]} />
                     ))}
                   </Pie>
                   <Tooltip formatter={(v: number, name: string, props: { payload: { amount: number } }) => [`${v}%`, `Amount: ₹${props.payload.amount?.toLocaleString() ?? 0}`]} />
@@ -205,7 +204,7 @@ export function ShareholderReport() {
                     <XAxis dataKey="date" tick={{ fontSize: 10 }} />
                     <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `₹${v / 1000}k`} />
                     <Tooltip formatter={(v: number) => [`₹${v.toLocaleString()}`, 'Distributed']} />
-                    <Bar dataKey="total" fill="#10b981" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="total" fill={chartColors[0]} radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </ChartCard>
@@ -226,7 +225,7 @@ export function ShareholderReport() {
                   <XAxis dataKey="date" tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `₹${v / 1000}k`} />
                   <Tooltip />
-                  <Line type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} name="Amount" />
+                  <Line type="monotone" dataKey="total" stroke={chartColors[1]} strokeWidth={2} dot={{ r: 3 }} name="Amount" />
                 </LineChart>
               </ResponsiveContainer>
             </ChartCard>

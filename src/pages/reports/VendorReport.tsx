@@ -23,6 +23,7 @@ import {
   Line,
 } from 'recharts';
 import { Users, UserCheck, UserX, Clock, AlertTriangle, Ban, DollarSign, TrendingUp } from 'lucide-react';
+import { statusColors, chartColors } from '@/lib/theme';
 
 interface VendorReportSummary {
   total_vendors: number;
@@ -71,14 +72,6 @@ interface VendorReportData {
     total_revenue: string;
   }>;
 }
-
-const STATUS_COLORS: Record<string, string> = {
-  active: '#10b981',
-  inactive: '#6b7280',
-  pending_kyc: '#f59e0b',
-  expired: '#ef4444',
-  due_blocked: '#dc2626',
-};
 
 export function VendorReport() {
   const defaultRange = getDateRange('month');
@@ -195,7 +188,7 @@ export function VendorReport() {
                     label={({ status, count }) => `${status}: ${count}`}
                   >
                     {reportData.vendors_by_status.map((entry, index) => (
-                      <Cell key={entry.status} fill={STATUS_COLORS[entry.status] ?? '#94a3b8'} />
+                      <Cell key={entry.status} fill={statusColors[entry.status] ?? chartColors[0]} />
                     ))}
                   </Pie>
                   <Tooltip />
@@ -215,7 +208,7 @@ export function VendorReport() {
                   <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `₹${v / 1000}k`} />
                   <Tooltip formatter={(v: number) => [`₹${v.toLocaleString()}`, 'Revenue']} />
-                  <Bar dataKey="revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="revenue" fill={chartColors[0]} radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </ChartCard>
@@ -234,7 +227,7 @@ export function VendorReport() {
                   <XAxis dataKey="date" tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip />
-                  <Line type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} />
+                  <Line type="monotone" dataKey="count" stroke={chartColors[1]} strokeWidth={2} dot={{ r: 3 }} />
                 </LineChart>
               </ResponsiveContainer>
             </ChartCard>

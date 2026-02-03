@@ -19,6 +19,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { Users, UserCheck, UserX, DollarSign, Eye, Receipt, QrCode, CreditCard } from 'lucide-react';
+import { chartColors, theme } from '@/lib/theme';
 
 interface SuperAdminAnalyticsProps {
   users: {
@@ -57,7 +58,7 @@ interface SuperAdminAnalyticsProps {
   loading?: boolean;
 }
 
-const COLORS = ['#10b981', '#ef4444']; // green, red
+const PIE_COLORS = [chartColors[0], theme.destructive] as const;
 
 export function SuperAdminAnalytics({
   users,
@@ -88,43 +89,43 @@ export function SuperAdminAnalytics({
       label: 'Active Users',
       value: users.active,
       icon: UserCheck,
-      color: 'text-green-600',
+      color: 'text-success',
     },
     {
       label: 'Deactivated Users',
       value: users.deactivated,
       icon: UserX,
-      color: 'text-red-600',
+      color: 'text-destructive',
     },
     {
       label: 'Total Transactions',
       value: totalTransactions.toLocaleString(),
       icon: Receipt,
-      color: 'text-blue-600',
+      color: 'text-info',
     },
     {
       label: 'Total Revenue',
       value: `₹${parseFloat(revenue.total || '0').toLocaleString('en-IN', { maximumFractionDigits: 2 })}`,
       icon: DollarSign,
-      color: 'text-green-600',
+      color: 'text-success',
     },
     {
       label: 'QR Earnings',
       value: `₹${parseFloat(qrEarnings || '0').toLocaleString('en-IN', { maximumFractionDigits: 2 })}`,
       icon: QrCode,
-      color: 'text-purple-600',
+      color: 'text-primary',
     },
     {
       label: 'Subscription Earnings',
       value: `₹${parseFloat(subscriptionEarnings || '0').toLocaleString('en-IN', { maximumFractionDigits: 2 })}`,
       icon: CreditCard,
-      color: 'text-orange-600',
+      color: 'text-warning',
     },
     {
       label: 'Pending QR Orders',
       value: pendingQrOrdersCount,
       icon: QrCode,
-      color: 'text-yellow-600',
+      color: 'text-warning',
     },
   ];
 
@@ -286,11 +287,11 @@ export function SuperAdminAnalytics({
                     labelLine={false}
                     label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                     outerRadius={80}
-                    fill="#8884d8"
+                    fill={chartColors[1]}
                     dataKey="value"
                   >
                     {userStatusData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip />
@@ -322,7 +323,7 @@ export function SuperAdminAnalytics({
                   <Line
                     type="monotone"
                     dataKey="revenue"
-                    stroke="#10b981"
+                    stroke={chartColors[0]}
                     name="Revenue (₹)"
                     strokeWidth={2}
                   />
@@ -352,7 +353,7 @@ export function SuperAdminAnalytics({
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="count" fill="#3b82f6" name="Transactions" />
+                <Bar dataKey="count" fill={chartColors[1]} name="Transactions" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>

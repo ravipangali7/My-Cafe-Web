@@ -23,6 +23,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { Package, DollarSign, Layers, TrendingUp } from 'lucide-react';
+import { chartColors } from '@/lib/theme';
 
 interface ProductReportData {
   summary: {
@@ -221,7 +222,7 @@ export function ProductReport() {
                             label={({ name, value }) => `${name?.slice(0, 10)} ₹${(value / 1000).toFixed(0)}k`}
                           >
                             {reportData.products_by_category.map((_, i) => (
-                              <Cell key={i} fill={['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899'][i % 5]} />
+                              <Cell key={i} fill={chartColors[i % 5]} />
                             ))}
                           </Pie>
                           <Tooltip formatter={(v: number) => [`₹${v.toLocaleString()}`, 'Revenue']} />
@@ -244,7 +245,7 @@ export function ProductReport() {
                           <XAxis dataKey="name" tick={{ fontSize: 10 }} />
                           <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `₹${v / 1000}k`} />
                           <Tooltip formatter={(v: number) => [`₹${v.toLocaleString()}`, 'Revenue']} />
-                          <Bar dataKey="revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
+                          <Bar dataKey="revenue" fill={chartColors[0]} radius={[4, 4, 0, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
                     </ChartCard>

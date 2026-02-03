@@ -23,6 +23,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { ShoppingCart, DollarSign, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { chartColors, theme } from '@/lib/theme';
 
 interface OrderReportData {
   summary: {
@@ -215,7 +216,7 @@ export function OrderReport() {
                             label={({ status, count }) => `${status}: ${count}`}
                           >
                             {reportData.orders_by_status.map((_, i) => (
-                              <Cell key={i} fill={['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#6b7280'][i % 6]} />
+                              <Cell key={i} fill={chartColors[i % 6]} />
                             ))}
                           </Pie>
                           <Tooltip />
@@ -237,7 +238,7 @@ export function OrderReport() {
                             label={({ payment_status, count }) => `${payment_status}: ${count}`}
                           >
                             {reportData.orders_by_payment_status.map((_, i) => (
-                              <Cell key={i} fill={['#10b981', '#f59e0b', '#ef4444'][i % 3]} />
+                              <Cell key={i} fill={([chartColors[0], chartColors[2], theme.destructive] as const)[i % 3]} />
                             ))}
                           </Pie>
                           <Tooltip />
@@ -259,7 +260,7 @@ export function OrderReport() {
                           <XAxis dataKey="date" tick={{ fontSize: 10 }} />
                           <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `₹${v / 1000}k`} />
                           <Tooltip formatter={(v: number) => [`₹${v.toLocaleString()}`, 'Revenue']} />
-                          <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} name="Revenue" />
+                          <Line type="monotone" dataKey="revenue" stroke={chartColors[0]} strokeWidth={2} dot={{ r: 3 }} name="Revenue" />
                         </LineChart>
                       </ResponsiveContainer>
                     </ChartCard>

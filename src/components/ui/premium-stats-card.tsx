@@ -47,9 +47,9 @@ const variantStyles = {
     value: 'text-primary',
   },
   info: {
-    card: 'bg-blue-500/5 border-blue-500/20',
-    icon: 'bg-blue-500/10 text-blue-500',
-    value: 'text-blue-500',
+    card: 'bg-info/5 border-info/20',
+    icon: 'bg-info/10 text-info',
+    value: 'text-info',
   },
 };
 

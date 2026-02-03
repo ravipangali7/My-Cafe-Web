@@ -10,20 +10,12 @@ import { ChartCard, ChartEmptyState } from '../shared/ChartCard';
 import { RevenueBreakdown } from '@/lib/types';
 import { formatCurrency } from '@/components/ui/premium-stats-card';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { revenueSourceColors } from '@/lib/theme';
 
 interface RevenueBreakdownChartProps {
   data: RevenueBreakdown;
   loading?: boolean;
 }
-
-// Revenue source colors
-const REVENUE_COLORS = {
-  qr_stand: '#3b82f6',      // blue
-  due_collection: '#10b981', // green
-  subscription: '#8b5cf6',   // violet
-  transaction: '#f59e0b',    // amber
-  whatsapp: '#06b6d4',       // cyan
-};
 
 export function RevenueBreakdownChart({
   data,
@@ -36,27 +28,27 @@ export function RevenueBreakdownChart({
     {
       name: 'QR Stand Orders',
       value: data.qr_stand_earnings,
-      color: REVENUE_COLORS.qr_stand,
+      color: revenueSourceColors.qr_stand,
     },
     {
       name: 'Due Collection',
       value: data.due_collection,
-      color: REVENUE_COLORS.due_collection,
+      color: revenueSourceColors.due_collection,
     },
     {
       name: 'Subscription',
       value: data.subscription_earnings,
-      color: REVENUE_COLORS.subscription,
+      color: revenueSourceColors.subscription,
     },
     {
       name: 'Transaction Fees',
       value: data.transaction_earnings,
-      color: REVENUE_COLORS.transaction,
+      color: revenueSourceColors.transaction,
     },
     {
       name: 'WhatsApp Usage',
       value: data.whatsapp_earnings,
-      color: REVENUE_COLORS.whatsapp,
+      color: revenueSourceColors.whatsapp,
     },
   ].filter(item => item.value > 0);
 

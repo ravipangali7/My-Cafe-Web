@@ -20,6 +20,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { DollarSign, CreditCard, Clock, Receipt, TrendingUp } from 'lucide-react';
+import { chartColors } from '@/lib/theme';
 
 interface FinanceReportData {
   summary: {
@@ -216,8 +217,8 @@ export function FinanceReport() {
                       <XAxis dataKey="date" tick={{ fontSize: 10 }} />
                       <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `₹${v / 1000}k`} />
                       <Tooltip formatter={(v: number) => [`₹${v.toLocaleString()}`, '']} />
-                      <Line type="monotone" dataKey="order_revenue" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} name="Order Revenue" />
-                      <Line type="monotone" dataKey="transaction_amount" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} name="Transaction Amount" />
+                      <Line type="monotone" dataKey="order_revenue" stroke={chartColors[0]} strokeWidth={2} dot={{ r: 3 }} name="Order Revenue" />
+                      <Line type="monotone" dataKey="transaction_amount" stroke={chartColors[1]} strokeWidth={2} dot={{ r: 3 }} name="Transaction Amount" />
                     </LineChart>
                   </ResponsiveContainer>
                 </ChartCard>

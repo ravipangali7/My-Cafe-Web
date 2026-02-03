@@ -4,6 +4,7 @@ import { Download, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { isWebView } from '@/lib/api';
+import { colorFromName, theme } from '@/lib/theme';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -28,14 +29,6 @@ function getInitials(name: string): string {
   if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   const s = parts[0];
   return s.length >= 2 ? (s[0] + s[1]).toUpperCase() : s[0].toUpperCase();
-}
-
-/** Pick a consistent color from name hash (hex). */
-function colorFromName(name: string): string {
-  const colors = ['#1C455A', '#2E7D32', '#1565C0', '#6A1B9A', '#C62828', '#E65100', '#00695C', '#283593'];
-  let hash = 0;
-  for (let i = 0; i < (name || '').length; i++) hash = ((hash << 5) - hash) + name.charCodeAt(i);
-  return colors[Math.abs(hash) % colors.length];
 }
 
 export function MenuQRCode({
@@ -180,8 +173,7 @@ export function MenuQRCode({
     }
   };
 
-  const gold = '#c9a227';
-  const black = '#0a0a0a';
+  const { gold, dark, white } = theme.brand;
 
   /* Display: logoDataUrl for logo; design matches server-generated PNG/PDF. */
   const showLogoImage = Boolean(vendor.logo_url && logoDataUrl && !logoLoadError);
@@ -194,7 +186,7 @@ export function MenuQRCode({
         ref={qrCodeRef}
         className="rounded-xl w-full max-w-sm overflow-hidden flex flex-col items-center"
         style={{
-          backgroundColor: black,
+          backgroundColor: dark,
           padding: '24px 20px',
           boxSizing: 'border-box',
         }}
@@ -205,8 +197,8 @@ export function MenuQRCode({
           style={{
             width: 72,
             height: 72,
-            border: `3px solid #fff`,
-            backgroundColor: black,
+            border: `3px solid ${white}`,
+            backgroundColor: dark,
             overflow: 'hidden',
           }}
         >
@@ -229,7 +221,7 @@ export function MenuQRCode({
         {/* Title - vendor name */}
         <h1
           className="text-center font-bold uppercase tracking-wider mb-0.5"
-          style={{ color: '#fff', fontSize: '22px', letterSpacing: '0.15em', marginBottom: 2 }}
+          style={{ color: white, fontSize: '22px', letterSpacing: '0.15em', marginBottom: 2 }}
         >
           {vendor?.name || 'My Cafe'}
         </h1>
@@ -254,7 +246,7 @@ export function MenuQRCode({
             padding: 8,
             border: `3px solid ${gold}`,
             borderRadius: 8,
-            backgroundColor: '#fff',
+            backgroundColor: white,
           }}
         >
           <div style={{ width: 200, height: 200 }}>
@@ -264,7 +256,7 @@ export function MenuQRCode({
               level="H"
               style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
               fgColor="#000000"
-              bgColor="#FFFFFF"
+              bgColor={white}
             />
           </div>
         </div>

@@ -9,7 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/ui/page-header';
 import { MultiFormRow } from '@/components/forms/MultiFormRow';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { api, fetchPaginated } from '@/lib/api';
+import { cn } from '@/lib/utils';
 import { useVendor } from '@/contexts/VendorContext';
 import { toast } from 'sonner';
 
@@ -43,6 +45,7 @@ export default function ProductForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { vendor } = useVendor();
+  const isMobile = useIsMobile();
   const isEdit = !!id;
 
   const [name, setName] = useState('');
@@ -179,7 +182,7 @@ export default function ProductForm() {
     <DashboardLayout>
       <PageHeader title={isEdit ? 'Edit Product' : 'New Product'} backLink="/products" />
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className={cn('space-y-6', isMobile && 'pb-4')}>
         <Card>
           <CardHeader>
             <CardTitle>Product Details</CardTitle>
@@ -321,7 +324,10 @@ export default function ProductForm() {
           </CardContent>
         </Card>
 
-        <div className="flex gap-3">
+        <div className={cn(
+          'flex gap-3',
+          isMobile && 'sticky bottom-24 z-20 mt-6 pt-4 pb-2 -mx-4 px-4 bg-background/95 backdrop-blur border-t border-border safe-area-bottom md:static md:mx-0 md:px-0 md:pt-0 md:pb-0 md:bg-transparent md:border-0'
+        )}>
           <Button type="submit" disabled={loading}>
             {loading ? 'Saving...' : isEdit ? 'Update Product' : 'Create Product'}
           </Button>

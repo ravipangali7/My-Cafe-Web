@@ -159,15 +159,15 @@ export function PremiumTable<T extends { id: string | number }>({
     );
   }
 
-  // Mobile card view
+  // Mobile card view - full-width cards, app-style
   if (isMobile && mobileCard) {
     return (
-      <div className={cn('space-y-3', className)}>
+      <div className={cn('space-y-3 w-full', className)}>
         {safeData.map((item, index) => (
           <Card
             key={item.id}
             className={cn(
-              'overflow-hidden transition-all duration-200',
+              'overflow-hidden transition-all duration-200 w-full touch-target min-h-[44px]',
               onRowClick && 'cursor-pointer active:scale-[0.99]'
             )}
             onClick={() => onRowClick?.(item)}

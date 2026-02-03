@@ -155,8 +155,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         "transition-all duration-200",
         isMobile ? "pl-0" : "lg:pl-64"
       )}>
-        {/* Top bar */}
-        <header className="sticky top-0 z-30 h-16 bg-card border-b border-border flex items-center justify-between px-4 lg:px-6">
+        {/* Top bar - safe area and slightly taller on mobile for app feel */}
+        <header className={cn(
+          "sticky top-0 z-30 bg-card border-b border-border flex items-center justify-between px-4 lg:px-6 safe-area-top",
+          isMobile ? "h-14 min-h-[56px]" : "h-16"
+        )}>
           <div className="flex items-center">
             {isMobile && (
               <>
@@ -186,10 +189,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           )}
         </header>
 
-        {/* Page content - Add bottom padding on mobile for bottom navigation */}
+        {/* Page content - bottom padding for bottom nav + safe area on mobile */}
         <main className={cn(
           "p-4 lg:p-6",
-          isMobile && "pb-24"
+          isMobile && "pb-24 safe-area-bottom"
         )}>
           {children}
         </main>

@@ -15,6 +15,7 @@ import { formatCurrency } from '@/components/ui/premium-stats-card';
 import { TrendingUp, DollarSign, Package } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { getMediaProxyUrl } from '@/lib/api';
+import { chartColors } from '@/lib/theme';
 
 interface ProductInsightsSectionProps {
   topSellingProducts: ProductInsight[];
@@ -73,7 +74,7 @@ export function ProductInsightsSection({
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Package className="h-4 w-4 text-blue-500" />
+            <Package className="h-4 w-4" style={{ color: chartColors[1] }} />
             Top Selling Products
           </CardTitle>
           <CardDescription>By quantity sold</CardDescription>
@@ -102,7 +103,7 @@ export function ProductInsightsSection({
                   <Tooltip content={(props) => <CustomTooltip {...props} isRevenue={false} />} />
                   <Bar
                     dataKey="value"
-                    fill="#3b82f6"
+                    fill={chartColors[1]}
                     radius={[0, 4, 4, 0]}
                     maxBarSize={30}
                   />
@@ -119,7 +120,7 @@ export function ProductInsightsSection({
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <DollarSign className="h-4 w-4 text-green-500" />
+            <DollarSign className="h-4 w-4" style={{ color: chartColors[0] }} />
             Top Revenue Products
           </CardTitle>
           <CardDescription>By total revenue</CardDescription>
@@ -153,7 +154,7 @@ export function ProductInsightsSection({
                   <Tooltip content={(props) => <CustomTooltip {...props} isRevenue={true} />} />
                   <Bar
                     dataKey="value"
-                    fill="#10b981"
+                    fill={chartColors[0]}
                     radius={[0, 4, 4, 0]}
                     maxBarSize={30}
                   />

@@ -26,6 +26,7 @@ import {
 } from 'recharts';
 import { Users, UserPlus, Repeat, ShoppingBag, DollarSign } from 'lucide-react';
 import type { RepeatCustomer } from '@/lib/types';
+import { chartColors } from '@/lib/theme';
 
 interface CustomerReportData {
   summary: {
@@ -207,8 +208,8 @@ export function CustomerReport() {
                     <XAxis dataKey="date" tick={{ fontSize: 10 }} />
                     <YAxis tick={{ fontSize: 11 }} />
                     <Tooltip />
-                    <Area type="monotone" dataKey="returning" stackId="1" stroke="#10b981" fill="#10b981" fillOpacity={0.6} name="Returning" />
-                    <Area type="monotone" dataKey="new" stackId="1" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.6} name="New" />
+                    <Area type="monotone" dataKey="returning" stackId="1" stroke={chartColors[0]} fill={chartColors[0]} fillOpacity={0.6} name="Returning" />
+                    <Area type="monotone" dataKey="new" stackId="1" stroke={chartColors[1]} fill={chartColors[1]} fillOpacity={0.6} name="New" />
                   </AreaChart>
                 </ResponsiveContainer>
               </ChartCard>
@@ -227,7 +228,7 @@ export function CustomerReport() {
                     <XAxis dataKey="name" tick={{ fontSize: 10 }} />
                     <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `₹${v / 1000}k`} />
                     <Tooltip formatter={(v: number) => [`₹${v.toLocaleString()}`, 'Spend']} />
-                    <Bar dataKey="spend" fill="#10b981" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="spend" fill={chartColors[0]} radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </ChartCard>

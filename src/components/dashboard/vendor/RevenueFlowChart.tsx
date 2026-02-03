@@ -13,6 +13,7 @@ import { ChartCard, ChartEmptyState } from '../shared/ChartCard';
 import { PeriodSelector } from '../shared/PeriodSelector';
 import { DashboardPeriod, RevenueTrendPoint } from '@/lib/types';
 import { formatCurrency } from '@/components/ui/premium-stats-card';
+import { chartColors } from '@/lib/theme';
 
 interface RevenueFlowChartProps {
   data: {
@@ -100,7 +101,7 @@ export function RevenueFlowChart({ data, loading = false }: RevenueFlowChartProp
               type="monotone"
               dataKey="revenue"
               name="Revenue"
-              stroke="#10b981"
+              stroke={chartColors[0]}
               strokeWidth={2}
               dot={false}
               activeDot={{ r: 6, strokeWidth: 0 }}
@@ -109,7 +110,7 @@ export function RevenueFlowChart({ data, loading = false }: RevenueFlowChartProp
               type="monotone"
               dataKey="orders"
               name="Orders"
-              stroke="#3b82f6"
+              stroke={chartColors[1]}
               strokeWidth={2}
               dot={false}
               activeDot={{ r: 6, strokeWidth: 0 }}

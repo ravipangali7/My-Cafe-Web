@@ -17,26 +17,13 @@ import { TopVendor } from '@/lib/types';
 import { formatCurrency } from '@/components/ui/premium-stats-card';
 import { getMediaProxyUrl } from '@/lib/api';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { barChartShades } from '@/lib/theme';
 import { TrendingUp, Trophy, Store } from 'lucide-react';
 
 interface TopVendorsChartProps {
   data: TopVendor[];
   loading?: boolean;
 }
-
-// Bar colors (gradient effect through different shades)
-const BAR_COLORS = [
-  '#10b981', // 1st - green
-  '#34d399', // 2nd
-  '#6ee7b7', // 3rd
-  '#a7f3d0', // 4th
-  '#d1fae5', // 5th
-  '#3b82f6', // 6th - blue
-  '#60a5fa', // 7th
-  '#93c5fd', // 8th
-  '#bfdbfe', // 9th
-  '#dbeafe', // 10th
-];
 
 export function TopVendorsChart({ data, loading = false }: TopVendorsChartProps) {
   const navigate = useNavigate();
@@ -46,7 +33,7 @@ export function TopVendorsChart({ data, loading = false }: TopVendorsChartProps)
   const chartData = data.slice(0, 10).map((item, index) => ({
     ...item,
     shortName: truncateName(item.name, isMobile ? 10 : 15),
-    color: BAR_COLORS[index],
+    color: barChartShades[index],
     rank: index + 1,
   }));
 

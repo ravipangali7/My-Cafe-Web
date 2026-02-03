@@ -28,8 +28,8 @@ export function BottomNavigation() {
   const navItems = [...baseNavItems, profileOrSettings];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border lg:hidden">
-      <div className="flex items-center justify-around h-16 px-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 border-t border-border backdrop-blur-sm safe-area-bottom lg:hidden">
+      <div className="flex items-center justify-around h-16 min-h-[64px] px-2 pb-[env(safe-area-inset-bottom)]">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path ||
