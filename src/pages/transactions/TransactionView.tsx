@@ -254,7 +254,15 @@ export default function TransactionView() {
                 <DetailRow label="VPA" value={transaction.vpa} show={!!transaction.vpa} />
                 <DetailRow label="Payer Name" value={transaction.payer_name} show={!!transaction.payer_name} />
                 <DetailRow label="Bank ID" value={transaction.bank_id} show={!!transaction.bank_id} />
-                <DetailRow label="Remarks" value={transaction.remarks} show={!!transaction.remarks} />
+                <DetailRow
+                  label="Remarks"
+                  value={transaction.remarks ? (
+                    <span className="text-sm text-muted-foreground block break-words text-left">
+                      {transaction.remarks}
+                    </span>
+                  ) : null}
+                  show={!!transaction.remarks}
+                />
                 <DetailRow label="Created" value={new Date(transaction.created_at).toLocaleString()} />
                 <DetailRow label="Updated" value={new Date(transaction.updated_at).toLocaleString()} />
               </CardContent>

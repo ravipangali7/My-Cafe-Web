@@ -8,7 +8,7 @@ import { Plus, Minus, X, ShoppingCart, Loader2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { getFCMTokenOnly } from '@/lib/fcm';
 import { toast } from 'sonner';
-import { initiateOrderPayment, redirectToPayment } from '@/services/paymentService';
+import { initiateOrderPaymentFromPayload, redirectToPayment } from '@/services/paymentService';
 
 interface ProductVariant {
   id: number;
@@ -125,11 +125,6 @@ export function OrderModal({
   };
 
   const handleSubmit = async () => {
-    if (!tableNo.trim()) {
-      toast.error('Please enter table number');
-      return;
-    }
-
     const customerName = orderType === 'user' ? userName : guestName;
     const customerPhone = orderType === 'user' ? userPhone : guestPhone;
 
@@ -147,12 +142,12 @@ export function OrderModal({
 
     setSubmitting(true);
     try {
-      const orderData: any = {
+      // Initiate order payment without creating order first. Order is created only on payment success.
+      toast.info('Initiating payment...');
+      const paymentResult = await initiateOrderPaymentFromPayload({
         name: customerName,
         phone: customerPhone,
-        table_no: tableNo,
-        status: 'pending',
-        payment_status: 'pending',
+        table_no: tableNo?.trim() || '',
         vendor_phone: vendorPhone,
         total: total.toFixed(2),
         items: JSON.stringify(
@@ -163,53 +158,20 @@ export function OrderModal({
             price: item.variant.discounted_price || item.variant.price,
           }))
         ),
-      };
-
-      if (fcmToken) {
-        orderData.fcm_token = fcmToken;
-      }
-
-      const response = await api.post<{ order: { id: number } }>('/api/orders/create/', orderData);
-
-      if (response.error) {
-        toast.error(response.error || 'Failed to place order');
-        return;
-      }
-
-      const orderId = response.data?.order?.id;
-      if (!orderId) {
-        toast.error('Failed to get order ID');
-        return;
-      }
-
-      // Initiate UG payment - REQUIRED for order completion
-      // Orders are only valid after successful payment
-      toast.info('Initiating payment...');
-      const paymentResult = await initiateOrderPayment(
-        orderId,
-        total.toFixed(2),
-        customerName,
-        customerPhone
-      );
+        ...(fcmToken ? { fcm_token: fcmToken } : {}),
+      });
 
       if (paymentResult.error) {
-        // Payment initiation failed - do NOT proceed
-        // Order exists in pending state but user must complete payment
         toast.error(paymentResult.error || 'Failed to initiate payment');
         toast.error('Payment is required. Please try again.');
-        // Do NOT call onOrderPlaced() - keep the cart so user can retry
-        // The pending order can be paid later via the order details page
         return;
       }
 
       if (paymentResult.data?.payment_url) {
         toast.success('Redirecting to payment...');
-        // Redirect to UG payment page
-        // On successful payment, order will be marked as paid automatically
         redirectToPayment(paymentResult.data.payment_url);
       } else {
         toast.error('Payment URL not received. Please try again.');
-        // Do NOT call onOrderPlaced() - payment is required
       }
     } catch (error) {
       toast.error('Failed to place order');
@@ -340,9 +302,9 @@ export function OrderModal({
             </div>
           )}
 
-          {/* Table Number */}
+          {/* Table Number (optional) */}
           <div className="space-y-2">
-            <Label htmlFor="tableNo">Table Number</Label>
+            <Label htmlFor="tableNo">Table Number <span className="text-muted-foreground font-normal">(Optional)</span></Label>
             <Input
               id="tableNo"
               value={tableNo}

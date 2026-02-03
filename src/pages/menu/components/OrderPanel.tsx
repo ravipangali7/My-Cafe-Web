@@ -3,10 +3,9 @@ import { Plus, Minus, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { api } from '@/lib/api';
 import { getFCMTokenOnly } from '@/lib/fcm';
 import { toast } from 'sonner';
-import { initiateOrderPayment, redirectToPayment } from '@/services/paymentService';
+import { initiateOrderPaymentFromPayload, redirectToPayment } from '@/services/paymentService';
 
 interface ProductVariant {
   id: number;
@@ -111,14 +110,12 @@ export function OrderPanel({
 
     setSubmitting(true);
     try {
-      // Send subtotal without transaction fee - backend will add the fee
-      // NOTE: All orders require UG payment - no COD option
-      const orderData: Record<string, unknown> = {
+      // Initiate order payment without creating order first. Order is created only on payment success.
+      toast.info('Initiating payment...');
+      const paymentResult = await initiateOrderPaymentFromPayload({
         name: guestName,
         phone: guestPhone,
         table_no: tableNo || '',
-        status: 'pending',
-        payment_status: 'pending',
         vendor_phone: vendorPhone,
         total: subtotal.toFixed(2),
         items: JSON.stringify(
@@ -129,52 +126,20 @@ export function OrderPanel({
             price: item.variant.discounted_price || item.variant.price,
           }))
         ),
-      };
-
-      if (fcmToken) {
-        orderData.fcm_token = fcmToken;
-      }
-
-      const response = await api.post<{ order: { id: number } }>('/api/orders/create/', orderData);
-
-      if (response.error) {
-        toast.error(response.error || 'Failed to place order');
-        return;
-      }
-
-      const orderId = response.data?.order?.id;
-      if (!orderId) {
-        toast.error('Failed to get order ID');
-        return;
-      }
-
-      // Initiate UG payment - REQUIRED for order completion
-      // Orders are only valid after successful payment
-      toast.info('Initiating payment...');
-      const paymentResult = await initiateOrderPayment(
-        orderId,
-        grandTotal.toFixed(2),
-        guestName,
-        guestPhone
-      );
+        ...(fcmToken ? { fcm_token: fcmToken } : {}),
+      });
 
       if (paymentResult.error) {
-        // Payment initiation failed - do NOT proceed
-        // Order exists in pending state but user must complete payment
         toast.error(paymentResult.error || 'Failed to initiate payment');
         toast.error('Payment is required. Please try again.');
-        // Do NOT call onOrderPlaced() - keep the cart so user can retry
         return;
       }
 
       if (paymentResult.data?.payment_url) {
         toast.success('Redirecting to payment...');
-        // Redirect to UG payment page
-        // On successful payment, order will be marked as paid automatically
         redirectToPayment(paymentResult.data.payment_url);
       } else {
         toast.error('Payment URL not received. Please try again.');
-        // Do NOT call onOrderPlaced() - payment is required
       }
     } catch (error) {
       toast.error('Failed to place order');

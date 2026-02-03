@@ -25,6 +25,13 @@ interface TransactionHistoryTableProps {
   loading?: boolean;
 }
 
+function truncateByWords(text: string | null, maxWords: number): string {
+  if (!text || !String(text).trim()) return 'N/A';
+  const words = String(text).trim().split(/\s+/);
+  if (words.length <= maxWords) return text.trim();
+  return words.slice(0, maxWords).join(' ') + '...';
+}
+
 export function TransactionHistoryTable({ transactions, loading }: TransactionHistoryTableProps) {
   const getPaymentMode = (transaction: Transaction): string => {
     if (transaction.vpa) return 'UPI';
@@ -90,8 +97,8 @@ export function TransactionHistoryTable({ transactions, loading }: TransactionHi
       label: 'Remarks',
       hideOnMobile: true,
       render: (item: Transaction) => (
-        <span className="text-sm text-muted-foreground max-w-xs truncate">
-          {item.remarks || 'N/A'}
+        <span className="text-sm text-muted-foreground max-w-xs">
+          {truncateByWords(item.remarks, 10)}
         </span>
       ),
     },
@@ -130,7 +137,7 @@ export function TransactionHistoryTable({ transactions, loading }: TransactionHi
         {transaction.remarks && (
           <MobileCardRow 
             label="Remarks" 
-            value={transaction.remarks} 
+            value={truncateByWords(transaction.remarks, 10)} 
           />
         )}
         {transaction.payer_name && (

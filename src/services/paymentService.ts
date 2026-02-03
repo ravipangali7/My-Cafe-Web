@@ -97,15 +97,8 @@ export function redirectToPayment(paymentUrl: string): void {
 }
 
 /**
- * Initiate payment for a customer order.
- * Convenience function that wraps initiatePayment for orders.
- * 
- * @param orderId - The order ID
- * @param amount - The payment amount
- * @param customerName - Customer's name
- * @param customerMobile - Customer's mobile number
- * @param customerEmail - Customer's email (optional)
- * @returns Promise with payment URL and transaction details
+ * Initiate payment for a customer order (legacy: order already created).
+ * Use initiateOrderPaymentFromPayload for menu flow (order created only after payment success).
  */
 export async function initiateOrderPayment(
   orderId: number,
@@ -122,6 +115,31 @@ export async function initiateOrderPayment(
     customer_mobile: customerMobile,
     customer_email: customerEmail,
   });
+}
+
+/**
+ * Initiate order payment without creating the order first.
+ * Order is created only on payment success (backend creates it in callback).
+ * Use this for the public menu flow.
+ */
+export interface InitiateOrderPaymentPayload {
+  name: string;
+  phone: string;
+  table_no?: string;
+  vendor_phone: string;
+  total: string;
+  items: string;
+  fcm_token?: string;
+}
+
+export async function initiateOrderPaymentFromPayload(
+  payload: InitiateOrderPaymentPayload
+): Promise<{ data?: InitiatePaymentResponse; error?: string }> {
+  const response = await api.post<InitiatePaymentResponse>('/api/payment/initiate-order/', payload);
+  if (response.error) {
+    return { error: response.error };
+  }
+  return { data: response.data };
 }
 
 /**
