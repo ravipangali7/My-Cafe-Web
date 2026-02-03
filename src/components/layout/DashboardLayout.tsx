@@ -158,7 +158,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Top bar - safe area and slightly taller on mobile for app feel */}
         <header className={cn(
           "sticky top-0 z-30 bg-card border-b border-border flex items-center justify-between px-4 lg:px-6",
-          isMobile ? "h-20" : "h-16"
+          isMobile ? "h-18" : "h-16"
         )}>
           <div className="flex items-center">
             {isMobile && (
