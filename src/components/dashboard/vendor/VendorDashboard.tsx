@@ -39,6 +39,8 @@ export function VendorDashboard({
         <VendorStatsCards
         dueBalance={data.due_balance}
         subscriptionStatus={data.subscription_status}
+        pendingOrdersCount={data.pending_orders_count}
+        pendingQrOrdersCount={data.pending_qr_orders_count}
         totalOrders={data.total_orders}
         totalSales={data.total_sales}
         totalProducts={data.total_products}

@@ -20,6 +20,8 @@ interface MenuQRCodeProps {
   menuUrl?: string;
   /** When true, only the branded QR block is rendered (no buttons). */
   blockOnly?: boolean;
+  /** When true, use slightly smaller QR and text for mobile (maintains actual size, no zoom). */
+  compact?: boolean;
 }
 
 /** Get initials from vendor name: first letter of first two words or first two chars. */
@@ -35,6 +37,7 @@ export function MenuQRCode({
   vendor,
   menuUrl = typeof window !== 'undefined' ? `${window.location.origin}/menu/${vendor.phone}` : '',
   blockOnly = false,
+  compact = false,
 }: MenuQRCodeProps) {
   const qrCodeRef = useRef<HTMLDivElement>(null);
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
@@ -175,28 +178,36 @@ export function MenuQRCode({
 
   const { gold, dark, white } = theme.brand;
 
+  const qrSize = compact ? 180 : 200;
+  const logoSize = compact ? 60 : 72;
+  const cardPadding = compact ? '18px 16px' : '24px 20px';
+
   /* Display: logoDataUrl for logo; design matches server-generated PNG/PDF. */
   const showLogoImage = Boolean(vendor.logo_url && logoDataUrl && !logoLoadError);
   const initials = vendor?.name ? getInitials(vendor.name) : '?';
   const fallbackBg = vendor?.name ? colorFromName(vendor.name) : gold;
 
   return (
-    <div className="flex flex-col items-center gap-4 w-full">
+    <div
+      className="flex flex-col items-center gap-4 w-full"
+      style={{ touchAction: 'manipulation' }}
+    >
       <div
         ref={qrCodeRef}
-        className="rounded-xl w-full max-w-sm overflow-hidden flex flex-col items-center"
+        className="rounded-xl w-full overflow-hidden flex flex-col items-center flex-shrink-0 mx-auto"
         style={{
           backgroundColor: dark,
-          padding: '24px 20px',
+          padding: cardPadding,
           boxSizing: 'border-box',
+          maxWidth: 'min(100%, 360px)',
         }}
       >
         {/* Circular logo with gold ring */}
         <div
           className="flex items-center justify-center rounded-full flex-shrink-0 mb-4"
           style={{
-            width: 72,
-            height: 72,
+            width: logoSize,
+            height: logoSize,
             border: `3px solid ${white}`,
             backgroundColor: dark,
             overflow: 'hidden',
@@ -212,7 +223,7 @@ export function MenuQRCode({
           ) : (
             <div
               className="w-full h-full flex items-center justify-center text-white font-bold"
-              style={{ backgroundColor: fallbackBg, fontSize: '24px' }}
+              style={{ backgroundColor: fallbackBg, fontSize: compact ? '20px' : '24px' }}
             >
               {initials}
             </div>
@@ -221,25 +232,25 @@ export function MenuQRCode({
         {/* Title - vendor name */}
         <h1
           className="text-center font-bold uppercase tracking-wider mb-0.5"
-          style={{ color: white, fontSize: '22px', letterSpacing: '0.15em', marginBottom: 2 }}
+          style={{ color: white, fontSize: compact ? '18px' : '22px', letterSpacing: '0.15em', marginBottom: 2 }}
         >
           {vendor?.name || 'My Cafe'}
         </h1>
         {/* Subtitle */}
         <p
-          className="text-center uppercase tracking-widest text-xs mb-3"
-          style={{ color: 'rgba(255,255,255,0.9)', letterSpacing: '0.2em', fontSize: 10 }}
+          className="text-center uppercase tracking-widest mb-3"
+          style={{ color: 'rgba(255,255,255,0.9)', letterSpacing: '0.2em', fontSize: compact ? 9 : 10 }}
         >
           Menu QR Code
         </p>
         {/* Scan & Order Now - call to action */}
         <p
           className="text-center font-semibold tracking-wide mb-3"
-          style={{ color: gold, fontSize: 16, letterSpacing: '0.05em' }}
+          style={{ color: gold, fontSize: compact ? 14 : 16, letterSpacing: '0.05em' }}
         >
           Scan &amp; Order Now
         </p>
-        {/* QR code with gold border */}
+        {/* QR code with gold border - fixed size so it doesn't reflow or zoom */}
         <div
           className="flex justify-center items-center rounded-lg flex-shrink-0"
           style={{
@@ -249,10 +260,10 @@ export function MenuQRCode({
             backgroundColor: white,
           }}
         >
-          <div style={{ width: 200, height: 200 }}>
+          <div style={{ width: qrSize, height: qrSize }}>
             <QRCode
               value={menuUrl}
-              size={200}
+              size={qrSize}
               level="H"
               style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
               fgColor="#000000"
@@ -262,8 +273,8 @@ export function MenuQRCode({
         </div>
         {/* Footer */}
         <p
-          className="text-center mt-4 text-xs"
-          style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10 }}
+          className="text-center mt-4"
+          style={{ color: 'rgba(255,255,255,0.7)', fontSize: compact ? 9 : 10 }}
         >
           © 2025 {vendor?.name || 'My Cafe'} | All Rights Reserved
         </p>

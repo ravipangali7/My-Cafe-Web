@@ -8,11 +8,15 @@ import {
   DollarSign,
   Package,
   Layers,
+  Clock,
+  ScanLine,
 } from 'lucide-react';
 
 interface VendorStatsCardsProps {
   dueBalance: number;
   subscriptionStatus: 'active' | 'expired' | 'none';
+  pendingOrdersCount: number;
+  pendingQrOrdersCount: number;
   totalOrders: number;
   totalSales: number;
   totalProducts: number;
@@ -24,6 +28,8 @@ interface VendorStatsCardsProps {
 export function VendorStatsCards({
   dueBalance,
   subscriptionStatus,
+  pendingOrdersCount,
+  pendingQrOrdersCount,
   totalOrders,
   totalSales,
   totalProducts,
@@ -76,6 +82,20 @@ export function VendorStatsCards({
       icon: QrCode,
       variant: 'highlight' as const,
       onClick: vendorPhone ? () => navigate(`/qr/${vendorPhone}`) : undefined,
+    },
+    {
+      label: 'Pending Orders',
+      value: pendingOrdersCount.toLocaleString(),
+      icon: Clock,
+      variant: pendingOrdersCount > 0 ? ('warning' as const) : ('default' as const),
+      onClick: () => navigate('/orders?status=pending'),
+    },
+    {
+      label: 'Pending QR Stand',
+      value: pendingQrOrdersCount.toLocaleString(),
+      icon: ScanLine,
+      variant: pendingQrOrdersCount > 0 ? ('warning' as const) : ('default' as const),
+      onClick: () => navigate('/qr-stands?order_status=pending'),
     },
     {
       label: 'Total Orders',

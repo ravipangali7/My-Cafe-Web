@@ -321,6 +321,50 @@ export default function Dashboard() {
     }
   }, [user, fetchVendorData, fetchSuperAdminData]);
 
+  // Refetch dashboard when user returns to tab/app (real-time feel)
+  useEffect(() => {
+    if (!user) return;
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchVendorData();
+        if (user.is_superuser) fetchSuperAdminData();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, [user, fetchVendorData, fetchSuperAdminData]);
+
+  // Optional polling: refetch every 90s while dashboard is visible
+  useEffect(() => {
+    if (!user) return;
+    const POLL_INTERVAL_MS = 90_000;
+    let pollTimer: ReturnType<typeof setInterval> | null = null;
+    const schedulePoll = () => {
+      if (document.visibilityState !== 'visible') return;
+      pollTimer = setInterval(() => {
+        if (document.visibilityState !== 'visible') return;
+        fetchVendorData();
+        if (user.is_superuser) fetchSuperAdminData();
+      }, POLL_INTERVAL_MS);
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        schedulePoll();
+      } else {
+        if (pollTimer) {
+          clearInterval(pollTimer);
+          pollTimer = null;
+        }
+      }
+    };
+    if (document.visibilityState === 'visible') schedulePoll();
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      if (pollTimer) clearInterval(pollTimer);
+    };
+  }, [user, fetchVendorData, fetchSuperAdminData]);
+
   // Request FCM token and save to backend when dashboard opens
   useEffect(() => {
     if (user) {
