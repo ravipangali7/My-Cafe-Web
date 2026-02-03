@@ -155,43 +155,42 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         "transition-all duration-200",
         isMobile ? "pl-0" : "lg:pl-64"
       )}>
-        {/* Top bar - safe area wrapper so content bar has fixed height and centered items */}
-        <div className="sticky top-0 z-30 pt-[env(safe-area-inset-top,0)] bg-card border-b border-border">
-          <header className={cn(
-            "flex items-center justify-between px-4 lg:px-6 h-12 lg:h-16"
-          )}>
-            <div className="flex items-center gap-2">
-              {isMobile && (
-                <>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => setSidebarOpen(true)}
-                  >
-                    <Menu className="h-5 w-5" />
-                  </Button>
-                  <Link to="/dashboard" className="flex items-center">
-                    <img src="/logo.png" alt="My Cafe" className="h-7 w-auto lg:h-8" />
-                  </Link>
-                </>
-              )}
-            </div>
-            
-            {/* Live Order Button - Only for vendors (non-superusers) */}
-            {!user?.is_superuser && (
-              <Link to="/live-orders">
-                <Button variant="default" size="sm" className="gap-2">
-                  <Radio className="h-4 w-4" />
-                  <span className="hidden sm:inline">Live Order</span>
+        {/* Top bar - safe area and slightly taller on mobile for app feel */}
+        <header className={cn(
+          "sticky top-0 z-30 bg-card border-b border-border flex items-center justify-between px-4 lg:px-6 safe-area-top",
+          isMobile ? "h-14 min-h-[56px]" : "h-16"
+        )}>
+          <div className="flex items-center">
+            {isMobile && (
+              <>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => setSidebarOpen(true)}
+                >
+                  <Menu className="h-5 w-5" />
                 </Button>
-              </Link>
+                <Link to="/dashboard" className="flex items-center ml-2">
+                  <img src="/logo.png" alt="My Cafe" className="h-8 w-auto" />
+                </Link>
+              </>
             )}
-          </header>
-        </div>
+          </div>
+          
+          {/* Live Order Button - Only for vendors (non-superusers) */}
+          {!user?.is_superuser && (
+            <Link to="/live-orders">
+              <Button variant="default" size="sm" className="gap-2">
+                <Radio className="h-4 w-4" />
+                <span className="hidden sm:inline">Live Order</span>
+              </Button>
+            </Link>
+          )}
+        </header>
 
         {/* Page content - bottom padding for bottom nav + safe area on mobile */}
         <main className={cn(
-          "px-3 py-3 lg:p-6",
+          "p-4 lg:p-6",
           isMobile && "pb-24 safe-area-bottom"
         )}>
           {children}
