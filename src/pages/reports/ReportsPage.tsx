@@ -23,10 +23,10 @@ export default function ReportsPage() {
           description="Vendor, Finance, and Shareholder reports"
         />
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="vendor">Vendor Report</TabsTrigger>
-            <TabsTrigger value="finance">Finance Report</TabsTrigger>
-            <TabsTrigger value="shareholder">Shareholder Report</TabsTrigger>
+          <TabsList className="flex w-full justify-start overflow-x-auto scrollbar-hide gap-1 md:grid md:grid-cols-3 md:overflow-visible md:gap-0">
+            <TabsTrigger value="vendor" className="flex-shrink-0 min-w-[7rem] md:min-w-0 md:flex-shrink">Vendor Report</TabsTrigger>
+            <TabsTrigger value="finance" className="flex-shrink-0 min-w-[7rem] md:min-w-0 md:flex-shrink">Finance Report</TabsTrigger>
+            <TabsTrigger value="shareholder" className="flex-shrink-0 min-w-[7rem] md:min-w-0 md:flex-shrink">Shareholder Report</TabsTrigger>
           </TabsList>
           <TabsContent value="vendor">
             <VendorReport />
@@ -49,10 +49,10 @@ export default function ReportsPage() {
         description="Customer, Order, and Product reports"
       />
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="customer">Customer Report</TabsTrigger>
-          <TabsTrigger value="orders">Order Report</TabsTrigger>
-          <TabsTrigger value="products">Product Report</TabsTrigger>
+        <TabsList className="flex w-full justify-start overflow-x-auto scrollbar-hide gap-1 md:grid md:grid-cols-3 md:overflow-visible md:gap-0">
+          <TabsTrigger value="customer" className="flex-shrink-0 min-w-[7rem] md:min-w-0 md:flex-shrink">Customer Report</TabsTrigger>
+          <TabsTrigger value="orders" className="flex-shrink-0 min-w-[7rem] md:min-w-0 md:flex-shrink">Order Report</TabsTrigger>
+          <TabsTrigger value="products" className="flex-shrink-0 min-w-[7rem] md:min-w-0 md:flex-shrink">Product Report</TabsTrigger>
         </TabsList>
         <TabsContent value="customer">
           <CustomerReport />
