@@ -65,8 +65,8 @@ export default function PublicInvoicePage() {
 
     try {
       const url = `${API_BASE_URL}/api/invoices/public/${orderId}/${token}/`;
-      const res = await fetch(url);
-      
+      const res = await fetch(url, { credentials: 'omit' });
+
       if (!res.ok) {
         if (res.status === 403) {
           setError('Invalid or expired invoice link');

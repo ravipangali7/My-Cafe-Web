@@ -249,7 +249,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // Never redirect to login for public invoice path (defensive: invoice route is already outside ProtectedRoute)
   if (!user) {
+    if (location.pathname.startsWith('/invoice/public')) {
+      return <>{children}</>;
+    }
     return <Navigate to="/login" replace />;
   }
 

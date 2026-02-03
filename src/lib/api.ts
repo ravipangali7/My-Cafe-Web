@@ -239,7 +239,7 @@ export function openInBrowser(url: string): void {
   }
 }
 
-/** Get public invoice view URL (requires auth). Use for opening invoice in browser from WebView. */
+/** Get public invoice view URL (call requires auth). Returned URL is public and points to the frontend (e.g. /invoice/public/{orderId}/{token}); open it without auth. Use for opening invoice in browser from WebView. */
 export async function getPublicInvoiceUrl(orderId: number): Promise<string> {
   const response = await api.get<{ url: string; order_id: number; token: string }>(
     `/api/orders/${orderId}/invoice/public-url/`
