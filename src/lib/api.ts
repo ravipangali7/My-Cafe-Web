@@ -240,58 +240,64 @@ export function openInBrowser(url: string): void {
 }
 
 export async function downloadOrderInvoice(orderId: number): Promise<void> {
-  if (isWebView()) {
-    // In WebView, get the public URL and open it in Chrome browser
-    // This allows the user to view and download the invoice without auth issues
-    try {
-      const response = await api.get<{ url: string; order_id: number; token: string }>(
-        `/api/orders/${orderId}/invoice/public-url/`
-      );
-      
-      if (response.error || !response.data?.url) {
-        // Fallback to direct download URL if public URL generation fails
-        const fallbackUrl = `${API_BASE_URL}/api/orders/${orderId}/invoice/download/`;
-        window.open(fallbackUrl, '_blank');
-        return;
-      }
-      
-      // Open the public invoice page in external browser (Chrome)
-      openInBrowser(response.data.url);
-    } catch (error) {
-      // Fallback to direct download URL on error
-      const fallbackUrl = `${API_BASE_URL}/api/orders/${orderId}/invoice/download/`;
-      window.open(fallbackUrl, '_blank');
-    }
-    return;
-  }
-
-  // Regular browser: download directly
   const url = `${API_BASE_URL}/api/orders/${orderId}/invoice/download/`;
   const headers: HeadersInit = {};
+  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('auth_token') : null;
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
   const config: RequestInit = {
     method: 'GET',
     headers,
     credentials: 'include',
   };
 
-  try {
-    const response = await fetch(url, config);
+  const response = await fetch(url, config);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to download invoice: ${response.statusText}`);
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to download invoice: ${response.statusText}`);
+  }
+
+  const blob = await response.blob();
+  const filename = `invoice_order_${orderId}.pdf`;
+  const mimeType = 'application/pdf';
+
+  // In WebView: send PDF to Flutter via SaveFile so it saves locally and opens in system PDF viewer (no Chrome).
+  if (isWebView()) {
+    const w = typeof window !== 'undefined' ? (window as Window & { SaveFile?: { postMessage?: (msg: string) => void } }) : null;
+    if (w?.SaveFile?.postMessage) {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (typeof reader.result === 'string') resolve(reader.result);
+          else reject(new Error('Failed to read blob'));
+        };
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(blob);
+      });
+      w.SaveFile.postMessage(JSON.stringify({ dataUrl, filename, mimeType }));
+      return;
     }
-
-    const blob = await response.blob();
+    // Fallback if SaveFile channel missing: try programmatic download (often fails in WebView).
     const downloadUrl = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = downloadUrl;
-    link.download = `invoice_order_${orderId}.pdf`;
+    link.download = filename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(downloadUrl);
-  } catch (error) {
-    throw error;
+    return;
   }
+
+  // Regular browser: download via object URL.
+  const downloadUrl = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = downloadUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(downloadUrl);
 }
