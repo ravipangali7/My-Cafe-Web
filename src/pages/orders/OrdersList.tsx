@@ -151,6 +151,12 @@ export default function OrdersList() {
       if (appliedUserId && user.is_superuser) {
         params.user_id = appliedUserId;
       }
+      if (appliedStartDate) {
+        params.start_date = appliedStartDate;
+      }
+      if (appliedEndDate) {
+        params.end_date = appliedEndDate;
+      }
       
       const queryString = api.buildQueryString(params);
       const response = await api.get<OrderStats>(`/api/stats/orders/${queryString}`);
@@ -163,7 +169,7 @@ export default function OrdersList() {
     } finally {
       setLoadingStats(false);
     }
-  }, [user, appliedUserId]);
+  }, [user, appliedUserId, appliedStartDate, appliedEndDate]);
 
   useEffect(() => {
     if (user) {

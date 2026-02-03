@@ -156,6 +156,12 @@ export default function TransactionsList() {
       if (appliedUserId && user.is_superuser) {
         params.user_id = appliedUserId;
       }
+      if (appliedStartDate) {
+        params.start_date = appliedStartDate;
+      }
+      if (appliedEndDate) {
+        params.end_date = appliedEndDate;
+      }
       
       const queryString = api.buildQueryString(params);
       const response = await api.get<TransactionStats>(`/api/stats/transactions/${queryString}`);
@@ -168,7 +174,7 @@ export default function TransactionsList() {
     } finally {
       setLoadingStats(false);
     }
-  }, [user, appliedUserId]);
+  }, [user, appliedUserId, appliedStartDate, appliedEndDate]);
 
   useEffect(() => {
     if (user) {
