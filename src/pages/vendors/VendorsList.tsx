@@ -391,7 +391,7 @@ export default function VendorsList() {
             size="sm"
             onClick={(e) => {
               e.stopPropagation();
-              navigate(vendor.id === user?.id ? '/vendors/edit' : `/vendors/${vendor.id}/edit`);
+              navigate(`/vendors/${vendor.id}/edit`);
             }}
           >
             <Edit className="h-4 w-4 mr-1" />

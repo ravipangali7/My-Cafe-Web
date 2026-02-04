@@ -4,6 +4,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/ui/page-header';
 import { api, isWebView } from '@/lib/api';
@@ -70,6 +80,7 @@ export default function Profile() {
     subscription_end_date: string | null;
     subscription_type: string | null;
   } | null>(null);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
 
   // Filter nav items based on superuser status
   const navItems = useMemo(() => {
@@ -82,6 +93,7 @@ export default function Profile() {
   }, [user?.is_superuser]);
 
   const handleSignOut = async () => {
+    setLogoutDialogOpen(false);
     await signOut();
     navigate('/login');
   };
@@ -298,12 +310,34 @@ export default function Profile() {
             <Button
               variant="destructive"
               className="w-full gap-2"
-              onClick={handleSignOut}
+              onClick={() => setLogoutDialogOpen(true)}
             >
               <LogOut className="h-4 w-4" />
               Logout
             </Button>
           </div>
+          <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Logout</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to logout?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleSignOut();
+                  }}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Confirm
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       ) : (
         <div className="max-w-2xl mx-auto">

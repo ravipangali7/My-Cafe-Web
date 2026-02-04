@@ -109,6 +109,7 @@ export function VendorStatsCards({
       value: formatCurrency(totalSales),
       icon: DollarSign,
       variant: 'success' as const,
+      onClick: () => navigate('/transactions'),
     },
     {
       label: 'Total Products',

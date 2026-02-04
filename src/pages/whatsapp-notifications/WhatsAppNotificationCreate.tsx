@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { api, fetchPaginated, isWebView } from '@/lib/api';
 import { requestFileFromFlutter } from '@/lib/webview-upload';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -41,6 +42,7 @@ const POLL_INTERVAL_MS = 1500;
 export default function WhatsAppNotificationCreate() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [message, setMessage] = useState('');
   const [selectAll, setSelectAll] = useState(false);
   const [customerSearch, setCustomerSearch] = useState('');
@@ -303,29 +305,51 @@ export default function WhatsAppNotificationCreate() {
           </CardHeader>
           <CardContent>
             <Label htmlFor="image">Attach an image to use image marketing template</Label>
-            {isWebView() ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="mt-2"
-                onClick={async () => {
-                  setUploadingImage(true);
-                  try {
-                    const url = await requestFileFromFlutter({ accept: 'image/*', field: 'whatsapp_image' });
-                    setImageUrl(url);
-                    setImageFile(null);
-                    toast.success('Image selected');
-                  } catch (err) {
-                    toast.error(err instanceof Error ? err.message : 'Failed to select image');
-                  } finally {
-                    setUploadingImage(false);
-                  }
-                }}
-                disabled={uploadingImage}
-              >
-                {uploadingImage ? 'Selecting...' : (imageFile || imageUrl ? 'Change Image' : 'Select Image')}
-              </Button>
+            {(isWebView() || isMobile) ? (
+              <div className="mt-2 space-y-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    setUploadingImage(true);
+                    try {
+                      if (isWebView()) {
+                        const url = await requestFileFromFlutter({ accept: 'image/*', field: 'whatsapp_image' });
+                        setImageUrl(url);
+                        setImageFile(null);
+                        toast.success('Image selected');
+                      } else {
+                        document.getElementById('whatsapp-image-input')?.click();
+                      }
+                    } catch (err) {
+                      toast.error(err instanceof Error ? err.message : 'Failed to select image');
+                    } finally {
+                      setUploadingImage(false);
+                    }
+                  }}
+                  disabled={uploadingImage}
+                >
+                  {uploadingImage ? 'Selecting...' : (imageFile || imageUrl ? 'Change Image' : 'Select Image')}
+                </Button>
+                {isMobile && !isWebView() && (
+                  <Input
+                    id="whatsapp-image-input"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setImageFile(file);
+                        setImageUrl(null);
+                        toast.success('Image selected');
+                      }
+                      e.target.value = '';
+                    }}
+                  />
+                )}
+              </div>
             ) : (
               <Input
                 id="image"

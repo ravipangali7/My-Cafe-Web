@@ -167,6 +167,16 @@ export default function TransactionsList() {
       if (appliedEndDate) {
         params.end_date = appliedEndDate;
       }
+      if (transactionTypeFromUrl === 'in' || transactionTypeFromUrl === 'out') {
+        params.transaction_type = transactionTypeFromUrl;
+      }
+      if (user.is_superuser) {
+        if (appliedTransactionFilter === 'system') {
+          params.is_system = 'true';
+        } else if (appliedTransactionFilter === 'all_users' || appliedTransactionFilter === 'individual') {
+          params.is_system = 'false';
+        }
+      }
       
       const queryString = api.buildQueryString(params);
       const response = await api.get<TransactionStats>(`/api/stats/transactions/${queryString}`);
@@ -179,7 +189,7 @@ export default function TransactionsList() {
     } finally {
       setLoadingStats(false);
     }
-  }, [user, appliedUserId, appliedStartDate, appliedEndDate]);
+  }, [user, appliedUserId, appliedStartDate, appliedEndDate, transactionTypeFromUrl, appliedTransactionFilter]);
 
   // Reset to page 1 when transaction type filter from URL changes (e.g. sidebar submenu)
   useEffect(() => {

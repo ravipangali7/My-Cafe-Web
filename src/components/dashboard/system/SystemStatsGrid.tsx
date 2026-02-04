@@ -64,6 +64,7 @@ export function SystemStatsGrid({ data, loading = false }: SystemStatsGridProps)
       value: formatNumber(data.expired_vendors),
       icon: AlertTriangle,
       variant: 'warning' as const,
+      onClick: () => navigate('/vendors'),
     },
     {
       label: 'Due Blocked',
@@ -88,12 +89,14 @@ export function SystemStatsGrid({ data, loading = false }: SystemStatsGridProps)
       value: formatCurrency(data.total_shareholder_balance),
       icon: Wallet,
       variant: 'success' as const,
+      onClick: () => navigate('/shareholders'),
     },
     {
       label: 'Distributed Balance',
       value: formatCurrency(data.total_distributed_balance),
       icon: Share2,
       variant: 'highlight' as const,
+      onClick: () => navigate('/shareholders'),
     },
     {
       label: 'Total Withdrawals',
@@ -125,6 +128,7 @@ export function SystemStatsGrid({ data, loading = false }: SystemStatsGridProps)
       value: formatCurrency(data.total_system_revenue),
       icon: PiggyBank,
       variant: 'success' as const,
+      onClick: () => navigate('/transactions?is_system=true'),
     },
     {
       label: 'QR Stand Earnings',
@@ -138,6 +142,7 @@ export function SystemStatsGrid({ data, loading = false }: SystemStatsGridProps)
       value: formatCurrency(data.subscription_earnings),
       icon: CreditCard,
       variant: 'highlight' as const,
+      onClick: () => navigate('/subscription'),
     },
     {
       label: 'Transaction Earnings',
@@ -151,6 +156,7 @@ export function SystemStatsGrid({ data, loading = false }: SystemStatsGridProps)
       value: formatCurrency(data.whatsapp_earnings),
       icon: MessageSquare,
       variant: 'success' as const,
+      onClick: () => navigate('/whatsapp-notifications'),
     },
   ];
 

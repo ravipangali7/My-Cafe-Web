@@ -224,6 +224,9 @@ export default function OrderForm() {
         quantity: parseInt(item.quantity),
         price: parseFloat(item.price),
       }))));
+      if (!isEdit && vendor?.phone) {
+        formData.append('vendor_phone', vendor.phone);
+      }
 
       let response;
       if (isEdit) {
@@ -341,13 +344,12 @@ export default function OrderForm() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="tableNo">Table No</Label>
+                <Label htmlFor="tableNo">Table No (optional)</Label>
                 <Input
                   id="tableNo"
                   value={tableNo}
                   onChange={(e) => setTableNo(e.target.value)}
                   placeholder="T1"
-                  required
                 />
               </div>
             </div>

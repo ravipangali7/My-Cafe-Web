@@ -3,6 +3,7 @@ import { Plus, Minus, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getFCMTokenOnly } from '@/lib/fcm';
 import { toast } from 'sonner';
 import { initiateOrderPaymentFromPayload, redirectToPayment } from '@/services/paymentService';
@@ -62,6 +63,7 @@ export function OrderPanel({
 }: OrderPanelProps) {
   const [guestName, setGuestName] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
+  const [guestCountryCode, setGuestCountryCode] = useState('91');
   const [tableNo, setTableNo] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [fcmToken, setFcmToken] = useState<string | null>(null);
@@ -110,11 +112,13 @@ export function OrderPanel({
 
     setSubmitting(true);
     try {
+      const digits = (guestPhone || '').replace(/\D/g, '');
+      const phoneWithCode = digits ? `+${guestCountryCode}${digits}` : guestPhone;
       // Initiate order payment without creating order first. Order is created only on payment success.
       toast.info('Initiating payment...');
       const paymentResult = await initiateOrderPaymentFromPayload({
         name: guestName,
-        phone: guestPhone,
+        phone: phoneWithCode,
         table_no: tableNo || '',
         vendor_phone: vendorPhone,
         total: subtotal.toFixed(2),
@@ -271,13 +275,24 @@ export function OrderPanel({
             <Label htmlFor="guestPhone" className="text-sm text-gray-600">
               Phone <span className="text-coral-500">*</span>
             </Label>
-            <Input
-              id="guestPhone"
-              value={guestPhone}
-              onChange={(e) => setGuestPhone(e.target.value)}
-              placeholder="Enter your phone number"
-              className="mt-1"
-            />
+            <div className="flex gap-2 mt-1">
+              <Select value={guestCountryCode} onValueChange={setGuestCountryCode}>
+                <SelectTrigger className="w-20 shrink-0">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="91">+91</SelectItem>
+                  <SelectItem value="977">+977</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input
+                id="guestPhone"
+                className="flex-1"
+                value={guestPhone}
+                onChange={(e) => setGuestPhone(e.target.value)}
+                placeholder="98XXXXXXXX"
+              />
+            </div>
           </div>
           <div>
             <Label htmlFor="tableNo" className="text-sm text-gray-600">
