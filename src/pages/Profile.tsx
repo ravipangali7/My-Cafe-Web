@@ -17,7 +17,7 @@ import {
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/ui/page-header';
 import { api, isWebView } from '@/lib/api';
-import { requestFileFromFlutter } from '@/lib/webview-upload';
+import { requestFileFromFlutter, filePayloadToFile, type WebViewFilePayload } from '@/lib/webview-upload';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -71,6 +71,7 @@ export default function Profile() {
   const [phone, setPhone] = useState('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoFilePayload, setLogoFilePayload] = useState<WebViewFilePayload | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState<{
@@ -151,6 +152,7 @@ export default function Profile() {
     if (file) {
       setLogoFile(file);
       setLogoUrl(null);
+      setLogoFilePayload(null);
       const reader = new FileReader();
       reader.onloadend = () => {
         setLogoPreview(reader.result as string);
@@ -163,10 +165,11 @@ export default function Profile() {
     if (!isWebView()) return;
     setUploadingLogo(true);
     try {
-      const url = await requestFileFromFlutter({ accept: 'image/*', field: 'logo' });
-      setLogoUrl(url);
+      const payload = await requestFileFromFlutter({ accept: 'image/*', field: 'logo' });
+      setLogoFilePayload(payload);
       setLogoFile(null);
-      setLogoPreview(url.startsWith('http') ? url : `${window.location.origin}${url.startsWith('/') ? '' : '/'}${url}`);
+      setLogoUrl(null);
+      setLogoPreview(payload.dataUrl);
       toast.success('Image selected');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to select image');
@@ -186,6 +189,9 @@ export default function Profile() {
       formData.append('phone', phone);
       if (logoFile) {
         formData.append('logo', logoFile);
+      } else if (logoFilePayload) {
+        const file = await filePayloadToFile(logoFilePayload);
+        formData.append('logo', file);
       } else if (logoUrl) {
         formData.append('logo_url', logoUrl);
       }

@@ -74,7 +74,7 @@ export function VendorStatsCards({
       value: getSubscriptionLabel(),
       icon: CreditCard,
       variant: getSubscriptionVariant() as 'success' | 'destructive' | 'warning',
-      onClick: () => navigate('/subscription'),
+      onClick: () => navigate('/subscription/details'),
     },
     {
       label: 'Menu QR Code',

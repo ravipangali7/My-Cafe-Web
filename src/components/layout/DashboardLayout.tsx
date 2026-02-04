@@ -25,6 +25,16 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useVendor } from '@/contexts/VendorContext';
 import { cn } from '@/lib/utils';
@@ -63,6 +73,7 @@ const allNavItems = [
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [transactionsExpanded, setTransactionsExpanded] = useState(true);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
@@ -84,6 +95,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   }, [user?.is_superuser]);
 
   const handleSignOut = async () => {
+    setLogoutDialogOpen(false);
     await signOut();
     navigate('/login');
   };
@@ -208,7 +220,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <Button 
               variant="ghost" 
               className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
-              onClick={handleSignOut}
+              onClick={() => setLogoutDialogOpen(true)}
             >
               <LogOut className="h-4 w-4" />
               Sign Out
@@ -216,6 +228,29 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
         </div>
       </aside>
+
+      <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Logout</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to logout?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleSignOut();
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Main content */}
       <div className={cn(
@@ -258,7 +293,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               variant="ghost"
               size="sm"
               className="gap-2 text-muted-foreground hover:text-foreground"
-              onClick={handleSignOut}
+              onClick={() => setLogoutDialogOpen(true)}
             >
               <LogOut className="h-4 w-4" />
               <span className="hidden sm:inline">Sign Out</span>

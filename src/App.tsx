@@ -66,6 +66,7 @@ import KYCDocumentPage from "./pages/kyc/KYCDocumentPage";
 
 // Subscription
 import SubscriptionPlans from "./pages/subscription/SubscriptionPlans";
+import SubscriptionDetails from "./pages/subscription/SubscriptionDetails";
 
 // QR Stand Orders
 import QRStandOrdersList from "./pages/qr-stands/QRStandOrdersList";
@@ -275,7 +276,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   // Check subscription status - only if subscription fee is enabled
   // If is_subscription_fee is false, skip subscription check entirely
   if (isSubscriptionFeeEnabled && kycStatus === 'approved' && subscriptionState) {
-    if ((subscriptionState === 'no_subscription' || subscriptionState === 'expired') && location.pathname !== '/subscription') {
+    if ((subscriptionState === 'no_subscription' || subscriptionState === 'expired') && location.pathname !== '/subscription' && location.pathname !== '/subscription/details') {
       return <Navigate to="/subscription" replace />;
     }
     // Allow access for active subscriptions or inactive_with_date (user needs to contact admin)
@@ -383,6 +384,7 @@ const App = () => (
 
             {/* Subscription */}
             <Route path="/subscription" element={<ProtectedRoute><SubscriptionPlans /></ProtectedRoute>} />
+            <Route path="/subscription/details" element={<ProtectedRoute><SubscriptionDetails /></ProtectedRoute>} />
 
             {/* QR Stand Orders */}
             <Route path="/qr-stands" element={<ProtectedRoute><QRStandOrdersList /></ProtectedRoute>} />

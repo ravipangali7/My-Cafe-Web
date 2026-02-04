@@ -9,7 +9,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { api, fetchPaginated, isWebView } from '@/lib/api';
-import { requestFileFromFlutter } from '@/lib/webview-upload';
+import { requestFileFromFlutter, filePayloadToFile, type WebViewFilePayload } from '@/lib/webview-upload';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
@@ -51,6 +51,7 @@ export default function WhatsAppNotificationCreate() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageFilePayload, setImageFilePayload] = useState<WebViewFilePayload | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [createdId, setCreatedId] = useState<number | null>(null);
@@ -125,6 +126,9 @@ export default function WhatsAppNotificationCreate() {
       }
       if (imageFile) {
         formData.append('image', imageFile);
+      } else if (imageFilePayload) {
+        const file = await filePayloadToFile(imageFilePayload);
+        formData.append('image', file);
       } else if (imageUrl) {
         formData.append('image_url', imageUrl);
       }
@@ -315,9 +319,10 @@ export default function WhatsAppNotificationCreate() {
                     setUploadingImage(true);
                     try {
                       if (isWebView()) {
-                        const url = await requestFileFromFlutter({ accept: 'image/*', field: 'whatsapp_image' });
-                        setImageUrl(url);
+                        const payload = await requestFileFromFlutter({ accept: 'image/*', field: 'whatsapp_image' });
+                        setImageFilePayload(payload);
                         setImageFile(null);
+                        setImageUrl(null);
                         toast.success('Image selected');
                       } else {
                         document.getElementById('whatsapp-image-input')?.click();
@@ -330,7 +335,7 @@ export default function WhatsAppNotificationCreate() {
                   }}
                   disabled={uploadingImage}
                 >
-                  {uploadingImage ? 'Selecting...' : (imageFile || imageUrl ? 'Change Image' : 'Select Image')}
+                  {uploadingImage ? 'Selecting...' : (imageFile || imageUrl || imageFilePayload ? 'Change Image' : 'Select Image')}
                 </Button>
                 {isMobile && !isWebView() && (
                   <Input
@@ -343,6 +348,7 @@ export default function WhatsAppNotificationCreate() {
                       if (file) {
                         setImageFile(file);
                         setImageUrl(null);
+                        setImageFilePayload(null);
                         toast.success('Image selected');
                       }
                       e.target.value = '';
@@ -359,6 +365,7 @@ export default function WhatsAppNotificationCreate() {
                 onChange={(e) => {
                   setImageFile(e.target.files?.[0] ?? null);
                   setImageUrl(null);
+                  setImageFilePayload(null);
                 }}
               />
             )}

@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { api, isWebView } from '@/lib/api';
-import { requestFileFromFlutter } from '@/lib/webview-upload';
+import { requestFileFromFlutter, filePayloadToFile, type WebViewFilePayload } from '@/lib/webview-upload';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Upload, FileText, CheckCircle, XCircle, Clock } from 'lucide-react';
@@ -38,6 +38,7 @@ export default function KYCVerification() {
   const [documentType, setDocumentType] = useState<string>('');
   const [documentFile, setDocumentFile] = useState<File | null>(null);
   const [documentUrl, setDocumentUrl] = useState<string | null>(null);
+  const [documentFilePayload, setDocumentFilePayload] = useState<WebViewFilePayload | null>(null);
   const [documentPreview, setDocumentPreview] = useState<string | null>(null);
   const [uploadingDocument, setUploadingDocument] = useState(false);
 
@@ -112,6 +113,7 @@ export default function KYCVerification() {
 
       setDocumentFile(file);
       setDocumentUrl(null);
+      setDocumentFilePayload(null);
       const reader = new FileReader();
       reader.onloadend = () => {
         setDocumentPreview(reader.result as string);
@@ -124,10 +126,11 @@ export default function KYCVerification() {
     if (!isWebView()) return;
     setUploadingDocument(true);
     try {
-      const url = await requestFileFromFlutter({ accept: 'image/*,application/pdf', field: 'kyc_document' });
-      setDocumentUrl(url);
+      const payload = await requestFileFromFlutter({ accept: 'image/*,application/pdf', field: 'kyc_document' });
+      setDocumentFilePayload(payload);
       setDocumentFile(null);
-      setDocumentPreview(url.startsWith('http') ? url : `${window.location.origin}${url.startsWith('/') ? '' : '/'}${url}`);
+      setDocumentUrl(null);
+      setDocumentPreview(payload.dataUrl);
       toast.success('Document selected');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to select document');
@@ -144,7 +147,7 @@ export default function KYCVerification() {
       return;
     }
 
-    if (!documentFile && !documentUrl) {
+    if (!documentFile && !documentUrl && !documentFilePayload) {
       toast.error('Please upload a document');
       return;
     }
@@ -156,6 +159,9 @@ export default function KYCVerification() {
       formData.append('kyc_document_type', documentType);
       if (documentFile) {
         formData.append('kyc_document_file', documentFile);
+      } else if (documentFilePayload) {
+        const file = await filePayloadToFile(documentFilePayload);
+        formData.append('kyc_document_file', file);
       } else if (documentUrl) {
         formData.append('kyc_document_url', documentUrl);
       }
@@ -367,7 +373,7 @@ export default function KYCVerification() {
                         <div className="flex items-center gap-2">
                           <FileText className="h-8 w-8 text-muted-foreground" />
                           <span className="text-sm text-muted-foreground">
-                            {documentFile?.name || (documentUrl ? 'Document uploaded' : '')}
+                            {documentFile?.name || documentFilePayload?.fileName || (documentUrl ? 'Document uploaded' : '')}
                           </span>
                         </div>
                       )}
@@ -375,7 +381,7 @@ export default function KYCVerification() {
                   </div>
                 )}
 
-                <Button type="submit" disabled={submitting || !documentType || (!documentFile && !documentUrl)}>
+                <Button type="submit" disabled={submitting || !documentType || (!documentFile && !documentUrl && !documentFilePayload)}>
                   {submitting ? (
                     <>
                       <Upload className="h-4 w-4 mr-2 animate-spin" />

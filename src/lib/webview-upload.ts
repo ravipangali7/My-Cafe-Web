@@ -1,14 +1,21 @@
 /**
  * WebView file upload: when running in Flutter WebView, <input type="file"> does not work.
- * Request file via Flutter FileUpload channel; Flutter picks file, uploads to /api/upload/, calls back with URL.
+ * Request file via Flutter FileUpload channel; Flutter picks file and returns file data (data URL) to React.
+ * React shows preview and uploads to backend only when user clicks Submit/Update.
  */
 import { isWebView } from './api';
 
 declare global {
   interface Window {
     FileUpload?: { postMessage: (msg: string) => void };
-    __fileUploadCallback?: (url: string) => void;
+    __fileUploadCallback?: (payload: WebViewFilePayload) => void;
   }
+}
+
+export interface WebViewFilePayload {
+  dataUrl: string;
+  fileName: string;
+  mimeType: string;
 }
 
 export interface WebViewUploadOptions {
@@ -18,10 +25,10 @@ export interface WebViewUploadOptions {
 
 /**
  * Request a file from Flutter WebView. Only works when isWebView() is true.
- * Flutter will open native picker, upload to /api/upload/, then call window.__fileUploadCallback(url).
- * Returns a Promise that resolves with the media URL when Flutter calls the callback.
+ * Flutter opens native picker and calls window.__fileUploadCallback({ dataUrl, fileName, mimeType }).
+ * Returns a Promise that resolves with the file payload for preview; upload to backend on form Submit.
  */
-export function requestFileFromFlutter(options: WebViewUploadOptions): Promise<string> {
+export function requestFileFromFlutter(options: WebViewUploadOptions): Promise<WebViewFilePayload> {
   return new Promise((resolve, reject) => {
     if (!isWebView()) {
       reject(new Error('Not in WebView'));
@@ -37,10 +44,10 @@ export function requestFileFromFlutter(options: WebViewUploadOptions): Promise<s
       window.__fileUploadCallback = undefined;
       reject(new Error('File upload timed out'));
     }, timeout);
-    window.__fileUploadCallback = (url: string) => {
+    window.__fileUploadCallback = (payload: WebViewFilePayload) => {
       clearTimeout(t);
       window.__fileUploadCallback = undefined;
-      resolve(url);
+      resolve(payload);
     };
     try {
       channel.postMessage(JSON.stringify({
@@ -53,4 +60,13 @@ export function requestFileFromFlutter(options: WebViewUploadOptions): Promise<s
       reject(e);
     }
   });
+}
+
+/**
+ * Convert WebView file payload to a File for uploading (e.g. on form submit).
+ */
+export async function filePayloadToFile(payload: WebViewFilePayload): Promise<File> {
+  const res = await fetch(payload.dataUrl);
+  const blob = await res.blob();
+  return new File([blob], payload.fileName, { type: payload.mimeType });
 }
