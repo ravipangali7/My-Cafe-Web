@@ -57,6 +57,7 @@ export default function OrderForm() {
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [countryCode, setCountryCode] = useState('91');
   const [tableNo, setTableNo] = useState('');
   const [status, setStatus] = useState<string>('pending');
   const [paymentStatus, setPaymentStatus] = useState<string>('pending');
@@ -117,7 +118,16 @@ export default function OrderForm() {
   useEffect(() => {
     if (isEdit && orderData && products.length > 0) {
       setName(orderData.name);
-      setPhone(orderData.phone);
+      const rawPhone = orderData.phone || '';
+      if (rawPhone.startsWith('+977')) {
+        setCountryCode('977');
+        setPhone(rawPhone.replace(/\D/g, '').replace(/^977/, '') || rawPhone);
+      } else if (rawPhone.startsWith('+91') || rawPhone.startsWith('91')) {
+        setCountryCode('91');
+        setPhone(rawPhone.replace(/\D/g, '').replace(/^91/, '') || rawPhone);
+      } else {
+        setPhone(rawPhone);
+      }
       setTableNo(orderData.table_no);
       setStatus(orderData.status);
       setPaymentStatus(orderData.payment_status);
@@ -195,8 +205,10 @@ export default function OrderForm() {
 
     try {
       const formData = new FormData();
+      const phoneDigits = (phone || '').replace(/\D/g, '');
+      const phoneWithCode = phoneDigits ? `+${countryCode}${phoneDigits}` : phone;
       formData.append('name', name);
-      formData.append('phone', phone);
+      formData.append('phone', phoneWithCode);
       formData.append('table_no', tableNo);
       formData.append('status', status);
       formData.append('payment_status', paymentStatus);
@@ -308,13 +320,25 @@ export default function OrderForm() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+1234567890"
-                  required
-                />
+                <div className="flex gap-2">
+                  <Select value={countryCode} onValueChange={setCountryCode}>
+                    <SelectTrigger className="w-20 shrink-0">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="91">+91</SelectItem>
+                      <SelectItem value="977">+977</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    id="phone"
+                    className="flex-1"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="98XXXXXXXX"
+                    required
+                  />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="tableNo">Table No</Label>

@@ -104,6 +104,20 @@ export default function PaymentStatus() {
     fetchPaymentStatus();
   }, [fetchPaymentStatus, urlError]);
 
+  // After successful subscription payment, redirect to dashboard
+  useEffect(() => {
+    if (
+      paymentData?.status === 'success' &&
+      paymentData?.transaction?.payment_type === 'subscription_fee' &&
+      user
+    ) {
+      const t = setTimeout(() => {
+        navigate('/dashboard', { replace: true });
+      }, 2000);
+      return () => clearTimeout(t);
+    }
+  }, [paymentData?.status, paymentData?.transaction?.payment_type, user, navigate]);
+
   const getErrorMessage = (errorCode: string): string => {
     switch (errorCode) {
       case 'missing_txn_id':

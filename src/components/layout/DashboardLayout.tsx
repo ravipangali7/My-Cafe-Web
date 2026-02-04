@@ -20,7 +20,9 @@ import {
   Radio,
   Banknote,
   Wallet,
-  MessageCircle
+  MessageCircle,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -33,6 +35,12 @@ interface DashboardLayoutProps {
   children: ReactNode;
 }
 
+const transactionsSubItems = [
+  { path: '/transactions', label: 'All' },
+  { path: '/transactions?transaction_type=in', label: 'Income' },
+  { path: '/transactions?transaction_type=out', label: 'Outgoing' },
+];
+
 const allNavItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, superuserOnly: false },
   { path: '/vendors', label: 'Vendors', icon: Users, superuserOnly: false },
@@ -42,7 +50,7 @@ const allNavItems = [
   { path: '/customers', label: 'Customers', icon: UserRoundSearch, superuserOnly: false },
   { path: '/orders', label: 'Orders', icon: ShoppingCart, superuserOnly: false },
   { path: '/qr-stands', label: 'QR Stand Orders', icon: QrCode, superuserOnly: false },
-  { path: '/transactions', label: 'Transactions', icon: Receipt, superuserOnly: false },
+  { path: '/transactions', label: 'Transactions', icon: Receipt, superuserOnly: false, children: transactionsSubItems },
   { path: '/whatsapp-notifications', label: 'WhatsApp Notifications', icon: MessageCircle, superuserOnly: false },
   { path: '/reports', label: 'Reports', icon: FileText, superuserOnly: false },
   { path: '/shareholders', label: 'Shareholders', icon: Users2, superuserOnly: true },
@@ -54,11 +62,16 @@ const allNavItems = [
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [transactionsExpanded, setTransactionsExpanded] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
   const { vendor } = useVendor();
   const isMobile = useIsMobile();
+
+  // Keep Transactions expanded when on transactions page
+  const isOnTransactions = location.pathname === '/transactions';
+  const showTransactionsSub = transactionsExpanded || isOnTransactions;
 
   // Filter nav items based on superuser status
   const navItems = useMemo(() => {
@@ -109,8 +122,62 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           {/* Navigation */}
           <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
             {navItems.map((item) => {
+              const hasChildren = 'children' in item && item.children && item.children.length > 0;
               const isActive = location.pathname === item.path || 
                 (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
+
+              if (hasChildren && item.children) {
+                const subItems = item.children as { path: string; label: string }[];
+                return (
+                  <div key={item.path}>
+                    <button
+                      type="button"
+                      onClick={() => setTransactionsExpanded(!showTransactionsSub)}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                        isActive 
+                          ? "bg-primary text-primary-foreground" 
+                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      )}
+                    >
+                      <item.icon className="h-5 w-5" />
+                      {item.label}
+                      {showTransactionsSub ? (
+                        <ChevronDown className="h-4 w-4 ml-auto" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 ml-auto" />
+                      )}
+                    </button>
+                    {showTransactionsSub && (
+                      <div className="ml-4 mt-1 space-y-0.5 border-l border-border pl-3">
+                        {subItems.map((sub) => {
+                          const subTo = sub.path.includes('?') 
+                            ? { pathname: '/transactions', search: sub.path.split('?')[1] ? `?${sub.path.split('?')[1]}` : '' } 
+                            : sub.path;
+                          const currentFull = location.pathname + (location.search || '');
+                          const subActive = currentFull === sub.path;
+                          return (
+                            <Link
+                              key={sub.path}
+                              to={subTo}
+                              onClick={() => setSidebarOpen(false)}
+                              className={cn(
+                                "flex items-center py-2 px-2 rounded-md text-sm transition-colors",
+                                subActive
+                                  ? "bg-primary/10 text-primary font-medium"
+                                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                              )}
+                            >
+                              {sub.label}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
               return (
                 <Link
                   key={item.path}
@@ -177,15 +244,26 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             )}
           </div>
           
-          {/* Live Order Button - Only for vendors (non-superusers) */}
-          {!user?.is_superuser && (
-            <Link to="/live-orders">
-              <Button variant="default" size="sm" className="gap-2">
-                <Radio className="h-4 w-4" />
-                <span className="hidden sm:inline">Live Order</span>
-              </Button>
-            </Link>
-          )}
+          <div className="flex items-center gap-2">
+            {/* Live Order Button - Only for vendors (non-superusers) */}
+            {!user?.is_superuser && (
+              <Link to="/live-orders">
+                <Button variant="default" size="sm" className="gap-2">
+                  <Radio className="h-4 w-4" />
+                  <span className="hidden sm:inline">Live Order</span>
+                </Button>
+              </Link>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-2 text-muted-foreground hover:text-foreground"
+              onClick={handleSignOut}
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Sign Out</span>
+            </Button>
+          </div>
         </header>
 
         {/* Page content - bottom padding for bottom nav + safe area on mobile */}

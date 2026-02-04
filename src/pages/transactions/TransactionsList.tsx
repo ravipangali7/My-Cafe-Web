@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, Receipt, IndianRupee, Filter, Clock, CheckCircle, XCircle, ShoppingCart, CreditCard, Package, MessageCircle, QrCode, Share2, ArrowDownLeft, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -61,6 +61,8 @@ interface TransactionStats {
 
 export default function TransactionsList() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const transactionTypeFromUrl = searchParams.get('transaction_type'); // 'in' | 'out' | null (null = All)
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -130,6 +132,9 @@ export default function TransactionsList() {
       if (appliedEndDate) {
         params.end_date = appliedEndDate;
       }
+      if (transactionTypeFromUrl === 'in' || transactionTypeFromUrl === 'out') {
+        params.transaction_type = transactionTypeFromUrl;
+      }
 
       const response = await fetchPaginated<Transaction>('/api/transactions/', params);
       
@@ -145,7 +150,7 @@ export default function TransactionsList() {
     } finally {
       setLoading(false);
     }
-  }, [user, page, pageSize, appliedSearch, appliedUserId, appliedStartDate, appliedEndDate, appliedTransactionFilter]);
+  }, [user, page, pageSize, appliedSearch, appliedUserId, appliedStartDate, appliedEndDate, appliedTransactionFilter, transactionTypeFromUrl]);
 
   const fetchStats = useCallback(async () => {
     if (!user) return;
@@ -175,6 +180,11 @@ export default function TransactionsList() {
       setLoadingStats(false);
     }
   }, [user, appliedUserId, appliedStartDate, appliedEndDate]);
+
+  // Reset to page 1 when transaction type filter from URL changes (e.g. sidebar submenu)
+  useEffect(() => {
+    setPage(1);
+  }, [transactionTypeFromUrl]);
 
   useEffect(() => {
     if (user) {

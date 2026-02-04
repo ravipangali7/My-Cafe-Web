@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/ui/page-header';
-import { api } from '@/lib/api';
+import { api, isWebView } from '@/lib/api';
+import { requestFileFromFlutter } from '@/lib/webview-upload';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -59,7 +60,9 @@ export default function Profile() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState<{
     subscription_state: string;
     is_active: boolean;
@@ -135,11 +138,28 @@ export default function Profile() {
     const file = e.target.files?.[0];
     if (file) {
       setLogoFile(file);
+      setLogoUrl(null);
       const reader = new FileReader();
       reader.onloadend = () => {
         setLogoPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleWebViewLogoUpload = async () => {
+    if (!isWebView()) return;
+    setUploadingLogo(true);
+    try {
+      const url = await requestFileFromFlutter({ accept: 'image/*', field: 'logo' });
+      setLogoUrl(url);
+      setLogoFile(null);
+      setLogoPreview(url.startsWith('http') ? url : `${window.location.origin}${url.startsWith('/') ? '' : '/'}${url}`);
+      toast.success('Image selected');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to select image');
+    } finally {
+      setUploadingLogo(false);
     }
   };
 
@@ -154,6 +174,8 @@ export default function Profile() {
       formData.append('phone', phone);
       if (logoFile) {
         formData.append('logo', logoFile);
+      } else if (logoUrl) {
+        formData.append('logo_url', logoUrl);
       }
 
       const response = await api.put<{ user: any; message: string }>('/api/auth/user/update/', formData, true);
@@ -316,19 +338,28 @@ export default function Profile() {
                         variant="outline"
                         size="sm"
                         className="gap-2"
-                        onClick={() => document.getElementById('logo')?.click()}
+                        onClick={() => {
+                          if (isWebView()) {
+                            handleWebViewLogoUpload();
+                          } else {
+                            document.getElementById('logo')?.click();
+                          }
+                        }}
+                        disabled={uploadingLogo}
                       >
                         <Upload className="h-4 w-4" />
-                        {logoPreview ? 'Change Image' : 'Upload Image'}
+                        {uploadingLogo ? 'Selecting...' : (logoPreview ? 'Change Image' : 'Upload Image')}
                       </Button>
                     </Label>
-                    <Input
-                      id="logo"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleLogoChange}
-                      className="hidden"
-                    />
+                    {!isWebView() && (
+                      <Input
+                        id="logo"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleLogoChange}
+                        className="hidden"
+                      />
+                    )}
                     <p className="text-xs text-muted-foreground text-center">
                       JPG, PNG or GIF. Max size 2MB
                     </p>

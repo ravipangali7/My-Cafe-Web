@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Eye, Edit, Trash2, Package, CheckCircle, XCircle, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -45,6 +45,8 @@ interface ProductStats {
 
 export default function ProductsList() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isActiveFromUrl = searchParams.get('is_active');
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const [products, setProducts] = useState<Product[]>([]);
@@ -54,6 +56,7 @@ export default function ProductsList() {
   const [appliedSearch, setAppliedSearch] = useState('');
   const [userId, setUserId] = useState<number | null>(null);
   const [appliedUserId, setAppliedUserId] = useState<number | null>(null);
+  const [appliedIsActive, setAppliedIsActive] = useState<string | null>(isActiveFromUrl === 'true' ? 'true' : isActiveFromUrl === 'false' ? 'false' : null);
   const [dateFilter, setDateFilter] = useState<DateFilterType>('all');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
@@ -88,7 +91,9 @@ export default function ProductsList() {
       if (appliedUserId && user.is_superuser) {
         params.user_id = appliedUserId;
       }
-      
+      if (appliedIsActive !== null) {
+        params.is_active = appliedIsActive;
+      }
       if (appliedStartDate) {
         params.start_date = appliedStartDate;
       }
@@ -110,7 +115,7 @@ export default function ProductsList() {
     } finally {
       setLoading(false);
     }
-  }, [user, page, pageSize, appliedSearch, appliedUserId, appliedStartDate, appliedEndDate]);
+  }, [user, page, pageSize, appliedSearch, appliedUserId, appliedIsActive, appliedStartDate, appliedEndDate]);
 
   const fetchStats = useCallback(async () => {
     if (!user) return;
@@ -134,6 +139,10 @@ export default function ProductsList() {
       setLoadingStats(false);
     }
   }, [user, appliedUserId]);
+
+  useEffect(() => {
+    setAppliedIsActive(isActiveFromUrl === 'true' ? 'true' : isActiveFromUrl === 'false' ? 'false' : null);
+  }, [isActiveFromUrl]);
 
   useEffect(() => {
     if (user) {
@@ -253,10 +262,28 @@ export default function ProductsList() {
     },
   ];
 
+  const applyIsActiveFilter = (value: boolean | null) => {
+    setAppliedIsActive(value === null ? null : value ? 'true' : 'false');
+    setPage(1);
+    if (value === null) {
+      setSearchParams((p) => {
+        const next = new URLSearchParams(p);
+        next.delete('is_active');
+        return next;
+      });
+    } else {
+      setSearchParams((p) => {
+        const next = new URLSearchParams(p);
+        next.set('is_active', String(value));
+        return next;
+      });
+    }
+  };
+
   const statCards = [
-    { label: 'Total Products', value: stats.total, icon: Package, variant: 'default' as const },
-    { label: 'Active', value: stats.active, icon: CheckCircle, variant: 'success' as const },
-    { label: 'Inactive', value: stats.inactive, icon: XCircle, variant: 'destructive' as const },
+    { label: 'Total Products', value: stats.total, icon: Package, variant: 'default' as const, onClick: () => applyIsActiveFilter(null) },
+    { label: 'Active', value: stats.active, icon: CheckCircle, variant: 'success' as const, onClick: () => applyIsActiveFilter(true) },
+    { label: 'Inactive', value: stats.inactive, icon: XCircle, variant: 'destructive' as const, onClick: () => applyIsActiveFilter(false) },
     { label: 'Top Selling', value: stats.top_selling || 0, icon: TrendingUp, variant: 'highlight' as const },
   ];
 

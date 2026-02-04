@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Plus, Minus, X, ShoppingCart, Loader2 } from 'lucide-react';
 import { api } from '@/lib/api';
@@ -70,6 +71,7 @@ export function OrderModal({
   const [userName, setUserName] = useState('');
   const [guestName, setGuestName] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
+  const [guestCountryCode, setGuestCountryCode] = useState('91');
   const [tableNo, setTableNo] = useState('');
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [searchingUser, setSearchingUser] = useState(false);
@@ -126,7 +128,16 @@ export function OrderModal({
 
   const handleSubmit = async () => {
     const customerName = orderType === 'user' ? userName : guestName;
-    const customerPhone = orderType === 'user' ? userPhone : guestPhone;
+    let customerPhone: string;
+    if (orderType === 'user') {
+      customerPhone = selectedUser?.phone || (() => {
+        const digits = (userPhone || '').replace(/\D/g, '');
+        return digits ? `+91${digits.replace(/^91/, '')}` : userPhone;
+      })();
+    } else {
+      const digits = (guestPhone || '').replace(/\D/g, '');
+      customerPhone = digits ? `+${guestCountryCode}${digits}` : guestPhone;
+    }
 
     if (orderType === 'user') {
       if (!selectedUser) {
@@ -292,12 +303,24 @@ export function OrderModal({
               </div>
               <div className="space-y-2">
                 <Label htmlFor="guestPhone">Phone Number</Label>
-                <Input
-                  id="guestPhone"
-                  value={guestPhone}
-                  onChange={(e) => setGuestPhone(e.target.value)}
-                  placeholder="Enter your phone number"
-                />
+                <div className="flex gap-2">
+                  <Select value={guestCountryCode} onValueChange={setGuestCountryCode}>
+                    <SelectTrigger className="w-20 shrink-0">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="91">+91</SelectItem>
+                      <SelectItem value="977">+977</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    id="guestPhone"
+                    className="flex-1"
+                    value={guestPhone}
+                    onChange={(e) => setGuestPhone(e.target.value)}
+                    placeholder="98XXXXXXXX"
+                  />
+                </div>
               </div>
             </div>
           )}

@@ -244,7 +244,6 @@ export default function LiveOrders() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [dateFilter, setDateFilter] = useState<DateFilter>('today');
-  const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
   const [acceptedOrders, setAcceptedOrders] = useState<Order[]>([]);
   const [runningOrders, setRunningOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -269,9 +268,8 @@ export default function LiveOrders() {
         params.append('end_date', dateRange.end_date);
       }
 
-      // Fetch orders for each status
-      const [pendingRes, acceptedRes, runningRes] = await Promise.all([
-        api.get<{ data: Order[] }>(`/api/orders/?${params.toString()}&status=pending`),
+      // Fetch accepted and running orders only (Pending section hidden per plan)
+      const [acceptedRes, runningRes] = await Promise.all([
         api.get<{ data: Order[] }>(`/api/orders/?${params.toString()}&status=accepted`),
         api.get<{ data: Order[] }>(`/api/orders/?${params.toString()}&status=running`),
       ]);
@@ -280,9 +278,6 @@ export default function LiveOrders() {
       const sortByCreatedAt = (a: Order, b: Order) => 
         new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
 
-      if (!pendingRes.error && pendingRes.data) {
-        setPendingOrders([...pendingRes.data.data].sort(sortByCreatedAt));
-      }
       if (!acceptedRes.error && acceptedRes.data) {
         setAcceptedOrders([...acceptedRes.data.data].sort(sortByCreatedAt));
       }
@@ -412,43 +407,7 @@ export default function LiveOrders() {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Pending Column */}
-          <div>
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center justify-between text-lg">
-                  <span className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                    Pending
-                  </span>
-                  <span className="text-sm font-normal text-muted-foreground">
-                    {pendingOrders.length} orders
-                  </span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <ScrollArea className="h-[calc(100vh-320px)]">
-                  {pendingOrders.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <p>No pending orders</p>
-                    </div>
-                  ) : (
-                    pendingOrders.map((order) => (
-                      <LiveOrderCard
-                        key={order.id}
-                        order={order}
-                        onAccept={() => handleAccept(order.id)}
-                        onReject={() => handleRejectClick(order)}
-                        isUpdating={updatingOrderId === order.id}
-                      />
-                    ))
-                  )}
-                </ScrollArea>
-              </CardContent>
-            </Card>
-          </div>
-
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Accepted Column */}
           <div>
             <Card>

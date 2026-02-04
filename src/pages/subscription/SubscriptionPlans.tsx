@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { api } from '@/lib/api';
+import { initiateSubscriptionPayment, redirectToPayment } from '@/services/paymentService';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { CheckCircle, XCircle, Clock, CreditCard, AlertCircle } from 'lucide-react';
@@ -102,36 +103,30 @@ export default function SubscriptionPlans() {
 
     setSelectedPlan(plan);
     setSubscribing(true);
-    // Set the ref to prevent automatic redirect during subscription processing
     isProcessingSubscription.current = true;
 
     try {
-      // In a real application, you would integrate with a payment gateway here
-      // For now, we'll simulate a payment success
-      const paymentTransactionId = `TXN${Date.now()}`;
-      
-      const response = await api.post('/api/subscription/subscribe/', {
-        plan_id: plan.id,
-        duration_months: plan.duration_months,
-        payment_amount: plan.price,
-        payment_transaction_id: paymentTransactionId,
-      });
+      const result = await initiateSubscriptionPayment(
+        user.id,
+        String(plan.price),
+        user.name || '',
+        user.phone || '',
+        user.email || undefined
+      );
 
-      if (response.error) {
-        toast.error(response.error || 'Failed to activate subscription');
+      if (result.error) {
+        toast.error(result.error || 'Failed to initiate payment');
         isProcessingSubscription.current = false;
+      } else if (result.data?.payment_url) {
+        toast.success('Redirecting to payment...');
+        redirectToPayment(result.data.payment_url);
+        // Keep subscribing true; after payment success user lands on PaymentStatus then dashboard
       } else {
-        toast.success('Subscription activated successfully!');
-        // Update subscription status without triggering redirect
-        await fetchSubscriptionStatus();
-        // Redirect to dashboard after a short delay to show success message
-        setTimeout(() => {
-          isProcessingSubscription.current = false;
-          navigate('/dashboard');
-        }, 1500);
+        toast.error('Payment URL not received');
+        isProcessingSubscription.current = false;
       }
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to activate subscription');
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Failed to initiate subscription payment');
       isProcessingSubscription.current = false;
     } finally {
       setSubscribing(false);

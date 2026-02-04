@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/ui/page-header';
-import { api } from '@/lib/api';
+import { api, isWebView } from '@/lib/api';
+import { requestFileFromFlutter } from '@/lib/webview-upload';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
@@ -23,7 +24,9 @@ export default function VendorForm() {
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [expireDate, setExpireDate] = useState('');
   const [token, setToken] = useState('');
   const [isActive, setIsActive] = useState(true);
@@ -90,11 +93,28 @@ export default function VendorForm() {
     const file = e.target.files?.[0];
     if (file) {
       setLogoFile(file);
+      setLogoUrl(null);
       const reader = new FileReader();
       reader.onloadend = () => {
         setLogoPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleWebViewLogoUpload = async () => {
+    if (!isWebView()) return;
+    setUploadingLogo(true);
+    try {
+      const url = await requestFileFromFlutter({ accept: 'image/*', field: 'logo' });
+      setLogoUrl(url);
+      setLogoFile(null);
+      setLogoPreview(url.startsWith('http') ? url : `${window.location.origin}${url.startsWith('/') ? '' : '/'}${url}`);
+      toast.success('Image selected');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to select image');
+    } finally {
+      setUploadingLogo(false);
     }
   };
 
@@ -120,6 +140,8 @@ export default function VendorForm() {
         }
         if (logoFile) {
           formData.append('logo', logoFile);
+        } else if (logoUrl) {
+          formData.append('logo_url', logoUrl);
         }
         if (expireDate) {
           formData.append('expire_date', expireDate);
@@ -150,6 +172,8 @@ export default function VendorForm() {
         }
         if (logoFile) {
           formData.append('logo', logoFile);
+        } else if (logoUrl) {
+          formData.append('logo_url', logoUrl);
         }
         // Only send expire_date and token if superuser or creating
         if (isCreateMode || user.is_superuser) {
@@ -272,12 +296,24 @@ export default function VendorForm() {
             )}
             <div className="space-y-2">
               <Label htmlFor="logo">Logo (optional)</Label>
-              <Input
-                id="logo"
-                type="file"
-                accept="image/*"
-                onChange={handleLogoChange}
-              />
+              {isWebView() ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleWebViewLogoUpload}
+                  disabled={uploadingLogo}
+                >
+                  {uploadingLogo ? 'Selecting...' : (logoPreview ? 'Change Image' : 'Upload Image')}
+                </Button>
+              ) : (
+                <Input
+                  id="logo"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoChange}
+                />
+              )}
               {logoPreview && (
                 <div className="mt-2">
                   <img src={logoPreview} alt="Logo preview" className="h-20 w-20 rounded-full object-cover" />

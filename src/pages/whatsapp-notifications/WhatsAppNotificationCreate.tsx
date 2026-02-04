@@ -8,7 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { api, fetchPaginated } from '@/lib/api';
+import { api, fetchPaginated, isWebView } from '@/lib/api';
+import { requestFileFromFlutter } from '@/lib/webview-upload';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -47,6 +48,8 @@ export default function WhatsAppNotificationCreate() {
   const [customersLoading, setCustomersLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [createdId, setCreatedId] = useState<number | null>(null);
   const [progress, setProgress] = useState<DetailResponse | null>(null);
@@ -120,6 +123,8 @@ export default function WhatsAppNotificationCreate() {
       }
       if (imageFile) {
         formData.append('image', imageFile);
+      } else if (imageUrl) {
+        formData.append('image_url', imageUrl);
       }
       const res = await api.post<CreateResponse>('/api/whatsapp-notifications/create/', formData, true);
       if (res.error) {
@@ -298,13 +303,41 @@ export default function WhatsAppNotificationCreate() {
           </CardHeader>
           <CardContent>
             <Label htmlFor="image">Attach an image to use image marketing template</Label>
-            <Input
-              id="image"
-              type="file"
-              accept="image/*"
-              className="mt-2"
-              onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
-            />
+            {isWebView() ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-2"
+                onClick={async () => {
+                  setUploadingImage(true);
+                  try {
+                    const url = await requestFileFromFlutter({ accept: 'image/*', field: 'whatsapp_image' });
+                    setImageUrl(url);
+                    setImageFile(null);
+                    toast.success('Image selected');
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : 'Failed to select image');
+                  } finally {
+                    setUploadingImage(false);
+                  }
+                }}
+                disabled={uploadingImage}
+              >
+                {uploadingImage ? 'Selecting...' : (imageFile || imageUrl ? 'Change Image' : 'Select Image')}
+              </Button>
+            ) : (
+              <Input
+                id="image"
+                type="file"
+                accept="image/*"
+                className="mt-2"
+                onChange={(e) => {
+                  setImageFile(e.target.files?.[0] ?? null);
+                  setImageUrl(null);
+                }}
+              />
+            )}
           </CardContent>
         </Card>
         <div className="flex gap-2">

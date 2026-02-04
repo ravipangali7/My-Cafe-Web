@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Edit, Wallet } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Edit, Wallet, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,8 +12,11 @@ import { Switch } from '@/components/ui/switch';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { SuperSetting } from '@/lib/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Settings() {
+  const navigate = useNavigate();
+  const { signOut } = useAuth();
   const [setting, setSetting] = useState<SuperSetting | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -147,6 +151,11 @@ export default function Settings() {
     setSaving(false);
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/login');
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -162,12 +171,18 @@ export default function Settings() {
         title="Settings"
         description="Manage application settings"
         action={
-          !isEditing && (
-            <Button variant="outline" onClick={() => setIsEditing(true)}>
-              <Edit className="h-4 w-4 mr-2" />
-              Edit
+          <div className="flex items-center gap-2">
+            {!isEditing && (
+              <Button variant="outline" onClick={() => setIsEditing(true)}>
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+            )}
+            <Button variant="outline" className="gap-2 text-muted-foreground" onClick={handleSignOut}>
+              <LogOut className="h-4 w-4" />
+              Sign Out
             </Button>
-          )
+          </div>
         }
       />
 
@@ -437,6 +452,7 @@ export default function Settings() {
                   <DetailRow label="Updated At" value={new Date(setting.updated_at).toLocaleString()} />
                 </div>
               )}
+
             </div>
           )}
         </CardContent>

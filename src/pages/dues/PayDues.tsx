@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { AlertTriangle, CreditCard, Wallet, CheckCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { PageHeader } from '@/components/ui/page-header';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -26,11 +28,6 @@ export default function PayDues() {
         const response = await api.get<DueStatus>('/api/dues/status/');
         if (response.data) {
           setDueStatus(response.data);
-          // If user is not blocked, redirect to dashboard
-          if (!response.data.is_blocked) {
-            window.location.href = '/dashboard';
-            return;
-          }
         }
       } catch (error) {
         console.error('Error fetching due status:', error);
@@ -99,67 +96,127 @@ export default function PayDues() {
 
   if (!dueStatus) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <DashboardLayout>
+        <PageHeader title="Pay Dues" description="Due balance and payments" />
         <div className="text-muted-foreground">Failed to load due status</div>
+      </DashboardLayout>
+    );
+  }
+
+  const remainingBeforeThreshold = Math.max(0, dueStatus.due_threshold - dueStatus.due_balance);
+
+  // Blocked: full-screen blocking experience (no sidebar)
+  if (dueStatus.is_blocked) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="w-full max-w-md space-y-6">
+          <Card className="border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-900">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-4">
+                <div className="rounded-full bg-red-100 dark:bg-red-900/50 p-3">
+                  <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-red-800 dark:text-red-200">Account Access Restricted</h3>
+                  <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                    Your due balance has exceeded the allowed threshold. Please clear your dues to regain access to all features.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Wallet className="h-5 w-5" />
+                Due Balance
+              </CardTitle>
+              <CardDescription>Your current outstanding dues</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                <p className="text-sm text-amber-700 dark:text-amber-300">Your Due Balance</p>
+                <p className="text-2xl font-bold text-red-600">₹{dueStatus.due_balance.toLocaleString()}</p>
+              </div>
+              {paymentSuccess ? (
+                <div className="flex flex-col items-center gap-4 text-center p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 rounded-lg">
+                  <div className="rounded-full bg-green-100 dark:bg-green-900/50 p-4">
+                    <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-green-800 dark:text-green-200">Payment Successful!</h3>
+                    <p className="text-sm text-green-700 dark:text-green-300 mt-1">Redirecting to dashboard...</p>
+                  </div>
+                </div>
+              ) : (
+                <Button
+                  className="w-full"
+                  size="lg"
+                  onClick={handlePayment}
+                  disabled={processing || dueStatus.due_balance <= 0}
+                >
+                  {processing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Pay ₹{dueStatus.due_balance.toLocaleString()}
+                    </>
+                  )}
+                </Button>
+              )}
+              {user && (
+                <p className="text-xs text-center text-muted-foreground">
+                  Paying as: {user.name} ({user.phone})
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
+  // Unblocked: Due page inside dashboard – total due, remaining before threshold, Pay Now
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-6">
-        {/* Warning Banner */}
-        <Card className="border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-900">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-4">
-              <div className="rounded-full bg-red-100 dark:bg-red-900/50 p-3">
-                <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-red-800 dark:text-red-200">Account Access Restricted</h3>
-                <p className="text-sm text-red-700 dark:text-red-300 mt-1">
-                  Your due balance has exceeded the allowed threshold. Please clear your dues to regain access to all features.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Due Status Card */}
+    <DashboardLayout>
+      <PageHeader title="Pay Dues" description="View your due balance and pay when ready" />
+      <div className="max-w-md space-y-4">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Wallet className="h-5 w-5" />
               Due Balance
             </CardTitle>
-            <CardDescription>
-              Your current outstanding dues
-            </CardDescription>
+            <CardDescription>Your current outstanding dues. Pay anytime before the threshold to avoid restrictions.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-              <p className="text-sm text-amber-700 dark:text-amber-300">Your Due Balance</p>
-              <p className="text-2xl font-bold text-red-600">
-                ₹{dueStatus.due_balance.toLocaleString()}
-              </p>
+            <div className="rounded-lg border border-border bg-muted/30 p-4">
+              <p className="text-sm text-muted-foreground">Total Due</p>
+              <p className="text-2xl font-bold">₹{dueStatus.due_balance.toLocaleString()}</p>
             </div>
-
-            {/* Payment Button */}
+            {dueStatus.due_threshold > 0 && (
+              <div className="rounded-lg border border-border bg-muted/30 p-4">
+                <p className="text-sm text-muted-foreground">Remaining before threshold</p>
+                <p className="text-xl font-semibold text-foreground">₹{remainingBeforeThreshold.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground mt-1">Threshold: ₹{dueStatus.due_threshold.toLocaleString()}</p>
+              </div>
+            )}
             {paymentSuccess ? (
               <div className="flex flex-col items-center gap-4 text-center p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 rounded-lg">
-                <div className="rounded-full bg-green-100 dark:bg-green-900/50 p-4">
-                  <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
-                </div>
+                <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
                 <div>
                   <h3 className="font-semibold text-green-800 dark:text-green-200">Payment Successful!</h3>
-                  <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-                    Redirecting to dashboard...
-                  </p>
+                  <p className="text-sm text-green-700 dark:text-green-300 mt-1">Redirecting to dashboard...</p>
                 </div>
               </div>
             ) : (
-              <Button 
-                className="w-full" 
+              <Button
+                className="w-full"
                 size="lg"
                 onClick={handlePayment}
                 disabled={processing || dueStatus.due_balance <= 0}
@@ -172,12 +229,11 @@ export default function PayDues() {
                 ) : (
                   <>
                     <CreditCard className="h-4 w-4 mr-2" />
-                    Pay ₹{dueStatus.due_balance.toLocaleString()}
+                    Pay Now
                   </>
                 )}
               </Button>
             )}
-
             {user && (
               <p className="text-xs text-center text-muted-foreground">
                 Paying as: {user.name} ({user.phone})
@@ -186,6 +242,6 @@ export default function PayDues() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }

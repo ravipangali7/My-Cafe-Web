@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Eye, Edit, Trash2, ShoppingCart, IndianRupee, Download, Clock, CheckCircle, XCircle, Play, Coffee, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -49,6 +49,8 @@ interface OrderStats {
 
 export default function OrdersList() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const statusFromUrl = searchParams.get('status') || '';
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -59,6 +61,7 @@ export default function OrdersList() {
   const [appliedSearch, setAppliedSearch] = useState('');
   const [userId, setUserId] = useState<number | null>(null);
   const [appliedUserId, setAppliedUserId] = useState<number | null>(null);
+  const [appliedStatus, setAppliedStatus] = useState<string>(statusFromUrl);
   const [dateFilter, setDateFilter] = useState<DateFilterType>('all');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
@@ -97,7 +100,9 @@ export default function OrdersList() {
       if (appliedUserId && user.is_superuser) {
         params.user_id = appliedUserId;
       }
-      
+      if (appliedStatus) {
+        params.status = appliedStatus;
+      }
       if (appliedStartDate) {
         params.start_date = appliedStartDate;
       }
@@ -119,7 +124,7 @@ export default function OrdersList() {
     } finally {
       setLoading(false);
     }
-  }, [user, page, pageSize, appliedSearch, appliedUserId, appliedStartDate, appliedEndDate]);
+  }, [user, page, pageSize, appliedSearch, appliedUserId, appliedStatus, appliedStartDate, appliedEndDate]);
 
   const handleDownloadInvoice = useCallback(async (orderId: number, e?: React.MouseEvent) => {
     if (e) {
@@ -170,6 +175,10 @@ export default function OrdersList() {
       setLoadingStats(false);
     }
   }, [user, appliedUserId, appliedStartDate, appliedEndDate]);
+
+  useEffect(() => {
+    setAppliedStatus(statusFromUrl);
+  }, [statusFromUrl]);
 
   useEffect(() => {
     if (user) {
@@ -294,13 +303,31 @@ export default function OrdersList() {
     },
   ];
 
+  const applyStatusFilter = (status: string) => {
+    setAppliedStatus(status);
+    setPage(1);
+    if (status) {
+      setSearchParams((p) => {
+        const next = new URLSearchParams(p);
+        next.set('status', status);
+        return next;
+      });
+    } else {
+      setSearchParams((p) => {
+        const next = new URLSearchParams(p);
+        next.delete('status');
+        return next;
+      });
+    }
+  };
+
   const statCards = [
-    { label: 'Total Orders', value: stats.total, icon: ShoppingCart, variant: 'default' as const },
-    { label: 'Pending', value: stats.pending || 0, icon: Clock, variant: 'warning' as const },
-    { label: 'Accepted', value: stats.accepted || 0, icon: CheckCircle, variant: 'info' as const },
-    { label: 'Running', value: stats.running || 0, icon: Play, variant: 'info' as const },
-    { label: 'Ready', value: stats.ready || 0, icon: Coffee, variant: 'success' as const },
-    { label: 'Rejected', value: stats.rejected || 0, icon: XCircle, variant: 'destructive' as const },
+    { label: 'Total Orders', value: stats.total, icon: ShoppingCart, variant: 'default' as const, onClick: () => applyStatusFilter('') },
+    { label: 'Pending', value: stats.pending || 0, icon: Clock, variant: 'warning' as const, onClick: () => applyStatusFilter('pending') },
+    { label: 'Accepted', value: stats.accepted || 0, icon: CheckCircle, variant: 'info' as const, onClick: () => applyStatusFilter('accepted') },
+    { label: 'Running', value: stats.running || 0, icon: Play, variant: 'info' as const, onClick: () => applyStatusFilter('running') },
+    { label: 'Ready', value: stats.ready || 0, icon: Coffee, variant: 'success' as const, onClick: () => applyStatusFilter('ready') },
+    { label: 'Rejected', value: stats.rejected || 0, icon: XCircle, variant: 'destructive' as const, onClick: () => applyStatusFilter('rejected') },
     { label: 'Total Revenue', value: formatCurrency(stats.revenue || '0'), icon: IndianRupee, variant: 'highlight' as const },
   ];
 

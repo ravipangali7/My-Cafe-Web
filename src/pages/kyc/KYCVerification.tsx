@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { api } from '@/lib/api';
+import { api, isWebView } from '@/lib/api';
+import { requestFileFromFlutter } from '@/lib/webview-upload';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Upload, FileText, CheckCircle, XCircle, Clock } from 'lucide-react';
@@ -36,7 +37,9 @@ export default function KYCVerification() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [documentType, setDocumentType] = useState<string>('');
   const [documentFile, setDocumentFile] = useState<File | null>(null);
+  const [documentUrl, setDocumentUrl] = useState<string | null>(null);
   const [documentPreview, setDocumentPreview] = useState<string | null>(null);
+  const [uploadingDocument, setUploadingDocument] = useState(false);
 
   const fetchKYCStatus = useCallback(async () => {
     // Wait for auth to finish loading before proceeding
@@ -108,11 +111,28 @@ export default function KYCVerification() {
       }
 
       setDocumentFile(file);
+      setDocumentUrl(null);
       const reader = new FileReader();
       reader.onloadend = () => {
         setDocumentPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleWebViewDocumentUpload = async () => {
+    if (!isWebView()) return;
+    setUploadingDocument(true);
+    try {
+      const url = await requestFileFromFlutter({ accept: 'image/*,application/pdf', field: 'kyc_document' });
+      setDocumentUrl(url);
+      setDocumentFile(null);
+      setDocumentPreview(url.startsWith('http') ? url : `${window.location.origin}${url.startsWith('/') ? '' : '/'}${url}`);
+      toast.success('Document selected');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to select document');
+    } finally {
+      setUploadingDocument(false);
     }
   };
 
@@ -124,7 +144,7 @@ export default function KYCVerification() {
       return;
     }
 
-    if (!documentFile) {
+    if (!documentFile && !documentUrl) {
       toast.error('Please upload a document');
       return;
     }
@@ -134,13 +154,13 @@ export default function KYCVerification() {
     try {
       const formData = new FormData();
       formData.append('kyc_document_type', documentType);
-      formData.append('kyc_document_file', documentFile);
+      if (documentFile) {
+        formData.append('kyc_document_file', documentFile);
+      } else if (documentUrl) {
+        formData.append('kyc_document_url', documentUrl);
+      }
 
-      const response = await api.post('/api/kyc/submit/', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      const response = await api.post('/api/kyc/submit/', formData, true);
 
       if (response.error) {
         toast.error(response.error || 'Failed to submit KYC documents');
@@ -309,13 +329,25 @@ export default function KYCVerification() {
 
                 <div className="space-y-2">
                   <Label htmlFor="document">Upload Document</Label>
-                  <Input
-                    id="document"
-                    type="file"
-                    accept="image/jpeg,image/jpg,image/png,application/pdf"
-                    onChange={handleDocumentChange}
-                    disabled={submitting}
-                  />
+                  {isWebView() ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleWebViewDocumentUpload}
+                      disabled={submitting || uploadingDocument}
+                    >
+                      {uploadingDocument ? 'Selecting...' : (documentPreview ? 'Change Document' : 'Select Document')}
+                    </Button>
+                  ) : (
+                    <Input
+                      id="document"
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,application/pdf"
+                      onChange={handleDocumentChange}
+                      disabled={submitting}
+                    />
+                  )}
                   <p className="text-xs text-muted-foreground">
                     Accepted formats: JPEG, PNG, PDF (Max 5MB)
                   </p>
@@ -335,7 +367,7 @@ export default function KYCVerification() {
                         <div className="flex items-center gap-2">
                           <FileText className="h-8 w-8 text-muted-foreground" />
                           <span className="text-sm text-muted-foreground">
-                            {documentFile?.name || 'Document uploaded'}
+                            {documentFile?.name || (documentUrl ? 'Document uploaded' : '')}
                           </span>
                         </div>
                       )}
@@ -343,7 +375,7 @@ export default function KYCVerification() {
                   </div>
                 )}
 
-                <Button type="submit" disabled={submitting || !documentType || !documentFile}>
+                <Button type="submit" disabled={submitting || !documentType || (!documentFile && !documentUrl)}>
                   {submitting ? (
                     <>
                       <Upload className="h-4 w-4 mr-2 animate-spin" />

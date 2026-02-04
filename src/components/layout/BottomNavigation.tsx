@@ -40,14 +40,14 @@ export function BottomNavigation() {
               key={item.path}
               to={item.path}
               className={cn(
-                'flex flex-col items-center justify-center gap-0.5 md:gap-1 flex-1 h-full transition-colors',
+                'flex flex-col items-center justify-center gap-0.5 md:gap-1 flex-1 h-full transition-colors rounded-lg',
                 isActive
-                  ? 'text-primary'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'text-primary bg-primary/10'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
               )}
             >
-              <Icon className={cn('h-4 w-4 md:h-5 md:w-5', isActive && 'text-primary')} />
-              <span className={cn('text-[10px] md:text-xs', isActive && 'font-semibold')}>
+              <Icon className={cn('h-4 w-4 md:h-5 md:w-5', isActive && 'text-primary drop-shadow-sm')} />
+              <span className={cn('text-[10px] md:text-xs', isActive && 'font-semibold text-primary')}>
                 {item.label}
               </span>
             </Link>
