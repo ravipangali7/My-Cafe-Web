@@ -173,3 +173,38 @@
   color: var(--invoice-text);
   font-size: 0.875rem;
 }
+
+/* Print: show only invoice card, preserve colors */
+@media print {
+  .invoice-no-print {
+    display: none !important;
+  }
+
+  .invoice-page {
+    background: #fff;
+    padding: 0;
+    min-height: auto;
+  }
+
+  .invoice-page .max-w-2xl {
+    max-width: 100%;
+    margin: 0;
+  }
+
+  .invoice-card {
+    box-shadow: none;
+    border-radius: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .invoice-footer-band {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+}

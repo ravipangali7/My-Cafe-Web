@@ -1,6 +1,5 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import html2pdf from 'html2pdf.js';
 import { Download, ArrowLeft, Store, Receipt } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -55,8 +54,6 @@ export default function PublicInvoicePage() {
   const [invoiceData, setInvoiceData] = useState<InvoiceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [downloading, setDownloading] = useState(false);
-  const invoiceRef = useRef<HTMLDivElement>(null);
 
   const fetchInvoice = useCallback(async () => {
     if (!orderId || !token) {
@@ -99,29 +96,10 @@ export default function PublicInvoicePage() {
     fetchInvoice();
   }, [fetchInvoice]);
 
-  const handleDownload = useCallback(async () => {
-    if (!invoiceRef.current || !orderId) return;
-
-    setDownloading(true);
-    try {
-      const filename = `invoice_order_${orderId}.pdf`;
-      await html2pdf()
-        .set({
-          margin: 10,
-          filename,
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale: 2 },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        })
-        .from(invoiceRef.current)
-        .save();
-    } catch (err) {
-      console.error('Download failed:', err);
-      toast.error(err instanceof Error ? err.message : 'Failed to download invoice');
-    } finally {
-      setDownloading(false);
-    }
-  }, [orderId]);
+  const handlePrint = useCallback(() => {
+    window.print();
+    toast.info("Choose 'Save as PDF' or 'Microsoft Print to PDF' as the destination to save the invoice.");
+  }, []);
 
   if (loading) {
     return (
@@ -164,21 +142,20 @@ export default function PublicInvoicePage() {
   return (
     <div className="invoice-page min-h-screen p-4 md:p-8">
       <div className="max-w-2xl mx-auto">
-        {/* Download button - top right */}
-        <div className="flex justify-end mb-6">
+        {/* Download button - top right (hidden when printing) */}
+        <div className="invoice-no-print flex justify-end mb-6">
           <Button
-            onClick={handleDownload}
-            disabled={downloading}
+            onClick={handlePrint}
             size="lg"
             className="bg-[#333] hover:bg-[#222] text-white"
           >
             <Download className="h-4 w-4 mr-2" />
-            {downloading ? 'Downloading...' : 'Download PDF'}
+            Download PDF
           </Button>
         </div>
 
-        {/* Invoice content card - captured for PDF download */}
-        <div ref={invoiceRef} className="invoice-card bg-[var(--invoice-bg)] rounded-lg shadow-md overflow-hidden">
+        {/* Invoice content card - printed as-is */}
+        <div className="invoice-card bg-[var(--invoice-bg)] rounded-lg shadow-md overflow-hidden">
           {/* Header: vendor logo top-left, INVOICE prominent top-right */}
           <div className="invoice-header px-6 md:px-8 pt-6 pb-4 flex flex-row justify-between items-center gap-4">
             <div className="invoice-logo-ring flex-shrink-0">
@@ -351,16 +328,15 @@ export default function PublicInvoicePage() {
           <div className="invoice-footer-band mt-6" />
         </div>
 
-        {/* Secondary download button */}
-        <div className="flex justify-center pt-6">
+        {/* Secondary download button (hidden when printing) */}
+        <div className="invoice-no-print flex justify-center pt-6">
           <Button
-            onClick={handleDownload}
-            disabled={downloading}
+            onClick={handlePrint}
             size="lg"
             className="min-w-[200px] bg-[#333] hover:bg-[#222] text-white"
           >
             <Download className="h-4 w-4 mr-2" />
-            {downloading ? 'Downloading...' : 'Download Invoice'}
+            Download Invoice
           </Button>
         </div>
       </div>
