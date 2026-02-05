@@ -102,7 +102,7 @@ export default function PublicInvoicePage() {
     setDownloading(true);
     try {
       const url = `${API_BASE_URL}/api/invoices/public/${orderId}/${token}/download/`;
-      window.location.href = url;
+      window.open(url, '_blank');
     } catch (err) {
       console.error('Download failed:', err);
     } finally {

@@ -7,7 +7,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { DetailCard, DetailRow } from '@/components/ui/detail-card';
 import { StatusBadge, getOrderStatusVariant, getPaymentStatusVariant } from '@/components/ui/status-badge';
 import { DataTable } from '@/components/ui/data-table';
-import { api, downloadOrderInvoice, getPublicInvoiceUrl, openInBrowser, isWebView } from '@/lib/api';
+import { api, getPublicInvoiceUrl, openInBrowser, isWebView } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { canEditItem, canDeleteOrder } from '@/lib/permissions';
 import { toast } from 'sonner';
@@ -192,16 +192,17 @@ export default function OrderView() {
 
     setDownloadingInvoice(true);
     try {
+      const url = await getPublicInvoiceUrl(Number(id));
       if (isWebView()) {
-        const url = await getPublicInvoiceUrl(Number(id));
         openInBrowser(url);
         toast.success('Opening invoice in browser');
       } else {
-        await downloadOrderInvoice(Number(id));
-        toast.success('Invoice downloaded successfully');
+        // Redirect to invoice page (same app)
+        const path = new URL(url).pathname;
+        window.location.href = path;
       }
     } catch (error: any) {
-      toast.error(error.message || 'Failed to download invoice');
+      toast.error(error.message || 'Failed to open invoice');
     } finally {
       setDownloadingInvoice(false);
     }
