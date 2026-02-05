@@ -322,7 +322,7 @@ export default function PublicInvoicePage() {
             <div className="invoice-divider mt-0" />
           </div>
 
-          {/* Summary: Subtotal, Tax, Transaction charge (if any), Total */}
+          {/* Summary: Subtotal, Service charge, Transaction charge (if any), Total */}
           <div className="px-6 md:px-8 py-4 flex justify-end">
             <div className="w-full sm:w-56 space-y-1">
               <div className="flex justify-between invoice-body-text text-sm">
@@ -330,7 +330,7 @@ export default function PublicInvoicePage() {
                 <span>₹{subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between invoice-body-text text-sm">
-                <span>Tax ({taxPercent}%)</span>
+                <span>Service Charge ({taxPercent}%)</span>
                 <span>₹{taxAmount.toFixed(2)}</span>
               </div>
               {transactionCharge > 0 && (
