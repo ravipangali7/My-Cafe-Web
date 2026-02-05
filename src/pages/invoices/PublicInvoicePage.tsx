@@ -1,10 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { Download, ArrowLeft, Store, User, Calendar, Receipt, Package } from 'lucide-react';
+import { Download, ArrowLeft, Store, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { StatusBadge, getOrderStatusVariant, getPaymentStatusVariant } from '@/components/ui/status-badge';
-import { Separator } from '@/components/ui/separator';
+import { Card, CardContent } from '@/components/ui/card';
+import './PublicInvoicePage.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -96,15 +95,13 @@ export default function PublicInvoicePage() {
 
   const handleDownload = useCallback(async () => {
     if (!orderId || !token) return;
-    
+
     setDownloading(true);
     try {
       const url = `${API_BASE_URL}/api/invoices/public/${orderId}/${token}/download/`;
-      
-      // Open in new window to trigger download
       window.open(url, '_blank');
-    } catch (error) {
-      console.error('Download failed:', error);
+    } catch (err) {
+      console.error('Download failed:', err);
     } finally {
       setDownloading(false);
     }
@@ -112,23 +109,20 @@ export default function PublicInvoicePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
-        <div className="animate-pulse text-muted-foreground">Loading invoice...</div>
+      <div className="invoice-page min-h-screen flex items-center justify-center p-4">
+        <div className="animate-pulse invoice-body-text">Loading invoice...</div>
       </div>
     );
   }
 
   if (error || !invoiceData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
+      <div className="invoice-page min-h-screen flex items-center justify-center p-4">
         <Card className="max-w-md w-full">
           <CardContent className="p-6 text-center">
-            <Receipt className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <Receipt className="h-12 w-12 mx-auto mb-4 text-[#333]" />
             <p className="text-destructive font-medium mb-4">{error || 'Invoice not found'}</p>
-            <Button
-              variant="outline"
-              onClick={() => window.history.back()}
-            >
+            <Button variant="outline" onClick={() => window.history.back()}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Go back
             </Button>
@@ -139,193 +133,182 @@ export default function PublicInvoicePage() {
   }
 
   const { invoice, order, items, vendor } = invoiceData;
+  const subtotal = items.reduce((sum, i) => sum + parseFloat(i.total), 0);
+  const taxPercent = 0;
+  const taxAmount = 0;
+  const total = parseFloat(order.total);
+  const orderDate = new Date(order.created_at).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted p-4 md:p-8">
-      <div className="max-w-3xl mx-auto space-y-6">
-        {/* Header with Download Button */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Invoice</h1>
-            <p className="text-muted-foreground text-sm">{invoice.invoice_number}</p>
-          </div>
-          <Button 
+    <div className="invoice-page min-h-screen p-4 md:p-8">
+      <div className="max-w-2xl mx-auto">
+        {/* Download button - top right */}
+        <div className="flex justify-end mb-6">
+          <Button
             onClick={handleDownload}
             disabled={downloading}
             size="lg"
-            className="w-full sm:w-auto"
+            className="bg-[#333] hover:bg-[#222] text-white"
           >
             <Download className="h-4 w-4 mr-2" />
             {downloading ? 'Downloading...' : 'Download PDF'}
           </Button>
         </div>
 
-        {/* Invoice Card */}
-        <Card className="shadow-lg">
-          <CardHeader className="bg-primary/5 border-b">
-            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-              {/* Vendor Info */}
-              <div className="flex items-start gap-3">
-                {vendor?.logo_url ? (
-                  <img 
-                    src={vendor.logo_url} 
-                    alt={vendor.name} 
-                    className="h-16 w-16 rounded-lg object-cover border"
-                  />
-                ) : (
-                  <div className="h-16 w-16 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Store className="h-8 w-8 text-primary" />
-                  </div>
-                )}
-                <div>
-                  <h2 className="font-semibold text-lg">{vendor?.name || 'Vendor'}</h2>
-                  {vendor?.phone && (
-                    <p className="text-sm text-muted-foreground">{vendor.phone}</p>
-                  )}
-                  {vendor?.address && (
-                    <p className="text-sm text-muted-foreground">{vendor.address}</p>
-                  )}
+        {/* Invoice content card */}
+        <div className="bg-[#F8F7F2] rounded-sm shadow-sm overflow-hidden">
+          {/* Header: centered logo + Invoice title */}
+          <div className="pt-8 pb-4 flex flex-col items-center">
+            <div className="invoice-logo-ring mb-4">
+              {vendor?.logo_url ? (
+                <img
+                  src={vendor.logo_url}
+                  alt={vendor.name}
+                  className="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-[#cc9999]/20 flex items-center justify-center">
+                  <Store className="w-10 h-10 text-[#cc9999]" />
                 </div>
+              )}
+            </div>
+            {vendor?.name && (
+              <div className="invoice-logo-banner mb-3">
+                {vendor.name.toUpperCase()}
               </div>
+            )}
+            <h1 className="invoice-title">Invoice</h1>
+            <p className="text-xs invoice-body-text mt-1">{invoice.invoice_number}</p>
+          </div>
 
-              {/* Order Info */}
+          {/* INVOICE FROM | INVOICE TO */}
+          <div className="px-6 md:px-8 pb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div>
+                <p className="invoice-heading mb-2">Invoice from</p>
+                <p className="font-semibold invoice-body-text">{vendor?.name || 'Vendor'}</p>
+                {vendor?.phone && (
+                  <p className="invoice-body-text text-sm">{vendor.phone}</p>
+                )}
+                {vendor?.address && (
+                  <p className="invoice-body-text text-sm">{vendor.address}</p>
+                )}
+              </div>
               <div className="text-left sm:text-right">
-                <p className="text-sm text-muted-foreground">Order #{order.id}</p>
-                <p className="text-sm text-muted-foreground flex items-center sm:justify-end gap-1">
-                  <Calendar className="h-3 w-3" />
-                  {new Date(order.created_at).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                  })}
+                <p className="invoice-heading mb-2">Invoice to</p>
+                <p className="font-semibold invoice-body-text">
+                  {order.customer_name || 'Customer'}
                 </p>
-                <div className="flex gap-2 mt-2">
-                  <StatusBadge 
-                    status={order.status} 
-                    variant={getOrderStatusVariant(order.status)} 
-                  />
-                </div>
-              </div>
-            </div>
-          </CardHeader>
-
-          <CardContent className="p-6 space-y-6">
-            {/* Customer Info */}
-            {(order.customer_name || order.customer_phone) && (
-              <div className="bg-muted/50 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium text-sm">Bill To</span>
-                </div>
-                {order.customer_name && (
-                  <p className="text-foreground">{order.customer_name}</p>
-                )}
                 {order.customer_phone && (
-                  <p className="text-sm text-muted-foreground">{order.customer_phone}</p>
+                  <p className="invoice-body-text text-sm">{order.customer_phone}</p>
                 )}
+                <p className="invoice-body-text text-sm">
+                  {order.customer_name || order.customer_phone ? '—' : ''}
+                </p>
               </div>
-            )}
+            </div>
+            <div className="invoice-divider my-4" />
+          </div>
 
-            {/* Items Table */}
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <Package className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">Items</span>
-              </div>
-              
-              {/* Desktop Table */}
-              <div className="hidden sm:block overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b bg-muted/30">
-                      <th className="text-left p-3 text-sm font-medium text-muted-foreground">Item</th>
-                      <th className="text-center p-3 text-sm font-medium text-muted-foreground">Qty</th>
-                      <th className="text-right p-3 text-sm font-medium text-muted-foreground">Price</th>
-                      <th className="text-right p-3 text-sm font-medium text-muted-foreground">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((item) => (
-                      <tr key={item.id} className="border-b last:border-0">
-                        <td className="p-3">
-                          <p className="font-medium">{item.product_name}</p>
-                          {item.variant?.unit_name && (
-                            <p className="text-xs text-muted-foreground">
-                              {item.variant?.unit_value != null ? `${item.variant.unit_value} ` : ''}{item.variant.unit_name}
-                            </p>
-                          )}
-                        </td>
-                        <td className="p-3 text-center">{item.quantity}</td>
-                        <td className="p-3 text-right">₹{parseFloat(item.price).toFixed(2)}</td>
-                        <td className="p-3 text-right font-medium">₹{parseFloat(item.total).toFixed(2)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Mobile Cards */}
-              <div className="sm:hidden space-y-3">
+          {/* Table: DESCRIPTION, QTY, PRICE, TOTAL */}
+          <div className="px-6 md:px-8">
+            <div className="invoice-divider mb-0" />
+            <table className="invoice-table w-full">
+              <thead>
+                <tr>
+                  <th className="text-left py-3 pr-4">Description</th>
+                  <th className="text-right py-3 px-2">Qty</th>
+                  <th className="text-right py-3 px-2">Price</th>
+                  <th className="text-right py-3 pl-4">Total</th>
+                </tr>
+              </thead>
+              <tbody>
                 {items.map((item) => (
-                  <div key={item.id} className="bg-muted/30 rounded-lg p-3">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <p className="font-medium">{item.product_name}</p>
-                        {item.variant?.unit_name && (
-                          <p className="text-xs text-muted-foreground">
-                            {item.variant?.unit_value != null ? `${item.variant.unit_value} ` : ''}{item.variant.unit_name}
-                          </p>
-                        )}
-                      </div>
-                      <span className="font-semibold">₹{parseFloat(item.total).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm text-muted-foreground">
-                      <span>₹{parseFloat(item.price).toFixed(2)} × {item.quantity}</span>
-                    </div>
-                  </div>
+                  <tr key={item.id} className="border-b border-[#e8e6e0]">
+                    <td className="py-3 pr-4 invoice-body-text">
+                      {item.product_name}
+                      {item.variant?.unit_name && (
+                        <span className="text-[#666]">
+                          {' '}
+                          ({item.variant.unit_value != null ? `${item.variant.unit_value} ` : ''}
+                          {item.variant.unit_name})
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3 px-2 text-right invoice-body-text">
+                      {item.quantity}
+                    </td>
+                    <td className="py-3 px-2 text-right invoice-body-text">
+                      ₹{parseFloat(item.price).toFixed(2)}
+                    </td>
+                    <td className="py-3 pl-4 text-right invoice-body-text">
+                      ₹{parseFloat(item.total).toFixed(2)}
+                    </td>
+                  </tr>
                 ))}
+              </tbody>
+            </table>
+            <div className="invoice-divider mt-0" />
+          </div>
+
+          {/* Summary: Subtotal, Tax, Total */}
+          <div className="px-6 md:px-8 py-4 flex justify-end">
+            <div className="w-full sm:w-56 space-y-1">
+              <div className="flex justify-between invoice-body-text text-sm">
+                <span>Subtotal</span>
+                <span>₹{subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between invoice-body-text text-sm">
+                <span>Tax ({taxPercent}%)</span>
+                <span>₹{taxAmount.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between font-bold invoice-body-text pt-2 text-base border-t border-[#cc9999]">
+                <span>Total</span>
+                <span>₹{total.toFixed(2)}</span>
               </div>
             </div>
+          </div>
 
-            <Separator />
-
-            {/* Total */}
-            <div className="flex justify-between items-center">
-              <span className="text-lg font-semibold">Total</span>
-              <span className="text-2xl font-bold text-primary">
-                ₹{parseFloat(order.total).toFixed(2)}
-              </span>
+          {/* TERMS & CONDITIONS | PAYMENT METHOD */}
+          <div className="invoice-divider mx-6 md:mx-8" />
+          <div className="px-6 md:px-8 py-4 grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div>
+              <p className="invoice-heading mb-2">Terms &amp; conditions</p>
+              <p className="invoice-body-text text-sm">
+                {order.remarks || 'Thank you for your order.'}
+              </p>
             </div>
+            <div className="text-left sm:text-right">
+              <p className="invoice-heading mb-2">Payment method</p>
+              <p className="invoice-body-text text-sm">
+                {order.payment_method ? (
+                  <>
+                    Payment: {order.payment_method}
+                    <br />
+                    Date: {orderDate}
+                  </>
+                ) : (
+                  `Date: ${orderDate}`
+                )}
+              </p>
+            </div>
+          </div>
 
-            {/* Payment Method */}
-            {order.payment_method && (
-              <div className="text-sm text-muted-foreground">
-                Payment Method: <span className="capitalize">{order.payment_method}</span>
-              </div>
-            )}
+          {/* Footer band - olive green */}
+          <div className="invoice-footer-band mt-6" />
+        </div>
 
-            {/* Remarks */}
-            {order.remarks && (
-              <div className="bg-muted/50 rounded-lg p-4">
-                <p className="text-sm font-medium mb-1">Remarks</p>
-                <p className="text-sm text-muted-foreground">{order.remarks}</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Footer */}
-        <p className="text-center text-xs text-muted-foreground">
-          Generated on {new Date(invoice.generated_at).toLocaleString()}
-        </p>
-
-        {/* Download Invoice button at bottom */}
+        {/* Secondary download button */}
         <div className="flex justify-center pt-6">
           <Button
             onClick={handleDownload}
             disabled={downloading}
             size="lg"
-            className="min-w-[200px]"
+            className="min-w-[200px] bg-[#333] hover:bg-[#222] text-white"
           >
             <Download className="h-4 w-4 mr-2" />
             {downloading ? 'Downloading...' : 'Download Invoice'}

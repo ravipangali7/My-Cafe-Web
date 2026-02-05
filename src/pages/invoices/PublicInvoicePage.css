@@ -1,0 +1,73 @@
+/* Invoice page – design matching reference image */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap');
+
+.invoice-page {
+  --invoice-bg: #f8f7f2;
+  --invoice-accent: #cc9999;
+  --invoice-footer: #8c9c66;
+  --invoice-text: #333333;
+}
+
+.invoice-page {
+  background-color: var(--invoice-bg);
+  min-height: 100vh;
+}
+
+.invoice-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+  font-size: 2.5rem;
+  color: var(--invoice-text);
+  text-align: center;
+}
+
+.invoice-heading {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--invoice-text);
+  text-transform: uppercase;
+}
+
+.invoice-divider {
+  height: 1px;
+  background-color: var(--invoice-accent);
+}
+
+.invoice-footer-band {
+  height: 28px;
+  background-color: var(--invoice-footer);
+  width: 100%;
+}
+
+.invoice-logo-ring {
+  border: 2px solid var(--invoice-accent);
+  border-radius: 50%;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.invoice-logo-banner {
+  background-color: var(--invoice-accent);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 4px 12px;
+  text-transform: uppercase;
+}
+
+.invoice-table th {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--invoice-text);
+  text-transform: uppercase;
+}
+
+.invoice-body-text {
+  color: var(--invoice-text);
+  font-size: 0.875rem;
+}
