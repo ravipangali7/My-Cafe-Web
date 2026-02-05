@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { StatusBadge } from '@/components/ui/status-badge';
+import { StatusBadge, getOrderStatusVariant } from '@/components/ui/status-badge';
 import { VendorInfoCell } from '@/components/ui/vendor-info-cell';
 import { PremiumStatsCard, formatCurrency } from '@/components/ui/premium-stats-card';
 import { Badge } from '@/components/ui/badge';
@@ -345,7 +345,7 @@ export default function TransactionView() {
                   <DetailRow label="Phone" value={transaction.order_info.phone} />
                   <DetailRow label="Table" value={transaction.order_info.table_no} show={!!transaction.order_info.table_no} />
                   <DetailRow label="Order Status" value={
-                    <StatusBadge status={transaction.order_info.status} variant={getStatusVariant(transaction.order_info.status)} />
+                    <StatusBadge status={transaction.order_info.status} variant={getOrderStatusVariant(transaction.order_info.status)} />
                   } />
                   <DetailRow label="Order Total" value={formatCurrency(transaction.order_info.total)} />
                 </CardContent>
@@ -376,7 +376,7 @@ export default function TransactionView() {
                   <DetailRow label="Quantity" value={transaction.qr_stand_order_info.quantity} />
                   <DetailRow label="Total Price" value={formatCurrency(transaction.qr_stand_order_info.total_price)} />
                   <DetailRow label="Status" value={
-                    <StatusBadge status={transaction.qr_stand_order_info.order_status} variant={getStatusVariant(transaction.qr_stand_order_info.order_status)} />
+                    <StatusBadge status={transaction.qr_stand_order_info.order_status} variant={getOrderStatusVariant(transaction.qr_stand_order_info.order_status)} />
                   } />
                 </CardContent>
               </Card>

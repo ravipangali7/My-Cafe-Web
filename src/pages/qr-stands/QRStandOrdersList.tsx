@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/ui/page-header';
 import { PremiumTable, MobileCardRow } from '@/components/ui/premium-table';
-import { StatusBadge } from '@/components/ui/status-badge';
+import { StatusBadge, getOrderStatusVariant, getPaymentStatusVariant } from '@/components/ui/status-badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FilterBar } from '@/components/ui/filter-bar';
 import { DateFilterButtons, DateFilterType } from '@/components/ui/date-filter-buttons';
@@ -167,33 +167,6 @@ export default function QRStandOrdersList() {
       }
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete order');
-    }
-  };
-
-  const getOrderStatusVariant = (status: string): 'success' | 'warning' | 'default' | 'destructive' => {
-    switch (status) {
-      case 'delivered':
-        return 'success';
-      case 'accepted':
-        return 'default';
-      case 'saved':
-        return 'warning';
-      case 'pending':
-      default:
-        return 'warning';
-    }
-  };
-
-  const getPaymentStatusVariant = (status: string): 'success' | 'warning' | 'destructive' | 'default' => {
-    switch (status) {
-      case 'paid':
-        return 'success';
-      case 'pending':
-        return 'warning';
-      case 'failed':
-        return 'destructive';
-      default:
-        return 'default';
     }
   };
 

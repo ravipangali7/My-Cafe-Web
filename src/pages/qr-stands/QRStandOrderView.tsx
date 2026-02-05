@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/ui/page-header';
 import { DetailCard, DetailRow } from '@/components/ui/detail-card';
-import { StatusBadge } from '@/components/ui/status-badge';
+import { StatusBadge, getOrderStatusVariant, getPaymentStatusVariant } from '@/components/ui/status-badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
@@ -63,33 +63,6 @@ export default function QRStandOrderView() {
       fetchOrder();
     }
   }, [user, fetchOrder]);
-
-  const getOrderStatusVariant = (status: string) => {
-    switch (status) {
-      case 'delivered':
-        return 'success';
-      case 'accepted':
-        return 'default';
-      case 'saved':
-        return 'warning';
-      case 'pending':
-      default:
-        return 'warning';
-    }
-  };
-
-  const getPaymentStatusVariant = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return 'success';
-      case 'pending':
-        return 'warning';
-      case 'failed':
-        return 'destructive';
-      default:
-        return 'default';
-    }
-  };
 
   const handleStatusChange = async (field: 'order_status' | 'payment_status', value: string) => {
     if (!order || !user?.is_superuser || updating) return;

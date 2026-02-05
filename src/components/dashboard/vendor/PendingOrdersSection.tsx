@@ -7,7 +7,7 @@ import {
   MobileCardContent,
   MobileCardRow,
 } from '@/components/ui/premium-table';
-import { StatusBadge } from '@/components/ui/status-badge';
+import { StatusBadge, getOrderStatusVariant } from '@/components/ui/status-badge';
 import { Eye, ShoppingCart, QrCode } from 'lucide-react';
 import { PendingOrder, PendingQROrder } from '@/lib/types';
 import { formatCurrency } from '@/components/ui/premium-stats-card';
@@ -111,7 +111,7 @@ export function PendingOrdersSection({
       key: 'order_status',
       label: 'Status',
       render: (item: PendingQROrder) => (
-        <StatusBadge status={item.order_status} />
+        <StatusBadge status={item.order_status} variant={getOrderStatusVariant(item.order_status)} />
       ),
     },
     {
@@ -164,7 +164,7 @@ export function PendingOrdersSection({
       </MobileCardHeader>
       <MobileCardContent>
         <MobileCardRow label="Price" value={formatCurrency(item.total_price)} />
-        <MobileCardRow label="Status" value={<StatusBadge status={item.order_status} />} />
+        <MobileCardRow label="Status" value={<StatusBadge status={item.order_status} variant={getOrderStatusVariant(item.order_status)} />} />
         <MobileCardRow label="Time" value={formatTimeAgo(item.created_at)} />
       </MobileCardContent>
     </>

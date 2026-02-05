@@ -8,7 +8,7 @@ import {
   MobileCardContent,
   MobileCardRow,
 } from '@/components/ui/premium-table';
-import { StatusBadge } from '@/components/ui/status-badge';
+import { StatusBadge, getOrderStatusVariant } from '@/components/ui/status-badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { PendingQROrder, PendingKYCRequest, ShareholderWithdrawal } from '@/lib/types';
 import { formatCurrency } from '@/components/ui/premium-stats-card';
@@ -87,7 +87,7 @@ export function SystemPendingTables({
     {
       key: 'order_status',
       label: 'Status',
-      render: (item: PendingQROrder) => <StatusBadge status={item.order_status} size="sm" />,
+      render: (item: PendingQROrder) => <StatusBadge status={item.order_status} variant={getOrderStatusVariant(item.order_status)} size="sm" />,
     },
   ];
 
