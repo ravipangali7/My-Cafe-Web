@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { Download, ArrowLeft, Store, Receipt } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import './PublicInvoicePage.css';
@@ -102,9 +103,45 @@ export default function PublicInvoicePage() {
     setDownloading(true);
     try {
       const url = `${API_BASE_URL}/api/invoices/public/${orderId}/${token}/download/`;
-      window.open(url, '_blank');
+      const response = await fetch(url, { credentials: 'omit' });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let message = 'Failed to download invoice';
+        try {
+          const json = JSON.parse(errorText);
+          if (json?.error) message = json.error;
+        } catch {
+          if (response.status === 403) message = 'Invalid or expired invoice link';
+          else if (response.status === 404) message = 'Invoice not found';
+        }
+        toast.error(message);
+        return;
+      }
+
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/pdf')) {
+        toast.error('Server did not return a PDF. Please try again.');
+        return;
+      }
+
+      const blob = await response.blob();
+      if (blob.size < 100) {
+        toast.error('Downloaded file is empty or invalid. Please try again.');
+        return;
+      }
+
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `invoice_order_${orderId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
     } catch (err) {
       console.error('Download failed:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to download invoice');
     } finally {
       setDownloading(false);
     }
