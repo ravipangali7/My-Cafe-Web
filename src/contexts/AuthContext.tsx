@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
-import { api } from '@/lib/api';
+import { api, isWebView } from '@/lib/api';
 import { getFCMTokenOnly } from '@/lib/fcm';
+import { requestFCMTokenFromFlutterForLogout } from '@/lib/webview-fcm';
 
 interface User {
   id: number;
@@ -118,16 +119,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     try {
       let fcmToken: string | null = null;
-      try {
-        fcmToken = await getFCMTokenOnly();
-      } catch {
-        // Ignore; logout still proceeds without removing a token
+      if (isWebView()) {
+        fcmToken = await requestFCMTokenFromFlutterForLogout();
+      } else {
+        try {
+          fcmToken = await getFCMTokenOnly();
+        } catch {
+          // Ignore; logout still proceeds without removing a token
+        }
       }
-      await api.post('/api/auth/logout/', fcmToken ? { fcm_token: fcmToken } : {});
+      const response = await api.post<{ message: string }>(
+        '/api/auth/logout/',
+        fcmToken ? { fcm_token: fcmToken } : {}
+      );
+      if (response.error || (response.status !== undefined && response.status >= 400)) {
+        console.error('Logout error:', response.error ?? response.status);
+        return;
+      }
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+      } catch {
+        // Ignore storage clear failures
+      }
       setUser(null);
     } catch (error) {
       console.error('Logout error:', error);
-      setUser(null);
+      // Do not clear state on failure; user remains logged in
     }
   }, []);
 
