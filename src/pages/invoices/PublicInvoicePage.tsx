@@ -98,19 +98,51 @@ export default function PublicInvoicePage() {
   }, [fetchInvoice]);
 
   const handleDownload = useCallback(async () => {
-    if (!orderId || !token) return;
+    if (!orderId || !token || !invoiceData) return;
 
     setDownloading(true);
     try {
       const url = `${API_BASE_URL}/api/invoices/public/${orderId}/${token}/download/`;
-      const response = await fetch(url, { credentials: 'omit' });
+      const { invoice, order, items, vendor } = invoiceData;
+      const subtotal = items.reduce((sum, i) => sum + parseFloat(i.total), 0);
+      const taxPercent = 0;
+      const taxAmount = 0;
+      const transactionCharge = order.transaction_charge != null ? parseFloat(order.transaction_charge) : 0;
+      const total = parseFloat(order.total);
+      const customerNumber = order.customer_number ?? `Order #${order.id}`;
+      const orderDate = new Date(order.created_at).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      });
+
+      const payload = {
+        invoice,
+        order,
+        items,
+        vendor,
+        subtotal,
+        taxPercent,
+        taxAmount,
+        transactionCharge,
+        total,
+        customerNumber,
+        orderDate,
+      };
+
+      const response = await fetch(url, {
+        method: 'POST',
+        credentials: 'omit',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
       if (!response.ok) {
         const errorText = await response.text();
         let message = 'Failed to download invoice';
         try {
-          const json = JSON.parse(errorText);
-          if (json?.error) message = json.error;
+          const errJson = JSON.parse(errorText);
+          if (errJson?.error) message = errJson.error;
         } catch {
           if (response.status === 403) message = 'Invalid or expired invoice link';
           else if (response.status === 404) message = 'Invoice not found';
@@ -145,7 +177,7 @@ export default function PublicInvoicePage() {
     } finally {
       setDownloading(false);
     }
-  }, [orderId, token]);
+  }, [orderId, token, invoiceData]);
 
   if (loading) {
     return (
