@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { api } from '@/lib/api';
+import { getFCMTokenOnly } from '@/lib/fcm';
 
 interface User {
   id: number;
@@ -116,7 +117,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     try {
-      await api.get('/api/auth/logout/');
+      let fcmToken: string | null = null;
+      try {
+        fcmToken = await getFCMTokenOnly();
+      } catch {
+        // Ignore; logout still proceeds without removing a token
+      }
+      await api.post('/api/auth/logout/', fcmToken ? { fcm_token: fcmToken } : {});
       setUser(null);
     } catch (error) {
       console.error('Logout error:', error);
