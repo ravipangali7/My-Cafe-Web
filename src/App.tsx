@@ -1,6 +1,7 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { WelcomeLoading } from "@/components/ui/welcome-loading";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
@@ -259,11 +260,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }, [user, loading]);
 
   if (loading || checking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
-      </div>
-    );
+    return <WelcomeLoading />;
   }
 
   // Never redirect to login for public invoice path (defensive: invoice route is already outside ProtectedRoute)
@@ -305,11 +302,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
-      </div>
-    );
+    return <WelcomeLoading />;
   }
 
   if (user) {
