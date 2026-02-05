@@ -192,8 +192,6 @@ export default function PublicInvoicePage() {
 
   const { invoice, order, items, vendor } = invoiceData;
   const subtotal = items.reduce((sum, i) => sum + parseFloat(i.total), 0);
-  const taxPercent = 0;
-  const taxAmount = 0;
   const transactionCharge = order.transaction_charge != null ? parseFloat(order.transaction_charge) : 0;
   const total = parseFloat(order.total);
   const customerNumber = order.customer_number ?? `Order #${order.id}`;
@@ -206,6 +204,12 @@ export default function PublicInvoicePage() {
   return (
     <div className="invoice-page min-h-screen p-4 md:p-8">
       <div className="max-w-2xl mx-auto">
+        <div className="invoice-no-print flex justify-start mb-4">
+          <Button variant="outline" onClick={() => window.history.back()}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Go back
+          </Button>
+        </div>
         {/* Invoice content card - printed as-is */}
         <div ref={invoiceCardRef} className="invoice-card bg-[var(--invoice-bg)] rounded-lg shadow-md overflow-hidden">
           {/* Header: vendor logo top-left, INVOICE prominent top-right */}
@@ -327,7 +331,7 @@ export default function PublicInvoicePage() {
             <div className="invoice-divider mt-0" />
           </div>
 
-          {/* Summary: Subtotal, Service charge, Transaction charge (if any), Total */}
+          {/* Summary: Subtotal, Service charge (fixed Rs), Total */}
           <div className="px-6 md:px-8 py-4 flex justify-end">
             <div className="w-full sm:w-56 space-y-1">
               <div className="flex justify-between invoice-body-text text-sm">
@@ -335,15 +339,9 @@ export default function PublicInvoicePage() {
                 <span>₹{subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between invoice-body-text text-sm">
-                <span>Service Charge ({taxPercent}%)</span>
-                <span>₹{taxAmount.toFixed(2)}</span>
+                <span>Service charge</span>
+                <span>₹{transactionCharge.toFixed(2)}</span>
               </div>
-              {transactionCharge > 0 && (
-                <div className="flex justify-between invoice-body-text text-sm">
-                  <span>Transaction charge</span>
-                  <span>₹{transactionCharge.toFixed(2)}</span>
-                </div>
-              )}
               <div className="flex justify-between font-bold invoice-body-text pt-2 text-base border-t border-[var(--invoice-accent)]">
                 <span>Total</span>
                 <span>₹{total.toFixed(2)}</span>
