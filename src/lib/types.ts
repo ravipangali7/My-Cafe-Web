@@ -16,7 +16,7 @@ export interface User {
   subscription_end_date: string | null;
   // New fields
   address: string;
-  ug_client_transaction_id: string | null;
+  ug_api: string | null;
   balance: number;
   due_balance: number;
   is_shareholder: boolean;
@@ -32,7 +32,7 @@ export interface SuperSetting {
   per_qr_stand_price: number;
   subscription_fee_per_month: number;
   // New fields
-  ug_client_transaction_id: string | null;
+  ug_api: string | null;
   per_transaction_fee: number;
   is_subscription_fee: boolean;
   due_threshold: number;
