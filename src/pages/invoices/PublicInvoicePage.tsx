@@ -1,5 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
+import html2pdf from 'html2pdf.js';
 import { Download, ArrowLeft, Store, Receipt } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -55,6 +56,7 @@ export default function PublicInvoicePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const invoiceRef = useRef<HTMLDivElement>(null);
 
   const fetchInvoice = useCallback(async () => {
     if (!orderId || !token) {
@@ -98,86 +100,28 @@ export default function PublicInvoicePage() {
   }, [fetchInvoice]);
 
   const handleDownload = useCallback(async () => {
-    if (!orderId || !token || !invoiceData) return;
+    if (!invoiceRef.current || !orderId) return;
 
     setDownloading(true);
     try {
-      const url = `${API_BASE_URL}/api/invoices/public/${orderId}/${token}/download/`;
-      const { invoice, order, items, vendor } = invoiceData;
-      const subtotal = items.reduce((sum, i) => sum + parseFloat(i.total), 0);
-      const taxPercent = 0;
-      const taxAmount = 0;
-      const transactionCharge = order.transaction_charge != null ? parseFloat(order.transaction_charge) : 0;
-      const total = parseFloat(order.total);
-      const customerNumber = order.customer_number ?? `Order #${order.id}`;
-      const orderDate = new Date(order.created_at).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      });
-
-      const payload = {
-        invoice,
-        order,
-        items,
-        vendor,
-        subtotal,
-        taxPercent,
-        taxAmount,
-        transactionCharge,
-        total,
-        customerNumber,
-        orderDate,
-      };
-
-      const response = await fetch(url, {
-        method: 'POST',
-        credentials: 'omit',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        let message = 'Failed to download invoice';
-        try {
-          const errJson = JSON.parse(errorText);
-          if (errJson?.error) message = errJson.error;
-        } catch {
-          if (response.status === 403) message = 'Invalid or expired invoice link';
-          else if (response.status === 404) message = 'Invoice not found';
-        }
-        toast.error(message);
-        return;
-      }
-
-      const contentType = response.headers.get('content-type') || '';
-      if (!contentType.includes('application/pdf')) {
-        toast.error('Server did not return a PDF. Please try again.');
-        return;
-      }
-
-      const blob = await response.blob();
-      if (blob.size < 100) {
-        toast.error('Downloaded file is empty or invalid. Please try again.');
-        return;
-      }
-
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = `invoice_order_${orderId}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(downloadUrl);
+      const filename = `invoice_order_${orderId}.pdf`;
+      await html2pdf()
+        .set({
+          margin: 10,
+          filename,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2 },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        })
+        .from(invoiceRef.current)
+        .save();
     } catch (err) {
       console.error('Download failed:', err);
       toast.error(err instanceof Error ? err.message : 'Failed to download invoice');
     } finally {
       setDownloading(false);
     }
-  }, [orderId, token, invoiceData]);
+  }, [orderId]);
 
   if (loading) {
     return (
@@ -233,8 +177,8 @@ export default function PublicInvoicePage() {
           </Button>
         </div>
 
-        {/* Invoice content card */}
-        <div className="invoice-card bg-[var(--invoice-bg)] rounded-lg shadow-md overflow-hidden">
+        {/* Invoice content card - captured for PDF download */}
+        <div ref={invoiceRef} className="invoice-card bg-[var(--invoice-bg)] rounded-lg shadow-md overflow-hidden">
           {/* Header: vendor logo top-left, INVOICE prominent top-right */}
           <div className="invoice-header px-6 md:px-8 pt-6 pb-4 flex flex-row justify-between items-center gap-4">
             <div className="invoice-logo-ring flex-shrink-0">

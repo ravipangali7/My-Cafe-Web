@@ -59,6 +59,7 @@
     "recharts": "^2.15.4",
     "sonner": "^1.7.4",
     "firebase": "^10.13.2",
+    "html2pdf.js": "^0.10.2",
     "react-qr-code": "^2.0.12",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
