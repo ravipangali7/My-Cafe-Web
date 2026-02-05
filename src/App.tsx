@@ -44,6 +44,7 @@ import OrdersList from "./pages/orders/OrdersList";
 import OrderView from "./pages/orders/OrderView";
 import OrderForm from "./pages/orders/OrderForm";
 import LiveOrders from "./pages/orders/LiveOrders";
+import OrderAlertPage from "./pages/orders/OrderAlertPage";
 
 // Transactions
 import TransactionsList from "./pages/transactions/TransactionsList";
@@ -113,6 +114,16 @@ declare global {
     RequestExit?: { postMessage: (msg: string) => void };
     openOrderDetail?: (orderId: string) => void;
     handleIncomingOrderAction?: (orderId: string, action: "accepted" | "rejected") => Promise<void>;
+    StopOrderAlertSound?: { postMessage: (msg: string) => void };
+    __INCOMING_ORDER__?: {
+      order_id: string;
+      name?: string;
+      table_no?: string;
+      phone?: string;
+      total?: string;
+      items_count?: string;
+      items?: string;
+    };
   }
 }
 
@@ -362,6 +373,7 @@ const App = () => (
             <Route path="/orders/:id" element={<ProtectedRoute><OrderView /></ProtectedRoute>} />
             <Route path="/orders/:id/edit" element={<ProtectedRoute><OrderForm /></ProtectedRoute>} />
             <Route path="/live-orders" element={<ProtectedRoute><LiveOrders /></ProtectedRoute>} />
+            <Route path="/order-alert" element={<ProtectedRoute><OrderAlertPage /></ProtectedRoute>} />
 
             {/* Transactions */}
             <Route path="/transactions" element={<ProtectedRoute><TransactionsList /></ProtectedRoute>} />
