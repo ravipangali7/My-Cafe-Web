@@ -1,6 +1,7 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { Download, ArrowLeft, Store, Receipt } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import { Download, ArrowLeft, Store, Receipt, Image } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -54,6 +55,8 @@ export default function PublicInvoicePage() {
   const [invoiceData, setInvoiceData] = useState<InvoiceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [downloadingImage, setDownloadingImage] = useState(false);
+  const invoiceCardRef = useRef<HTMLDivElement>(null);
 
   const fetchInvoice = useCallback(async () => {
     if (!orderId || !token) {
@@ -101,6 +104,39 @@ export default function PublicInvoicePage() {
     toast.info("Choose 'Save as PDF' or 'Microsoft Print to PDF' as the destination to save the invoice.");
   }, []);
 
+  const handleDownloadImage = useCallback(async () => {
+    if (!invoiceCardRef.current || !orderId) {
+      toast.error('Invoice not ready');
+      return;
+    }
+    setDownloadingImage(true);
+    try {
+      const canvas = await html2canvas(invoiceCardRef.current, { scale: 2, useCORS: true });
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            setDownloadingImage(false);
+            toast.error('Failed to create image');
+            return;
+          }
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `invoice_order_${orderId}.png`;
+          link.click();
+          URL.revokeObjectURL(url);
+          setDownloadingImage(false);
+          toast.success('Invoice image downloaded');
+        },
+        'image/png'
+      );
+    } catch (err) {
+      console.error('Download image failed:', err);
+      setDownloadingImage(false);
+      toast.error(err instanceof Error ? err.message : 'Failed to download image');
+    }
+  }, [orderId]);
+
   if (loading) {
     return (
       <div className="invoice-page min-h-screen flex items-center justify-center p-4">
@@ -142,8 +178,8 @@ export default function PublicInvoicePage() {
   return (
     <div className="invoice-page min-h-screen p-4 md:p-8">
       <div className="max-w-2xl mx-auto">
-        {/* Download button - top right (hidden when printing) */}
-        <div className="invoice-no-print flex justify-end mb-6">
+        {/* Download buttons - top right (hidden when printing) */}
+        <div className="invoice-no-print flex justify-end gap-3 mb-6">
           <Button
             onClick={handlePrint}
             size="lg"
@@ -152,10 +188,20 @@ export default function PublicInvoicePage() {
             <Download className="h-4 w-4 mr-2" />
             Download PDF
           </Button>
+          <Button
+            onClick={handleDownloadImage}
+            disabled={downloadingImage}
+            size="lg"
+            variant="outline"
+            className="border-[#333] text-[#333] hover:bg-[#333] hover:text-white"
+          >
+            <Image className="h-4 w-4 mr-2" />
+            {downloadingImage ? 'Downloading...' : 'Download image'}
+          </Button>
         </div>
 
         {/* Invoice content card - printed as-is */}
-        <div className="invoice-card bg-[var(--invoice-bg)] rounded-lg shadow-md overflow-hidden">
+        <div ref={invoiceCardRef} className="invoice-card bg-[var(--invoice-bg)] rounded-lg shadow-md overflow-hidden">
           {/* Header: vendor logo top-left, INVOICE prominent top-right */}
           <div className="invoice-header px-6 md:px-8 pt-6 pb-4 flex flex-row justify-between items-center gap-4">
             <div className="invoice-logo-ring flex-shrink-0">
@@ -328,8 +374,8 @@ export default function PublicInvoicePage() {
           <div className="invoice-footer-band mt-6" />
         </div>
 
-        {/* Secondary download button (hidden when printing) */}
-        <div className="invoice-no-print flex justify-center pt-6">
+        {/* Secondary download buttons (hidden when printing) */}
+        <div className="invoice-no-print flex justify-center gap-3 pt-6">
           <Button
             onClick={handlePrint}
             size="lg"
@@ -337,6 +383,16 @@ export default function PublicInvoicePage() {
           >
             <Download className="h-4 w-4 mr-2" />
             Download Invoice
+          </Button>
+          <Button
+            onClick={handleDownloadImage}
+            disabled={downloadingImage}
+            size="lg"
+            variant="outline"
+            className="min-w-[200px] border-[#333] text-[#333] hover:bg-[#333] hover:text-white"
+          >
+            <Image className="h-4 w-4 mr-2" />
+            {downloadingImage ? 'Downloading...' : 'Download image'}
           </Button>
         </div>
       </div>
