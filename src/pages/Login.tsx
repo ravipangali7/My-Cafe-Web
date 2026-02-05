@@ -23,7 +23,11 @@ export default function Login() {
     const { error } = await signIn(phone, password, countryCode);
 
     if (error) {
-      toast.error(error.message);
+      const message =
+        error.message === 'Country code and phone number do not match.'
+          ? 'Please check your country code and phone number.'
+          : error.message;
+      toast.error(message);
     } else {
       toast.success('Welcome back!');
       navigate('/dashboard');
