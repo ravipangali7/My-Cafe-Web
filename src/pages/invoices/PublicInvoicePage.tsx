@@ -13,6 +13,7 @@ interface InvoiceItem {
   quantity: number;
   price: string;
   total: string;
+  product_image_url?: string | null;
   variant?: {
     unit_name: string | null;
     unit_value: number;
@@ -33,6 +34,8 @@ interface InvoiceData {
     remarks: string | null;
     customer_name: string | null;
     customer_phone: string | null;
+    customer_number?: string;
+    transaction_charge?: string | null;
     created_at: string;
   };
   items: InvoiceItem[];
@@ -136,7 +139,9 @@ export default function PublicInvoicePage() {
   const subtotal = items.reduce((sum, i) => sum + parseFloat(i.total), 0);
   const taxPercent = 0;
   const taxAmount = 0;
+  const transactionCharge = order.transaction_charge != null ? parseFloat(order.transaction_charge) : 0;
   const total = parseFloat(order.total);
+  const customerNumber = order.customer_number ?? `Order #${order.id}`;
   const orderDate = new Date(order.created_at).toLocaleDateString('en-US', {
     year: 'numeric',
     month: '2-digit',
@@ -160,29 +165,40 @@ export default function PublicInvoicePage() {
         </div>
 
         {/* Invoice content card */}
-        <div className="bg-[#F8F7F2] rounded-sm shadow-sm overflow-hidden">
-          {/* Header: centered logo + Invoice title */}
-          <div className="pt-8 pb-4 flex flex-col items-center">
-            <div className="invoice-logo-ring mb-4">
+        <div className="invoice-card bg-[var(--invoice-bg)] rounded-lg shadow-md overflow-hidden">
+          {/* Header: vendor logo top-left, INVOICE prominent top-right */}
+          <div className="invoice-header px-6 md:px-8 pt-6 pb-4 flex flex-row justify-between items-center gap-4">
+            <div className="invoice-logo-ring flex-shrink-0">
               {vendor?.logo_url ? (
                 <img
                   src={vendor.logo_url}
                   alt={vendor.name}
-                  className="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover"
+                  className="invoice-logo-img"
                 />
               ) : (
-                <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-[#cc9999]/20 flex items-center justify-center">
-                  <Store className="w-10 h-10 text-[#cc9999]" />
+                <div className="invoice-logo-placeholder">
+                  <Store className="invoice-logo-icon" />
                 </div>
               )}
             </div>
-            {vendor?.name && (
-              <div className="invoice-logo-banner mb-3">
-                {vendor.name.toUpperCase()}
-              </div>
-            )}
-            <h1 className="invoice-title">Invoice</h1>
-            <p className="text-xs invoice-body-text mt-1">{invoice.invoice_number}</p>
+            <div className="text-right flex-shrink-0">
+              <h1 className="invoice-title-main">INVOICE</h1>
+              <p className="invoice-number-label">{invoice.invoice_number}</p>
+            </div>
+          </div>
+
+          {/* Customer information */}
+          <div className="px-6 md:px-8 pb-3">
+            <div className="invoice-customer-block">
+              <p className="invoice-body-text">
+                <span className="invoice-heading">Customer name:</span>{' '}
+                {order.customer_name || 'Customer'}
+              </p>
+              <p className="invoice-body-text">
+                <span className="invoice-heading">Customer number:</span> {customerNumber}
+              </p>
+            </div>
+            <div className="invoice-divider my-4" />
           </div>
 
           {/* INVOICE FROM | INVOICE TO */}
@@ -214,12 +230,13 @@ export default function PublicInvoicePage() {
             <div className="invoice-divider my-4" />
           </div>
 
-          {/* Table: DESCRIPTION, QTY, PRICE, TOTAL */}
-          <div className="px-6 md:px-8">
+          {/* Table: IMAGE, DESCRIPTION, QTY, PRICE, TOTAL */}
+          <div className="px-6 md:px-8 overflow-x-auto">
             <div className="invoice-divider mb-0" />
             <table className="invoice-table w-full">
               <thead>
                 <tr>
+                  <th className="invoice-th-image">Image</th>
                   <th className="text-left py-3 pr-4">Description</th>
                   <th className="text-right py-3 px-2">Qty</th>
                   <th className="text-right py-3 px-2">Price</th>
@@ -228,20 +245,33 @@ export default function PublicInvoicePage() {
               </thead>
               <tbody>
                 {items.map((item) => (
-                  <tr key={item.id} className="border-b border-[#e8e6e0]">
-                    <td className="py-3 pr-4 invoice-body-text">
+                  <tr key={item.id} className="invoice-table-row">
+                    <td className="py-3 pr-2 align-middle">
+                      <div className="invoice-item-image-wrap">
+                        {item.product_image_url ? (
+                          <img
+                            src={item.product_image_url}
+                            alt={item.product_name}
+                            className="invoice-item-image"
+                          />
+                        ) : (
+                          <div className="invoice-item-image-placeholder">
+                            <Store className="invoice-item-image-icon" />
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-3 pr-4 invoice-body-text invoice-cell-desc">
                       {item.product_name}
                       {item.variant?.unit_name && (
-                        <span className="text-[#666]">
+                        <span className="invoice-variant-text">
                           {' '}
                           ({item.variant.unit_value != null ? `${item.variant.unit_value} ` : ''}
                           {item.variant.unit_name})
                         </span>
                       )}
                     </td>
-                    <td className="py-3 px-2 text-right invoice-body-text">
-                      {item.quantity}
-                    </td>
+                    <td className="py-3 px-2 text-right invoice-body-text">{item.quantity}</td>
                     <td className="py-3 px-2 text-right invoice-body-text">
                       ₹{parseFloat(item.price).toFixed(2)}
                     </td>
@@ -255,7 +285,7 @@ export default function PublicInvoicePage() {
             <div className="invoice-divider mt-0" />
           </div>
 
-          {/* Summary: Subtotal, Tax, Total */}
+          {/* Summary: Subtotal, Tax, Transaction charge (if any), Total */}
           <div className="px-6 md:px-8 py-4 flex justify-end">
             <div className="w-full sm:w-56 space-y-1">
               <div className="flex justify-between invoice-body-text text-sm">
@@ -266,7 +296,13 @@ export default function PublicInvoicePage() {
                 <span>Tax ({taxPercent}%)</span>
                 <span>₹{taxAmount.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between font-bold invoice-body-text pt-2 text-base border-t border-[#cc9999]">
+              {transactionCharge > 0 && (
+                <div className="flex justify-between invoice-body-text text-sm">
+                  <span>Transaction charge</span>
+                  <span>₹{transactionCharge.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between font-bold invoice-body-text pt-2 text-base border-t border-[var(--invoice-accent)]">
                 <span>Total</span>
                 <span>₹{total.toFixed(2)}</span>
               </div>
