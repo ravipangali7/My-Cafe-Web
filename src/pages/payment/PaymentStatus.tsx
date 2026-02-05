@@ -29,9 +29,12 @@ export default function PaymentStatus() {
   const navigate = useNavigate();
   const { user } = useAuth();
   
-  // Support client_txn_id from query params (UG sends both client_txn_id and txn_id)
-  // Prioritize client_txn_id (our ID) over txn_id (UG's internal ID)
-  const txnIdFromQuery = searchParams.get('client_txn_id') || searchParams.get('txn_id');
+  // Support client_txn_id / txn_id (UG) and merchant_txn_id / MerchantTxnId (Nepal OnePG) from query params
+  const txnIdFromQuery =
+    searchParams.get('merchant_txn_id') ||
+    searchParams.get('MerchantTxnId') ||
+    searchParams.get('client_txn_id') ||
+    searchParams.get('txn_id');
   const txnId = txnIdFromParams || txnIdFromQuery;
   
   const [loading, setLoading] = useState(true);

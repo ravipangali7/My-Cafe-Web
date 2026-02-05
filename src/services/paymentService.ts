@@ -89,11 +89,36 @@ export async function getQRStandPaymentStatus(
 /**
  * Redirect to UG payment URL.
  * Opens the payment URL in the same window.
- * 
+ *
  * @param paymentUrl - The UG payment URL
  */
 export function redirectToPayment(paymentUrl: string): void {
   window.location.href = paymentUrl;
+}
+
+/**
+ * Submit form to Nepal (OnePG) gateway.
+ * Creates a hidden form and POSTs to gateway_url with form_data; user is redirected to OnePG.
+ *
+ * @param gatewayUrl - OnePG gateway URL (e.g. Payment/Index)
+ * @param formData - Form fields (MerchantId, MerchantName, Amount, MerchantTxnId, ProcessId, etc.)
+ */
+export function redirectToNepalGateway(gatewayUrl: string, formData: Record<string, string>): void {
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = gatewayUrl;
+
+  Object.entries(formData).forEach(([key, value]) => {
+    if (value == null || value === '') return;
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = key;
+    input.value = value;
+    form.appendChild(input);
+  });
+
+  document.body.appendChild(form);
+  form.submit();
 }
 
 /**

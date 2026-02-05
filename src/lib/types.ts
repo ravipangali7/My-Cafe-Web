@@ -106,11 +106,15 @@ export interface InitiatePaymentRequest {
 
 export interface InitiatePaymentResponse {
   success: boolean;
-  payment_url: string;
-  ug_client_txn_id: string;
-  ug_order_id: number;
+  payment_url?: string;
+  ug_client_txn_id?: string;
+  ug_order_id?: number;
   transaction_id: number;
   message: string;
+  /** Nepal (OnePG): gateway URL and form fields for POST redirect */
+  gateway_url?: string;
+  form_data?: Record<string, string>;
+  merchant_txn_id?: string;
 }
 
 export interface VerifyPaymentResponse {

@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getFCMTokenOnly } from '@/lib/fcm';
 import { toast } from 'sonner';
-import { initiateOrderPaymentFromPayload, redirectToPayment } from '@/services/paymentService';
+import { initiateOrderPaymentFromPayload, redirectToPayment, redirectToNepalGateway } from '@/services/paymentService';
 
 interface ProductVariant {
   id: number;
@@ -139,7 +139,10 @@ export function OrderPanel({
         return;
       }
 
-      if (paymentResult.data?.payment_url) {
+      if (paymentResult.data?.gateway_url && paymentResult.data?.form_data) {
+        toast.success('Redirecting to payment...');
+        redirectToNepalGateway(paymentResult.data.gateway_url, paymentResult.data.form_data);
+      } else if (paymentResult.data?.payment_url) {
         toast.success('Redirecting to payment...');
         redirectToPayment(paymentResult.data.payment_url);
       } else {
