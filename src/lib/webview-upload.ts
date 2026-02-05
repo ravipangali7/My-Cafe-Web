@@ -64,9 +64,16 @@ export function requestFileFromFlutter(options: WebViewUploadOptions): Promise<W
 
 /**
  * Convert WebView file payload to a File for uploading (e.g. on form submit).
+ * Uses base64 decode in JS instead of fetch(dataUrl) to avoid CSP connect-src blocking.
  */
-export async function filePayloadToFile(payload: WebViewFilePayload): Promise<File> {
-  const res = await fetch(payload.dataUrl);
-  const blob = await res.blob();
-  return new File([blob], payload.fileName, { type: payload.mimeType });
+export function filePayloadToFile(payload: WebViewFilePayload): Promise<File> {
+  const comma = payload.dataUrl.indexOf(',');
+  const base64 = comma >= 0 ? payload.dataUrl.slice(comma + 1) : payload.dataUrl;
+  const binaryString = atob(base64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  const blob = new Blob([bytes], { type: payload.mimeType });
+  return Promise.resolve(new File([blob], payload.fileName, { type: payload.mimeType }));
 }
