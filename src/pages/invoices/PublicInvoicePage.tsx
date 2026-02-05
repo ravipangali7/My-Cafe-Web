@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 import { Download, ArrowLeft, Store, Receipt, Image } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -56,6 +57,7 @@ export default function PublicInvoicePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloadingImage, setDownloadingImage] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
   const invoiceCardRef = useRef<HTMLDivElement>(null);
 
   const fetchInvoice = useCallback(async () => {
@@ -99,10 +101,36 @@ export default function PublicInvoicePage() {
     fetchInvoice();
   }, [fetchInvoice]);
 
-  const handlePrint = useCallback(() => {
-    window.print();
-    toast.info("Choose 'Save as PDF' or 'Microsoft Print to PDF' as the destination to save the invoice.");
-  }, []);
+  const handleDownloadPdf = useCallback(async () => {
+    if (!invoiceCardRef.current || !orderId) {
+      toast.error('Invoice not ready');
+      return;
+    }
+    setDownloadingPdf(true);
+    try {
+      const canvas = await html2canvas(invoiceCardRef.current, { scale: 2, useCORS: true });
+      const dataUrl = canvas.toDataURL('image/png');
+      const imgW = canvas.width;
+      const imgH = canvas.height;
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pageW = 210;
+      const pageH = 297;
+      const imgAspect = imgW / imgH;
+      const pageAspect = pageW / pageH;
+      const pdfW = imgAspect >= pageAspect ? pageW : pageH * imgAspect;
+      const pdfH = imgAspect >= pageAspect ? pageW / imgAspect : pageH;
+      const x = (pageW - pdfW) / 2;
+      const y = (pageH - pdfH) / 2;
+      pdf.addImage(dataUrl, 'PNG', x, y, pdfW, pdfH);
+      pdf.save(`invoice_order_${orderId}.pdf`);
+      toast.success('Invoice PDF downloaded');
+    } catch (err) {
+      console.error('Download PDF failed:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to download PDF');
+    } finally {
+      setDownloadingPdf(false);
+    }
+  }, [orderId]);
 
   const handleDownloadImage = useCallback(async () => {
     if (!invoiceCardRef.current || !orderId) {
@@ -178,28 +206,6 @@ export default function PublicInvoicePage() {
   return (
     <div className="invoice-page min-h-screen p-4 md:p-8">
       <div className="max-w-2xl mx-auto">
-        {/* Download buttons - top right (hidden when printing) */}
-        <div className="invoice-no-print flex justify-end gap-3 mb-6">
-          <Button
-            onClick={handlePrint}
-            size="lg"
-            className="bg-[#333] hover:bg-[#222] text-white"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Download PDF
-          </Button>
-          <Button
-            onClick={handleDownloadImage}
-            disabled={downloadingImage}
-            size="lg"
-            variant="outline"
-            className="border-[#333] text-[#333] hover:bg-[#333] hover:text-white"
-          >
-            <Image className="h-4 w-4 mr-2" />
-            {downloadingImage ? 'Downloading...' : 'Download image'}
-          </Button>
-        </div>
-
         {/* Invoice content card - printed as-is */}
         <div ref={invoiceCardRef} className="invoice-card bg-[var(--invoice-bg)] rounded-lg shadow-md overflow-hidden">
           {/* Header: vendor logo top-left, INVOICE prominent top-right */}
@@ -374,15 +380,16 @@ export default function PublicInvoicePage() {
           <div className="invoice-footer-band mt-6" />
         </div>
 
-        {/* Secondary download buttons (hidden when printing) */}
+        {/* Download buttons (hidden when printing) */}
         <div className="invoice-no-print flex justify-center gap-3 pt-6">
           <Button
-            onClick={handlePrint}
+            onClick={handleDownloadPdf}
+            disabled={downloadingPdf}
             size="lg"
             className="min-w-[200px] bg-[#333] hover:bg-[#222] text-white"
           >
             <Download className="h-4 w-4 mr-2" />
-            Download Invoice
+            {downloadingPdf ? 'Downloading...' : 'Download PDF'}
           </Button>
           <Button
             onClick={handleDownloadImage}
