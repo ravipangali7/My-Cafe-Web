@@ -197,7 +197,7 @@ export function OrderPanel({
                 </div>
                 <div
                   key={`${item.product.id}-${item.variant.id}`}
-                  className="flex flex-col items-center gap-3 p-2 rounded-lg hover:bg-gray-50"
+                  className="flex flex-col gap-3 p-2 rounded-lg hover:bg-gray-50"
                 >
 
 
