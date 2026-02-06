@@ -179,11 +179,11 @@ export function OrderPanel({
             return (
               <div
                 key={`${item.product.id}-${item.variant.id}`}
-                className="flex flex-col items-center gap-3 p-2 rounded-lg hover:bg-gray-50"
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50"
               >
                 <div
                   key={`${item.product.id}-${item.variant.id}`}
-                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50"
+                  className="flex flex-col items-center gap-3 p-2 rounded-lg hover:bg-gray-50"
                 >
                   {/* Product Image */}
                   <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
@@ -209,32 +209,34 @@ export function OrderPanel({
                       ₹{(price * item.quantity).toFixed(2)}
                     </p>
                   </div>
+                  <div>
+                    {/* Quantity Controls */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => onUpdateQuantity(item.product.id, item.variant.id, -1)}
+                        className="w-6 h-6 rounded-full bg-coral-100 text-coral-600 flex items-center justify-center hover:bg-coral-200 transition-colors"
+                      >
+                        <Minus className="w-3 h-3" />
+                      </button>
+                      <span className="w-6 text-center text-sm font-medium">{item.quantity}</span>
+                      <button
+                        onClick={() => onUpdateQuantity(item.product.id, item.variant.id, 1)}
+                        className="w-6 h-6 rounded-full bg-coral-100 text-coral-600 flex items-center justify-center hover:bg-coral-200 transition-colors"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
+                    </div>
+
+                    {/* Remove Button */}
+                    <button
+                      onClick={() => onRemoveFromCart(item.product.id, item.variant.id)}
+                      className="text-coral-500 text-xs hover:underline"
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
 
-                {/* Quantity Controls */}
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => onUpdateQuantity(item.product.id, item.variant.id, -1)}
-                    className="w-6 h-6 rounded-full bg-coral-100 text-coral-600 flex items-center justify-center hover:bg-coral-200 transition-colors"
-                  >
-                    <Minus className="w-3 h-3" />
-                  </button>
-                  <span className="w-6 text-center text-sm font-medium">{item.quantity}</span>
-                  <button
-                    onClick={() => onUpdateQuantity(item.product.id, item.variant.id, 1)}
-                    className="w-6 h-6 rounded-full bg-coral-100 text-coral-600 flex items-center justify-center hover:bg-coral-200 transition-colors"
-                  >
-                    <Plus className="w-3 h-3" />
-                  </button>
-                </div>
-
-                {/* Remove Button */}
-                <button
-                  onClick={() => onRemoveFromCart(item.product.id, item.variant.id)}
-                  className="text-coral-500 text-xs hover:underline"
-                >
-                  Remove
-                </button>
               </div>
             );
           })
