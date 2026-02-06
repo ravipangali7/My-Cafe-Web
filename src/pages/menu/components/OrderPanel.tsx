@@ -198,7 +198,7 @@ export function OrderPanel({
 
                 {/* Product Info */}
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-medium text-gray-800 text-sm break-words line-clamp-2">
+                  <h4 className="font-medium text-gray-800 text-sm break-words">
                     {item.product.name}
                   </h4>
                   <p className="text-coral-500 font-semibold text-sm">

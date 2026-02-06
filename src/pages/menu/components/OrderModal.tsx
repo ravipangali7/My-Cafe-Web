@@ -212,7 +212,7 @@ export function OrderModal({
                 return (
                   <div key={`${item.product.id}-${item.variant.id}`} className="flex items-center justify-between p-2 border rounded">
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium break-words line-clamp-2">{item.product.name}</div>
+                      <div className="font-medium break-words">{item.product.name}</div>
                       <div className="text-sm text-muted-foreground">
                         {item.variant.unit_symbol} × {item.quantity} = ₹{(price * item.quantity).toFixed(2)}
                       </div>

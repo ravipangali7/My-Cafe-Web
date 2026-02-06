@@ -10,8 +10,8 @@ import './PublicInvoicePage.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
-/** Default logo when vendor has no logo (SVG data URL) – avoids PDF/canvas parse errors and missing image. */
-const DEFAULT_LOGO_DATA_URL =
+/** Fallback only for edge cases (e.g. missing vendor); API now always returns vendor.logo_url (uploaded or generated). */
+const FALLBACK_LOGO_DATA_URL =
   'data:image/svg+xml,' +
   encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#b8866b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>'
@@ -223,7 +223,7 @@ export default function PublicInvoicePage() {
           <div className="invoice-header px-6 md:px-8 pt-6 pb-4 flex flex-row justify-between items-center gap-4">
             <div className="invoice-logo-ring flex-shrink-0">
               <img
-                src={vendor?.logo_url || DEFAULT_LOGO_DATA_URL}
+                src={vendor?.logo_url || FALLBACK_LOGO_DATA_URL}
                 alt={vendor?.name || 'Vendor'}
                 className="invoice-logo-img"
               />
