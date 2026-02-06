@@ -1,9 +1,11 @@
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { VendorStatsCards } from './VendorStatsCards';
 import { RevenueFlowChart } from './RevenueFlowChart';
 import { ProductInsightsSection } from './ProductInsightsSection';
 import { RepeatCustomersTable } from './RepeatCustomersTable';
 import { TransactionHistoryTable } from '../TransactionHistoryTable';
+import { SummaryStatsCard, SummaryStatsPeriodItem } from '@/components/ui/summary-stats-card';
 import { VendorDashboardData } from '@/lib/types';
 import { useVendor } from '@/contexts/VendorContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -13,6 +15,51 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Store } from 'lucide-react';
 import { VendorOnlineToggle } from './VendorOnlineToggle';
+
+function getTodayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+function getYesterdayISO(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
+function deriveSummaryFromVendorData(data: VendorDashboardData): {
+  firstRow: SummaryStatsPeriodItem;
+  secondRowLeft: SummaryStatsPeriodItem;
+  secondRowRight: SummaryStatsPeriodItem;
+} {
+  const todayISO = getTodayISO();
+  const yesterdayISO = getYesterdayISO();
+  const daily = data.revenue_trends?.daily ?? [];
+  const todayPoint = daily.find((p) => p.date === todayISO);
+  const yesterdayPoint = daily.find((p) => p.date === yesterdayISO);
+  const todayRevenue =
+    todayPoint !== undefined
+      ? String(todayPoint.revenue)
+      : data.finance_summary?.today ?? '0';
+  const todayOrders = todayPoint?.orders ?? 0;
+  const yesterdayRevenue = yesterdayPoint ? String(yesterdayPoint.revenue) : '0';
+  const yesterdayOrders = yesterdayPoint?.orders ?? 0;
+  return {
+    firstRow: {
+      label: 'Today',
+      amount: todayRevenue,
+      orders: todayOrders,
+    },
+    secondRowLeft: {
+      label: 'Yesterday',
+      amount: yesterdayRevenue,
+      orders: yesterdayOrders,
+    },
+    secondRowRight: {
+      label: 'All Time',
+      amount: data.total_sales,
+      orders: data.total_orders,
+    },
+  };
+}
 
 const DASHBOARD_TABLE_LIMIT = 5;
 
@@ -92,6 +139,11 @@ export function VendorDashboard({
 
       {/* Overview - Stats */}
       <Section title="Overview">
+        <SummaryStatsCard
+          {...useMemo(() => deriveSummaryFromVendorData(data), [data])}
+          loading={loading}
+          className="mb-4"
+        />
         <VendorStatsCards
         dueBalance={data.due_balance}
         subscriptionStatus={data.subscription_status}

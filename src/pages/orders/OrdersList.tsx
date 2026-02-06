@@ -9,6 +9,7 @@ import { StatusBadge, getOrderStatusVariant, getPaymentStatusVariant } from '@/c
 import { FilterBar } from '@/components/ui/filter-bar';
 import { DateFilterButtons, DateFilterType } from '@/components/ui/date-filter-buttons';
 import { PremiumStatsCards, ScrollableStatsCards, formatCurrency } from '@/components/ui/premium-stats-card';
+import { SummaryStatsCard } from '@/components/ui/summary-stats-card';
 import { VendorInfoCell, CustomerInfoCell } from '@/components/ui/vendor-info-cell';
 import { ConfirmationModal } from '@/components/ui/confirmation-modal';
 import { ItemActionsModal } from '@/components/ui/item-actions-modal';
@@ -84,6 +85,12 @@ export default function OrdersList() {
   });
   const [loadingStats, setLoadingStats] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [summaryStats, setSummaryStats] = useState<{
+    today: OrderStats | null;
+    yesterday: OrderStats | null;
+    allTime: OrderStats | null;
+  }>({ today: null, yesterday: null, allTime: null });
+  const [loadingSummaryStats, setLoadingSummaryStats] = useState(true);
 
   const fetchOrders = useCallback(async () => {
     if (!user) return;
@@ -179,6 +186,46 @@ export default function OrdersList() {
     }
   }, [user, appliedUserId, appliedStartDate, appliedEndDate]);
 
+  const getTodayISO = () => new Date().toISOString().slice(0, 10);
+  const getYesterdayISO = () => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().slice(0, 10);
+  };
+
+  const fetchSummaryStats = useCallback(async () => {
+    if (!user) return;
+    setLoadingSummaryStats(true);
+    try {
+      const baseParams: Record<string, string | number> = {};
+      if (appliedUserId && user.is_superuser) {
+        baseParams.user_id = appliedUserId;
+      }
+      const todayISO = getTodayISO();
+      const yesterdayISO = getYesterdayISO();
+      const [todayRes, yesterdayRes, allTimeRes] = await Promise.all([
+        api.get<OrderStats>(
+          `/api/stats/orders/${api.buildQueryString({ ...baseParams, start_date: todayISO, end_date: todayISO })}`
+        ),
+        api.get<OrderStats>(
+          `/api/stats/orders/${api.buildQueryString({ ...baseParams, start_date: yesterdayISO, end_date: yesterdayISO })}`
+        ),
+        api.get<OrderStats>(
+          `/api/stats/orders/${api.buildQueryString(baseParams)}`
+        ),
+      ]);
+      setSummaryStats({
+        today: todayRes.data ?? null,
+        yesterday: yesterdayRes.data ?? null,
+        allTime: allTimeRes.data ?? null,
+      });
+    } catch (error) {
+      console.error('Failed to fetch summary stats:', error);
+    } finally {
+      setLoadingSummaryStats(false);
+    }
+  }, [user, appliedUserId]);
+
   useEffect(() => {
     setAppliedStatus(statusFromUrl);
   }, [statusFromUrl]);
@@ -187,8 +234,9 @@ export default function OrdersList() {
     if (user) {
       fetchOrders();
       fetchStats();
+      fetchSummaryStats();
     }
-  }, [user, fetchOrders, fetchStats]);
+  }, [user, fetchOrders, fetchStats, fetchSummaryStats]);
 
   // Refetch when user returns to tab (real-time data)
   useEffect(() => {
@@ -197,11 +245,12 @@ export default function OrdersList() {
       if (document.visibilityState === 'visible') {
         fetchOrders();
         fetchStats();
+        fetchSummaryStats();
       }
     };
     document.addEventListener('visibilitychange', onVisibilityChange);
     return () => document.removeEventListener('visibilitychange', onVisibilityChange);
-  }, [user, fetchOrders, fetchStats]);
+  }, [user, fetchOrders, fetchStats, fetchSummaryStats]);
 
   const handleDelete = useCallback(async () => {
     if (!deleteId) return;
@@ -381,6 +430,26 @@ export default function OrdersList() {
               New Order
             </Button>
           }
+        />
+
+        <SummaryStatsCard
+          firstRow={{
+            label: 'Today',
+            amount: summaryStats.today?.revenue ?? '0',
+            orders: summaryStats.today?.total ?? 0,
+          }}
+          secondRowLeft={{
+            label: 'Yesterday',
+            amount: summaryStats.yesterday?.revenue ?? '0',
+            orders: summaryStats.yesterday?.total ?? 0,
+          }}
+          secondRowRight={{
+            label: 'All Time',
+            amount: summaryStats.allTime?.revenue ?? '0',
+            orders: summaryStats.allTime?.total ?? 0,
+          }}
+          loading={loadingSummaryStats}
+          className="mb-4"
         />
 
         {isMobile ? (
