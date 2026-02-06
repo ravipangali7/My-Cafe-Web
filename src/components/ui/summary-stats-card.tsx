@@ -98,7 +98,7 @@ export function SummaryStatsCard({
     >
       <div className="space-y-4">
         <PeriodBlock item={firstRow} currencySymbol={currencySymbol} />
-        <div className="grid sm:grid-cols-2 gap-3 md:gap-4 pt-3 border-t border-primary-foreground/20">
+        <div className="grid grid-cols-2 grid-rows-2 gap-3 md:gap-4 pt-3 border-t border-primary-foreground/20">
           <PeriodBlock
             item={secondRowLeft}
             currencySymbol={currencySymbol}
