@@ -67,7 +67,7 @@ export function VendorDashboard({
             <Store className="h-7 w-7 text-primary" />
           </div>
         )}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 pl-4 min-w-0">
           <h1 className="text-xl font-semibold text-foreground">
             Hello, {vendor?.name || 'Vendor'}!
           </h1>
