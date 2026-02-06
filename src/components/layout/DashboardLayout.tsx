@@ -263,7 +263,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Top bar - safe area and slightly taller on mobile for app feel */}
         <header className={cn(
           "sticky top-0 z-30 bg-card border-b border-border flex items-center justify-between px-3 lg:px-6",
-          isMobile ? "h-20" : "h-16"
+          isMobile ? "h-14" : "h-16"
         )}>
           <div className="flex items-center min-w-0">
             {isMobile && (
@@ -274,10 +274,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   className="flex-shrink-0"
                   onClick={() => setSidebarOpen(true)}
                 >
-                  <Menu className="h-5 w-5" />
+                  <Menu className="h-4 w-4" />
                 </Button>
                 <Link to="/dashboard" className="flex items-center ml-2 min-w-0">
-                  <img src="/logo.png" alt="My Cafe" className="h-8 max-w-[120px] w-auto object-contain" />
+                  <img src="/logo.png" alt="My Cafe" className="h-6 max-w-[90px] w-auto object-contain" />
                 </Link>
               </>
             )}
@@ -289,6 +289,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               <div className="flex-shrink-0">
                 <VendorOnlineToggle
                   isOnline={vendor.is_online !== false}
+                  compact={isMobile}
                   onToggle={async (next) => {
                     const res = await api.put<{ user?: unknown }>('/api/auth/user/update/', { is_online: next });
                     if (res.error) {
@@ -304,8 +305,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             {/* Live Order Button - Only for vendors (non-superusers) */}
             {!user?.is_superuser && (
               <Link to="/live-orders">
-                <Button variant="default" size="sm" className="gap-2 min-w-[44px] sm:min-w-0">
-                  <Radio className="h-4 w-4" />
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="gap-2 h-8 min-h-[40px] min-w-[40px] sm:h-9 sm:min-h-[44px] sm:min-w-0 [&_svg]:h-3.5 [&_svg]:w-3.5 sm:[&_svg]:h-4 sm:[&_svg]:w-4"
+                >
+                  <Radio className="shrink-0" />
                   <span className="hidden sm:inline">Live Order</span>
                 </Button>
               </Link>
@@ -313,10 +318,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <Button
               variant="ghost"
               size="sm"
-              className="gap-2 min-w-[44px] sm:min-w-0 text-muted-foreground hover:text-foreground"
+              className="gap-2 h-8 min-h-[40px] min-w-[40px] sm:h-9 sm:min-h-[44px] sm:min-w-0 text-muted-foreground hover:text-foreground [&_svg]:h-3.5 [&_svg]:w-3.5 sm:[&_svg]:h-4 sm:[&_svg]:w-4"
               onClick={() => setLogoutDialogOpen(true)}
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className="shrink-0" />
               <span className="hidden sm:inline">Sign Out</span>
             </Button>
           </div>

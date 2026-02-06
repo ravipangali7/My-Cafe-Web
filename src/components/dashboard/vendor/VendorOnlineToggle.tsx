@@ -10,6 +10,8 @@ interface VendorOnlineToggleProps {
   onToggle: (next: boolean) => Promise<void>;
   disabled?: boolean;
   className?: string;
+  /** When true, use smaller switch and badge (e.g. for header on mobile) */
+  compact?: boolean;
 }
 
 export function VendorOnlineToggle({
@@ -17,6 +19,7 @@ export function VendorOnlineToggle({
   onToggle,
   disabled = false,
   className,
+  compact = false,
 }: VendorOnlineToggleProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingValue, setPendingValue] = useState<boolean>(false);
@@ -48,19 +51,20 @@ export function VendorOnlineToggle({
 
   return (
     <>
-      <div className={cn('flex items-center gap-2', className)}>
+      <div className={cn('flex items-center', compact ? 'gap-1.5' : 'gap-2', className)}>
         <Switch
           checked={isOnline}
           onCheckedChange={handleSwitchClick}
           disabled={disabled || loading}
+          className={compact ? 'h-5 w-9 [&>span]:h-4 [&>span]:w-4 [&[data-state=checked]>span]:translate-x-5' : undefined}
         />
         {loading ? (
-          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          <Loader2 className={cn('animate-spin text-muted-foreground', compact ? 'h-3.5 w-3.5' : 'h-4 w-4')} />
         ) : (
           <Badge
             variant="outline"
             className={cn(
-              'text-xs font-medium',
+              compact ? 'text-[10px] font-medium px-1.5 py-0.5' : 'text-xs font-medium',
               isOnline
                 ? 'border-green-600/50 bg-green-500/10 text-green-700 dark:text-green-400'
                 : 'border-muted-foreground/40 bg-muted/50 text-muted-foreground'
