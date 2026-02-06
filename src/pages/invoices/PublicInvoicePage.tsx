@@ -299,7 +299,7 @@ export default function PublicInvoicePage() {
               <thead>
                 <tr>
                   <th className="invoice-th-image" aria-label="Item image" />
-                  <th className="invoice-th-name text-left py-3 pr-4" aria-label="Item name" />
+                  <th className="invoice-th-name text-left py-3 pr-4" aria-label="Item name">Items</th>
                   <th className="text-right py-3 px-2">Quantity</th>
                   <th className="text-right py-3 px-2">Price</th>
                   <th className="text-right py-3 px-2">Discount</th>
