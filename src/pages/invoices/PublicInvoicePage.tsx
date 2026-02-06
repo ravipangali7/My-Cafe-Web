@@ -24,10 +24,23 @@ interface InvoiceItem {
   price: string;
   total: string;
   product_image_url?: string | null;
+  discount_type?: string | null;
+  discount_value?: string | null;
   variant?: {
     unit_name: string | null;
     unit_value: number;
   };
+}
+
+function formatDiscount(item: InvoiceItem): string {
+  const t = item.discount_type;
+  const v = item.discount_value;
+  if (!t || v == null || v === '') return '—';
+  const num = parseFloat(String(v));
+  if (Number.isNaN(num)) return '—';
+  if (t === 'percentage') return `${num % 1 === 0 ? num : num}%`;
+  if (t === 'flat') return `₹${num.toFixed(2)}`;
+  return '—';
 }
 
 interface InvoiceData {
@@ -202,11 +215,12 @@ export default function PublicInvoicePage() {
   const transactionCharge = order.transaction_charge != null ? parseFloat(order.transaction_charge) : 0;
   const total = parseFloat(order.total);
   const customerNumber = order.customer_number ?? `Order #${order.id}`;
-  const orderDate = new Date(order.created_at).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: '2-digit',
+  const orderDate = new Date(order.created_at).toLocaleDateString('en-GB', {
     day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
   });
+  const invoiceDate = orderDate;
 
   return (
     <div className="invoice-page min-h-screen p-4 md:p-8">
@@ -219,25 +233,39 @@ export default function PublicInvoicePage() {
         </div>
         {/* Invoice content card - printed as-is */}
         <div ref={invoiceCardRef} className="invoice-card bg-[var(--invoice-bg)] rounded-lg shadow-md overflow-hidden">
-          {/* Header: vendor logo top-left, INVOICE prominent top-right */}
-          <div className="invoice-header px-6 md:px-8 pt-6 pb-4 flex flex-row justify-between items-center gap-4">
+          {/* Header: vendor logo left, vendor name / address / phone right */}
+          <div className="invoice-header px-6 md:px-8 pt-6 pb-4 flex flex-row items-start gap-4">
             <div className="invoice-logo-ring flex-shrink-0">
               <img
                 src={vendor?.logo_url || FALLBACK_LOGO_DATA_URL}
-                alt={vendor?.name || 'Vendor'}
+                alt={vendor?.name ?? 'Vendor'}
                 className="invoice-logo-img"
               />
             </div>
-            <div className="text-right flex-shrink-0">
-              <h1 className="invoice-title-main">INVOICE</h1>
-              <p className="invoice-number-label">{invoice.invoice_number}</p>
+            <div className="invoice-header-vendor flex-1 min-w-0">
+              <h1 className="invoice-vendor-name text-xl font-bold" style={{ color: 'var(--invoice-text)' }}>
+                {vendor?.name ?? 'Vendor'}
+              </h1>
+              {vendor?.address != null && vendor.address !== '' && (
+                <p className="invoice-body-text text-sm mt-1">{vendor.address}</p>
+              )}
+              {vendor?.phone != null && vendor.phone !== '' && (
+                <p className="invoice-body-text text-sm">Mobile: {vendor.phone}</p>
+              )}
             </div>
           </div>
 
-          {/* Order ID – prominent */}
-          <div className="px-6 md:px-8 pb-3">
-            <p className="text-lg font-bold text-inherit" style={{ color: 'var(--invoice-text)' }}>
-              Order ID: {order.id}
+          {/* Thick separator */}
+          <div className="invoice-divider-thick mx-6 md:mx-8" />
+
+          {/* Invoice meta: Invoice No. (bold), Invoice Date. No Due Date. */}
+          <div className="px-6 md:px-8 py-3 flex flex-wrap gap-x-6 gap-y-1">
+            <p className="invoice-body-text">
+              <span className="invoice-heading">Invoice No.:</span>{' '}
+              <span className="invoice-meta-highlight font-bold">{order.id}</span>
+            </p>
+            <p className="invoice-body-text">
+              <span className="invoice-heading">Invoice Date:</span> {invoiceDate}
             </p>
           </div>
 
@@ -246,7 +274,7 @@ export default function PublicInvoicePage() {
             <div className="invoice-customer-block">
               <p className="invoice-body-text">
                 <span className="invoice-heading">Customer name:</span>{' '}
-                {order.customer_name || 'Customer'}
+                {order.customer_name ?? 'Customer'}
               </p>
               <p className="invoice-body-text">
                 <span className="invoice-heading">Customer number:</span> {customerNumber}
@@ -255,46 +283,44 @@ export default function PublicInvoicePage() {
             <div className="invoice-divider my-4" />
           </div>
 
-          {/* INVOICE FROM | INVOICE TO */}
+          {/* BILL TO | SHIP TO */}
           <div className="px-6 md:px-8 pb-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
-                <p className="invoice-heading mb-2">Invoice from</p>
-                <p className="font-semibold invoice-body-text">{vendor?.name || 'Vendor'}</p>
-                {vendor?.phone && (
-                  <p className="invoice-body-text text-sm">{vendor.phone}</p>
-                )}
-                {vendor?.address && (
+                <p className="invoice-heading mb-2">BILL TO</p>
+                <p className="font-semibold invoice-body-text">{vendor?.name ?? 'Vendor'}</p>
+                {vendor?.address != null && vendor.address !== '' && (
                   <p className="invoice-body-text text-sm">{vendor.address}</p>
+                )}
+                {vendor?.phone != null && vendor.phone !== '' && (
+                  <p className="invoice-body-text text-sm">{vendor.phone}</p>
                 )}
               </div>
               <div className="text-left sm:text-right">
-                <p className="invoice-heading mb-2">Invoice to</p>
+                <p className="invoice-heading mb-2">SHIP TO</p>
                 <p className="font-semibold invoice-body-text">
-                  {order.customer_name || 'Customer'}
+                  {order.customer_name ?? 'Customer'}
                 </p>
-                {order.customer_phone && (
+                {order.customer_phone != null && order.customer_phone !== '' && (
                   <p className="invoice-body-text text-sm">{order.customer_phone}</p>
                 )}
-                <p className="invoice-body-text text-sm">
-                  {order.customer_name || order.customer_phone ? '—' : ''}
-                </p>
               </div>
             </div>
             <div className="invoice-divider my-4" />
           </div>
 
-          {/* Table: IMAGE, DESCRIPTION, QTY, PRICE, TOTAL */}
+          {/* Table: Item Image | Item Name | Quantity | Price | Discount | Amount */}
           <div className="px-6 md:px-8 overflow-x-auto">
             <div className="invoice-divider mb-0" />
             <table className="invoice-table w-full">
               <thead>
                 <tr>
-                  <th className="invoice-th-image">Image</th>
-                  <th className="text-left py-3 pr-4">Description</th>
-                  <th className="text-right py-3 px-2">Qty</th>
+                  <th className="invoice-th-image">Item Image</th>
+                  <th className="text-left py-3 pr-4">Item Name</th>
+                  <th className="text-right py-3 px-2">Quantity</th>
                   <th className="text-right py-3 px-2">Price</th>
-                  <th className="text-right py-3 pl-4">Total</th>
+                  <th className="text-right py-3 px-2">Discount</th>
+                  <th className="text-right py-3 pl-4">Amount</th>
                 </tr>
               </thead>
               <tbody>
@@ -329,6 +355,9 @@ export default function PublicInvoicePage() {
                     <td className="py-3 px-2 text-right invoice-body-text">
                       ₹{parseFloat(item.price).toFixed(2)}
                     </td>
+                    <td className="py-3 px-2 text-right invoice-body-text">
+                      {formatDiscount(item)}
+                    </td>
                     <td className="py-3 pl-4 text-right invoice-body-text">
                       ₹{parseFloat(item.total).toFixed(2)}
                     </td>
@@ -350,8 +379,8 @@ export default function PublicInvoicePage() {
                 <span>Service charge</span>
                 <span>₹{transactionCharge.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between font-bold invoice-body-text pt-2 text-base border-t border-[var(--invoice-accent)]">
-                <span>Total</span>
+              <div className="flex justify-between font-bold invoice-body-text pt-2 text-base border-t border-[var(--invoice-accent)] invoice-total-row">
+                <span>Total amount</span>
                 <span>₹{total.toFixed(2)}</span>
               </div>
             </div>

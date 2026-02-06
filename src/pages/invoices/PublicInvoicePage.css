@@ -20,9 +20,38 @@
   background-color: var(--invoice-bg);
 }
 
-/* Header: logo left, INVOICE right */
+/* Header: logo left, vendor name/address/phone right */
 .invoice-header {
   border-bottom: 1px solid var(--invoice-border);
+}
+
+.invoice-header-vendor {
+  min-width: 0;
+}
+
+.invoice-vendor-name {
+  font-family: 'Outfit', system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin: 0;
+  line-height: 1.25;
+}
+
+/* Thick separator below header (reference layout) */
+.invoice-divider-thick {
+  height: 2px;
+  background-color: var(--invoice-text);
+}
+
+/* Invoice meta: bold Invoice No., Invoice Date */
+.invoice-meta-highlight {
+  color: var(--invoice-text);
+}
+
+/* Total amount row – prominent */
+.invoice-total-row {
+  font-size: 1rem;
+  margin-top: 0.25rem;
 }
 
 .invoice-logo-ring {
