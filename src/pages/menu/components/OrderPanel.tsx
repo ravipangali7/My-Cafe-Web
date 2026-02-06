@@ -181,24 +181,25 @@ export function OrderPanel({
                 key={`${item.product.id}-${item.variant.id}`}
                 className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50"
               >
+                {/* Product Image */}
+                <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                  {item.product.image_url ? (
+                    <img
+                      src={item.product.image_url}
+                      alt={item.product.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-300">
+                      🍽️
+                    </div>
+                  )}
+                </div>
                 <div
                   key={`${item.product.id}-${item.variant.id}`}
                   className="flex flex-col items-center gap-3 p-2 rounded-lg hover:bg-gray-50"
                 >
-                  {/* Product Image */}
-                  <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                    {item.product.image_url ? (
-                      <img
-                        src={item.product.image_url}
-                        alt={item.product.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-300">
-                        🍽️
-                      </div>
-                    )}
-                  </div>
+
 
                   {/* Product Info */}
                   <div className="flex-1 min-w-0">
