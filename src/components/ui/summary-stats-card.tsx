@@ -17,7 +17,7 @@ interface SummaryStatsCardProps {
   className?: string;
 }
 
-function PeriodRow({
+function PeriodBlock({
   item,
   currencySymbol = '₹',
   className,
@@ -32,22 +32,15 @@ function PeriodRow({
       : formatCurrency(item.amount, currencySymbol);
   return (
     <div
-      className={cn(
-        'flex flex-wrap items-center gap-x-2 gap-y-1 text-sm md:text-base',
-        className
-      )}
+      className={cn('flex flex-col space-y-1', className)}
       aria-label={`${item.label}: ${amountStr}, ${item.orders} orders`}
     >
-      <span className="font-medium text-primary-foreground/95">{item.label}</span>
-      <span className="text-primary-foreground/70" aria-hidden>
-        |
+      <span className="text-sm text-primary-foreground/95">{item.label}</span>
+      <span className="text-xl md:text-2xl font-bold text-primary-foreground tracking-tight">
+        {amountStr}
       </span>
-      <span className="font-semibold text-primary-foreground">{amountStr}</span>
-      <span className="text-primary-foreground/70" aria-hidden>
-        |
-      </span>
-      <span className="text-primary-foreground/95">
-        {item.orders.toLocaleString()} Orders
+      <span className="text-sm text-primary-foreground/90">
+        {item.orders.toLocaleString()} orders
       </span>
     </div>
   );
@@ -71,20 +64,22 @@ export function SummaryStatsCard({
         aria-busy="true"
         aria-label="Loading summary stats"
       >
-        <div className="space-y-3 md:space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <Skeleton className="h-4 w-12 bg-primary-foreground/20" />
-            <Skeleton className="h-4 w-20 bg-primary-foreground/20" />
+        <div className="space-y-4">
+          <div className="flex flex-col space-y-2">
+            <Skeleton className="h-4 w-14 bg-primary-foreground/20" />
+            <Skeleton className="h-7 w-24 bg-primary-foreground/20" />
             <Skeleton className="h-4 w-16 bg-primary-foreground/20" />
           </div>
-          <div className="grid grid-cols-2 gap-3 md:gap-4">
-            <div className="flex flex-wrap items-center gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 pt-3 border-t border-primary-foreground/20">
+            <div className="flex flex-col space-y-2">
               <Skeleton className="h-4 w-14 bg-primary-foreground/20" />
-              <Skeleton className="h-4 w-20 bg-primary-foreground/20" />
+              <Skeleton className="h-7 w-20 bg-primary-foreground/20" />
+              <Skeleton className="h-4 w-14 bg-primary-foreground/20" />
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-col space-y-2">
               <Skeleton className="h-4 w-14 bg-primary-foreground/20" />
-              <Skeleton className="h-4 w-20 bg-primary-foreground/20" />
+              <Skeleton className="h-7 w-20 bg-primary-foreground/20" />
+              <Skeleton className="h-4 w-14 bg-primary-foreground/20" />
             </div>
           </div>
         </div>
@@ -101,15 +96,15 @@ export function SummaryStatsCard({
       role="region"
       aria-label="Summary statistics"
     >
-      <div className="space-y-3 md:space-y-4">
-        <PeriodRow item={firstRow} currencySymbol={currencySymbol} />
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-          <PeriodRow
+      <div className="space-y-4">
+        <PeriodBlock item={firstRow} currencySymbol={currencySymbol} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 pt-3 border-t border-primary-foreground/20">
+          <PeriodBlock
             item={secondRowLeft}
             currencySymbol={currencySymbol}
-            className="min-w-0"
+            className="min-w-0 pr-3 sm:border-r sm:border-primary-foreground/20 sm:pr-4"
           />
-          <PeriodRow
+          <PeriodBlock
             item={secondRowRight}
             currencySymbol={currencySymbol}
             className="min-w-0"
