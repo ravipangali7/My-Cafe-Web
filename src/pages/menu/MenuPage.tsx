@@ -331,7 +331,7 @@ export default function MenuPage() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto p-4 flex gap-6">
+      <div className="max-w-7xl mx-auto p-4 flex gap-6" style={{ paddingBottom: '7rem' }}>
         {/* Left Panel - Categories & Products */}
         <div className="flex-1 min-w-0">
           {/* Category Pills */}
@@ -350,7 +350,7 @@ export default function MenuPage() {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {filteredProducts.map((product) => (
                 <ProductCard
                   key={product.id}
