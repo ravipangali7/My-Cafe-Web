@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Eye, Edit, Trash2, Package, CheckCircle, XCircle, TrendingUp } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/ui/page-header';
@@ -73,6 +74,7 @@ export default function ProductsList() {
     top_selling: 0,
   });
   const [loadingStats, setLoadingStats] = useState(true);
+  const [togglingId, setTogglingId] = useState<number | null>(null);
 
   const fetchProducts = useCallback(async () => {
     if (!user) return;
@@ -179,6 +181,44 @@ export default function ProductsList() {
     setDeleteId(null);
   }, [deleteId, fetchProducts, fetchStats]);
 
+  const handleToggleStatus = useCallback(
+    async (product: Product) => {
+      if (togglingId !== null || !canEditItem(user, product)) return;
+      const newActive = !product.is_active;
+      setTogglingId(product.id);
+      setProducts((prev) =>
+        prev.map((p) => (p.id === product.id ? { ...p, is_active: newActive } : p))
+      );
+      try {
+        const formData = new FormData();
+        formData.append('is_active', String(newActive));
+        const response = await api.post(
+          `/api/products/${product.id}/edit/`,
+          formData,
+          true
+        );
+        if (response.error) {
+          toast.error(response.error || 'Failed to update status');
+          setProducts((prev) =>
+            prev.map((p) => (p.id === product.id ? { ...p, is_active: product.is_active } : p))
+          );
+        } else {
+          toast.success(newActive ? 'Product activated' : 'Product deactivated');
+          fetchProducts();
+          fetchStats();
+        }
+      } catch {
+        toast.error('Failed to update status');
+        setProducts((prev) =>
+          prev.map((p) => (p.id === product.id ? { ...p, is_active: product.is_active } : p))
+        );
+      } finally {
+        setTogglingId(null);
+      }
+    },
+    [user, togglingId, fetchProducts, fetchStats]
+  );
+
   const handleApplyFilters = () => {
     setAppliedSearch(search);
     setAppliedUserId(userId);
@@ -254,10 +294,20 @@ export default function ProductsList() {
       label: 'Status',
       hideOnMobile: true,
       render: (item: Product) => (
-        <StatusBadge
-          status={item.is_active ? 'Active' : 'Inactive'}
-          variant={getActiveStatusVariant(item.is_active)}
-        />
+        <div className="flex items-center gap-2">
+          {canEditItem(user, item) ? (
+            <Switch
+              checked={item.is_active}
+              disabled={togglingId === item.id}
+              onCheckedChange={() => handleToggleStatus(item)}
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : null}
+          <StatusBadge
+            status={item.is_active ? 'Active' : 'Inactive'}
+            variant={getActiveStatusVariant(item.is_active)}
+          />
+        </div>
       ),
     },
   ];
@@ -306,6 +356,14 @@ export default function ProductsList() {
           
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             <StatusBadge status={product.type} variant={product.type === 'veg' ? 'success' : 'destructive'} />
+            {canEditItem(user, product) ? (
+              <Switch
+                checked={product.is_active}
+                disabled={togglingId === product.id}
+                onCheckedChange={() => handleToggleStatus(product)}
+                onClick={(e) => e.stopPropagation()}
+              />
+            ) : null}
             <StatusBadge
               status={product.is_active ? 'Active' : 'Inactive'}
               variant={getActiveStatusVariant(product.is_active)}
@@ -327,23 +385,24 @@ export default function ProductsList() {
           View
         </Button>
         {canEditItem(user, product) && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/products/${product.id}/edit`);
-            }}
-          >
-            <Edit className="h-4 w-4 mr-1" />
-            Edit
-          </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-amber-600 hover:bg-amber-50 hover:text-amber-700 border-amber-200"
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/products/${product.id}/edit`);
+          }}
+        >
+          <Edit className="h-4 w-4 mr-1" />
+          Edit
+        </Button>
         )}
         {canDeleteItem(user, product) && (
           <Button
             variant="outline"
             size="sm"
-            className="text-destructive hover:text-destructive"
+            className="text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30"
             onClick={(e) => {
               e.stopPropagation();
               setDeleteId(product.id);

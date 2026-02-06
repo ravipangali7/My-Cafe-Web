@@ -56,6 +56,7 @@ import Settings from "./pages/Settings";
 
 // Profile
 import Profile from "./pages/Profile";
+import ChangePassword from "./pages/ChangePassword";
 
 // Reports
 import ReportsPage from "./pages/reports/ReportsPage";
@@ -377,6 +378,7 @@ const App = () => (
 
             {/* Profile */}
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            <Route path="/profile/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
 
             {/* Reports */}
             <Route path="/reports" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />

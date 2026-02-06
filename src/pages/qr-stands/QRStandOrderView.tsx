@@ -98,13 +98,13 @@ export default function QRStandOrderView() {
   return (
     <DashboardLayout>
       <PageHeader
-        title={`QR Stand Order #${order.id}`}
+        title={<span className="font-bold text-lg">QR Stand Order #{order.id}</span>}
         backLink="/qr-stands"
       />
 
       <div className="space-y-6">
         <DetailCard title="Order Details">
-          <DetailRow label="Order ID" value={`#${order.id}`} />
+          <DetailRow label="Order ID" value={<span className="font-bold text-lg">#{order.id}</span>} />
           <DetailRow
             label="Vendor"
             value={

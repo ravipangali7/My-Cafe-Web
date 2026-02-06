@@ -390,7 +390,7 @@ export default function WithdrawalsList() {
             <Button
               variant="outline"
               size="sm"
-              className="text-destructive hover:text-destructive"
+              className="text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30"
               onClick={(e) => {
                 e.stopPropagation();
                 setRejectId(withdrawal.id);
@@ -475,7 +475,7 @@ export default function WithdrawalsList() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-destructive hover:text-destructive"
+                  className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
                   onClick={() => setRejectId(item.id)}
                 >
                   <XCircle className="h-4 w-4" />

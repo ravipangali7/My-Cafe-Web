@@ -30,6 +30,7 @@ export default function VendorForm() {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [expireDate, setExpireDate] = useState('');
   const [token, setToken] = useState('');
+  const [ugApi, setUgApi] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [isSuperuser, setIsSuperuser] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -52,6 +53,7 @@ export default function VendorForm() {
       setLogoPreview(vendorData.logo_url || null);
       setExpireDate(vendorData.expire_date || '');
       setToken(vendorData.token || '');
+      setUgApi(vendorData.ug_api ?? '');
       setIsActive(vendorData.is_active ?? true);
       setIsSuperuser(vendorData.is_superuser ?? false);
     } else if (user.is_superuser) {
@@ -69,6 +71,7 @@ export default function VendorForm() {
       setLogoPreview(vendorData.logo_url || null);
       setExpireDate(vendorData.expire_date || '');
       setToken(vendorData.token || '');
+      setUgApi(vendorData.ug_api ?? '');
       setIsActive(vendorData.is_active ?? true);
       setIsSuperuser(vendorData.is_superuser ?? false);
     } else {
@@ -184,7 +187,7 @@ export default function VendorForm() {
         } else if (logoUrl) {
           formData.append('logo_url', logoUrl);
         }
-        // Only send expire_date and token if superuser or creating
+        // Only send expire_date, token, ug_api if superuser or creating
         if (isCreateMode || user.is_superuser) {
           if (expireDate) {
             formData.append('expire_date', expireDate);
@@ -192,6 +195,9 @@ export default function VendorForm() {
           if (token) {
             formData.append('token', token);
           }
+        }
+        if (ugApi !== undefined && ugApi !== null) {
+          formData.append('ug_api', ugApi);
         }
         
         // Only superusers can change is_superuser
@@ -350,6 +356,17 @@ export default function VendorForm() {
                   />
                 </div>
               </>
+            )}
+            {isEditMode && (parseInt(id || '0') === user?.id || user?.is_superuser) && (
+              <div className="space-y-2">
+                <Label htmlFor="ugApi">UG API (optional)</Label>
+                <Input
+                  id="ugApi"
+                  value={ugApi}
+                  onChange={(e) => setUgApi(e.target.value)}
+                  placeholder="Payment UG API key"
+                />
+              </div>
             )}
             {canEditSuperuser && (
               <div className="flex items-center gap-2">

@@ -32,6 +32,7 @@ export default function Settings() {
   const [whatsappTemplateMarketing, setWhatsappTemplateMarketing] = useState('mycafemarketing');
   const [whatsappTemplateImagemarketing, setWhatsappTemplateImagemarketing] = useState('mycafeimagemarketing');
   const [shareDistributionDay, setShareDistributionDay] = useState('7');
+  const [ugApi, setUgApi] = useState('');
   const [saving, setSaving] = useState(false);
 
   const fetchSettings = useCallback(async () => {
@@ -56,6 +57,7 @@ export default function Settings() {
         setWhatsappTemplateMarketing(s.whatsapp_template_marketing ?? 'mycafemarketing');
         setWhatsappTemplateImagemarketing(s.whatsapp_template_imagemarketing ?? 'mycafeimagemarketing');
         setShareDistributionDay(String(s.share_distribution_day ?? 7));
+        setUgApi(s.ug_api ?? '');
         setIsEditing(false);
       } else {
         setIsEditing(true);
@@ -136,6 +138,7 @@ export default function Settings() {
         whatsapp_template_marketing: whatsappTemplateMarketing || 'mycafemarketing',
         whatsapp_template_imagemarketing: whatsappTemplateImagemarketing || 'mycafeimagemarketing',
         share_distribution_day: shareDistributionDayInt,
+        ug_api: ugApi,
       });
 
       if (response.error) {
@@ -280,6 +283,17 @@ export default function Settings() {
                   />
                   <p className="text-xs text-muted-foreground">Alert when dues exceed this amount</p>
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="ugApi">UG API (optional)</Label>
+                  <Input
+                    id="ugApi"
+                    type="text"
+                    value={ugApi}
+                    onChange={(e) => setUgApi(e.target.value)}
+                    placeholder="Payment UG API key"
+                  />
+                  <p className="text-xs text-muted-foreground">Payment gateway API key for non-menu transactions</p>
+                </div>
               </div>
 
               {/* WhatsApp Settings */}
@@ -395,6 +409,7 @@ export default function Settings() {
                     setWhatsappTemplateMarketing(setting.whatsapp_template_marketing ?? 'mycafemarketing');
                     setWhatsappTemplateImagemarketing(setting.whatsapp_template_imagemarketing ?? 'mycafeimagemarketing');
                     setShareDistributionDay(String(setting.share_distribution_day ?? 7));
+                    setUgApi(setting.ug_api ?? '');
                   }
                 }}>
                   Cancel
@@ -427,6 +442,7 @@ export default function Settings() {
                 <h3 className="font-medium text-sm text-muted-foreground">Transaction Settings</h3>
                 <DetailRow label="Per Transaction Fee" value={`₹${setting?.per_transaction_fee ?? 10}`} />
                 <DetailRow label="Due Threshold" value={`₹${setting?.due_threshold ?? 1000}`} />
+                <DetailRow label="UG API" value={setting?.ug_api ? 'Configured' : '—'} />
               </div>
 
               {/* WhatsApp Settings */}

@@ -10,7 +10,8 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/ui/page-header';
 import { MultiFormRow } from '@/components/forms/MultiFormRow';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { api, fetchPaginated } from '@/lib/api';
+import { api, fetchPaginated, isWebView } from '@/lib/api';
+import { requestFileFromFlutter, filePayloadToFile, type WebViewFilePayload } from '@/lib/webview-upload';
 import { cn } from '@/lib/utils';
 import { useVendor } from '@/contexts/VendorContext';
 import { toast } from 'sonner';
@@ -51,7 +52,9 @@ export default function ProductForm() {
   const [name, setName] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageFilePayload, setImageFilePayload] = useState<WebViewFilePayload | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [type, setType] = useState<'veg' | 'non-veg'>('veg');
   const [isActive, setIsActive] = useState(true);
   const [variants, setVariants] = useState<Variant[]>([{ ...emptyVariant }]);
@@ -115,11 +118,28 @@ export default function ProductForm() {
     const file = e.target.files?.[0];
     if (file) {
       setImageFile(file);
+      setImageFilePayload(null);
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleWebViewImageUpload = async () => {
+    if (!isWebView()) return;
+    setUploadingImage(true);
+    try {
+      const payload = await requestFileFromFlutter({ accept: 'image/*', field: 'product_image' });
+      setImageFilePayload(payload);
+      setImageFile(null);
+      setImagePreview(payload.dataUrl);
+      toast.success('Image selected');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to select image');
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -150,6 +170,9 @@ export default function ProductForm() {
 
       if (imageFile) {
         formData.append('image', imageFile);
+      } else if (imageFilePayload) {
+        const file = await filePayloadToFile(imageFilePayload);
+        formData.append('image', file);
       }
 
       let response;
@@ -231,12 +254,24 @@ export default function ProductForm() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="image">Image</Label>
-                <Input
-                  id="image"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                />
+                {isWebView() ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleWebViewImageUpload}
+                    disabled={uploadingImage}
+                  >
+                    {uploadingImage ? 'Selecting...' : (imagePreview ? 'Change Image' : 'Upload Image')}
+                  </Button>
+                ) : (
+                  <Input
+                    id="image"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                  />
+                )}
                 {imagePreview && (
                   <div className="mt-2">
                     <img src={imagePreview} alt="Preview" className="h-20 w-20 rounded object-cover" />

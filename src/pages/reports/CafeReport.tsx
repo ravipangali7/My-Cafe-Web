@@ -396,7 +396,7 @@ export function CafeReport() {
                     <tbody>
                       {reportData.detailed_orders.map((order) => (
                         <tr key={order.id} className="border-b">
-                          <td className="p-2">#{order.id}</td>
+                          <td className="p-2 font-bold text-base">#{order.id}</td>
                           <td className="p-2">{order.name}</td>
                           <td className="p-2">{order.table_no}</td>
                           <td className="p-2">{order.status}</td>

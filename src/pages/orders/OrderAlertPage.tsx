@@ -287,8 +287,8 @@ export default function OrderAlertPage() {
         </div>
 
         <div className="rounded-2xl bg-[#4A3328] p-4 shadow-lg mb-4">
-          <p className="text-xs font-bold text-white/70 tracking-wide mb-3">
-            ORDER #{order.orderId}
+          <p className="text-lg font-bold text-white tracking-wide mb-3">
+            Order ID: #{order.orderId}
           </p>
           {order.items.length > 0 ? (
             <ul className="space-y-3">

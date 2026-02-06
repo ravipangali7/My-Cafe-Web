@@ -159,7 +159,7 @@ export function PremiumTable<T extends { id: string | number }>({
     );
   }
 
-  // Mobile card view - full-width cards, app-style
+  // Mobile card view - full-width cards with glassmorphism
   if (isMobile && mobileCard) {
     return (
       <div className={cn('space-y-2 md:space-y-3 w-full', className)}>
@@ -168,6 +168,7 @@ export function PremiumTable<T extends { id: string | number }>({
             key={item.id}
             className={cn(
               'overflow-hidden transition-all duration-200 w-full touch-target min-h-[44px]',
+              'bg-background/80 backdrop-blur-md border border-border/50 shadow-lg',
               onRowClick && 'cursor-pointer active:scale-[0.99]'
             )}
             onClick={() => onRowClick?.(item)}
@@ -284,7 +285,7 @@ function TableActions<T>({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="h-8 w-8 text-amber-600 hover:bg-amber-50 hover:text-amber-700"
             onClick={() => onEdit(item)}
           >
             <Edit className="h-4 w-4" />
@@ -294,7 +295,7 @@ function TableActions<T>({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-destructive hover:text-destructive"
+            className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
             onClick={() => onDelete(item)}
           >
             <Trash2 className="h-4 w-4" />
@@ -320,7 +321,7 @@ function TableActions<T>({
           </DropdownMenuItem>
         )}
         {onEdit && (
-          <DropdownMenuItem onClick={() => onEdit(item)}>
+          <DropdownMenuItem onClick={() => onEdit(item)} className="text-amber-600 focus:text-amber-700">
             <Edit className="h-4 w-4 mr-2" />
             Edit
           </DropdownMenuItem>
@@ -328,7 +329,7 @@ function TableActions<T>({
         {onDelete && (
           <DropdownMenuItem
             onClick={() => onDelete(item)}
-            className="text-destructive focus:text-destructive"
+            className="text-destructive focus:text-destructive focus:bg-destructive/10"
           >
             <Trash2 className="h-4 w-4 mr-2" />
             Delete

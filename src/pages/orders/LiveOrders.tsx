@@ -126,7 +126,7 @@ function LiveOrderCard({
           <div>
             <div className="flex items-center gap-2 mb-1">
               <Hash className="h-4 w-4 text-muted-foreground" />
-              <span className="font-semibold">Order #{order.id}</span>
+              <span className="font-bold text-lg">Order #{order.id}</span>
               <StatusBadge status={order.status} variant={getOrderStatusVariant(order.status)} />
             </div>
             <p className="text-xs text-muted-foreground">{formatTime(order.created_at)}</p>

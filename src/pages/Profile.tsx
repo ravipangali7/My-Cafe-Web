@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -41,7 +41,8 @@ import {
   Calendar,
   CheckCircle2,
   XCircle,
-  Clock
+  Clock,
+  Key
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
@@ -286,6 +287,14 @@ export default function Profile() {
                   )}
                 </div>
               )}
+              <div className="pt-4 border-t border-border">
+                <Button variant="outline" className="w-full gap-2" asChild>
+                  <Link to="/profile/change-password">
+                    <Key className="h-4 w-4" />
+                    Change Password
+                  </Link>
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
@@ -433,14 +442,20 @@ export default function Profile() {
                 </div>
 
                 {/* Submit Button */}
-                <div className="flex gap-3 pt-4">
+                <div className="flex flex-wrap gap-3 pt-4">
                   <Button
                     type="submit"
                     disabled={loading}
-                    className="flex-1 gap-2"
+                    className="gap-2"
                   >
                     <Save className="h-4 w-4" />
                     {loading ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                  <Button variant="outline" className="gap-2" asChild>
+                    <Link to="/profile/change-password">
+                      <Key className="h-4 w-4" />
+                      Change Password
+                    </Link>
                   </Button>
                 </div>
               </form>

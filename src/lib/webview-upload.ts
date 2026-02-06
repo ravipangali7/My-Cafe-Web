@@ -20,7 +20,7 @@ export interface WebViewFilePayload {
 
 export interface WebViewUploadOptions {
   accept: string;  // e.g. 'image/*' or 'image/*,application/pdf'
-  field: 'logo' | 'kyc_document' | 'whatsapp_image';
+  field: 'logo' | 'kyc_document' | 'whatsapp_image' | 'product_image' | 'category_image';
 }
 
 /**

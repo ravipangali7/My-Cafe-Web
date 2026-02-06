@@ -389,6 +389,7 @@ export default function VendorsList() {
           <Button
             variant="outline"
             size="sm"
+            className="text-amber-600 hover:bg-amber-50 hover:text-amber-700 border-amber-200"
             onClick={(e) => {
               e.stopPropagation();
               navigate(`/vendors/${vendor.id}/edit`);
@@ -402,7 +403,7 @@ export default function VendorsList() {
           <Button
             variant="outline"
             size="sm"
-            className="text-destructive hover:text-destructive"
+            className="text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30"
             onClick={(e) => {
               e.stopPropagation();
               setDeleteId(vendor.id);

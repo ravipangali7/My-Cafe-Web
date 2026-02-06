@@ -355,7 +355,7 @@ export function FinanceReport() {
                       {reportData.detailed_transactions.map((transaction) => (
                         <tr key={transaction.id} className="border-b">
                           <td className="p-2">#{transaction.id}</td>
-                          <td className="p-2">#{transaction.order_id || '—'}</td>
+                          <td className="p-2 font-bold text-base">#{transaction.order_id || '—'}</td>
                           <td className="p-2 text-right">₹{parseFloat(transaction.amount || '0').toFixed(2)}</td>
                           <td className="p-2">{transaction.status || '—'}</td>
                           <td className="p-2">{transaction.remarks || '—'}</td>

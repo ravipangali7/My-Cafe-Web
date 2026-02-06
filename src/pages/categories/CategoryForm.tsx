@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/ui/page-header';
-import { api } from '@/lib/api';
+import { api, isWebView } from '@/lib/api';
+import { requestFileFromFlutter, filePayloadToFile, type WebViewFilePayload } from '@/lib/webview-upload';
 import { useVendor } from '@/contexts/VendorContext';
 import { toast } from 'sonner';
 
@@ -18,7 +19,9 @@ export default function CategoryForm() {
 
   const [name, setName] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageFilePayload, setImageFilePayload] = useState<WebViewFilePayload | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const fetchCategory = useCallback(async () => {
@@ -45,11 +48,28 @@ export default function CategoryForm() {
     const file = e.target.files?.[0];
     if (file) {
       setImageFile(file);
+      setImageFilePayload(null);
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleWebViewImageUpload = async () => {
+    if (!isWebView()) return;
+    setUploadingImage(true);
+    try {
+      const payload = await requestFileFromFlutter({ accept: 'image/*', field: 'category_image' });
+      setImageFilePayload(payload);
+      setImageFile(null);
+      setImagePreview(payload.dataUrl);
+      toast.success('Image selected');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to select image');
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -63,6 +83,9 @@ export default function CategoryForm() {
       formData.append('name', name);
       if (imageFile) {
         formData.append('image', imageFile);
+      } else if (imageFilePayload) {
+        const file = await filePayloadToFile(imageFilePayload);
+        formData.append('image', file);
       }
 
       let response;
@@ -107,12 +130,24 @@ export default function CategoryForm() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="image">Image</Label>
-              <Input
-                id="image"
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-              />
+              {isWebView() ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleWebViewImageUpload}
+                  disabled={uploadingImage}
+                >
+                  {uploadingImage ? 'Selecting...' : (imagePreview ? 'Change Image' : 'Upload Image')}
+                </Button>
+              ) : (
+                <Input
+                  id="image"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                />
+              )}
               {imagePreview && (
                 <div className="mt-2">
                   <img src={imagePreview} alt="Preview" className="h-20 w-20 rounded object-cover" />

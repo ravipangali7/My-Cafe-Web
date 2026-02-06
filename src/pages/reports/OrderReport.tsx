@@ -370,7 +370,7 @@ export function OrderReport() {
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                           <div>
                             <p className="text-sm text-muted-foreground">Order ID</p>
-                            <p className="font-semibold">#{order.id}</p>
+                            <p className="font-bold text-lg">#{order.id}</p>
                           </div>
                           <div>
                             <p className="text-sm text-muted-foreground">Customer</p>

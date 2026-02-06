@@ -4,7 +4,7 @@ import { ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface PageHeaderProps {
-  title: string;
+  title: ReactNode;
   description?: string;
   backLink?: string;
   action?: ReactNode;

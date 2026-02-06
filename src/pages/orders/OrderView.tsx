@@ -249,7 +249,7 @@ export default function OrderView() {
   return (
     <DashboardLayout>
       <PageHeader
-        title={`Order #${order.id}`}
+        title={<span className="font-bold text-lg">Order #{order.id}</span>}
         backLink="/orders"
         action={
           <div className="flex gap-2">
@@ -299,7 +299,7 @@ export default function OrderView() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <DetailCard title="Order Details">
-          <DetailRow label="Order ID" value={order.id} />
+          <DetailRow label="Order ID" value={<span className="font-bold text-lg">#{order.id}</span>} />
           <DetailRow label="Customer Name" value={order.name} />
           <DetailRow label="Phone" value={order.phone} />
           <DetailRow label="Table No" value={order.table_no} />

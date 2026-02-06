@@ -334,7 +334,7 @@ export default function TransactionView() {
                     <Button
                       variant="link"
                       size="sm"
-                      className="p-0 h-auto font-medium"
+                      className="p-0 h-auto font-bold text-base"
                       onClick={() => navigate(`/orders/${transaction.order_info!.id}`)}
                     >
                       #{transaction.order_info.id}
@@ -366,7 +366,7 @@ export default function TransactionView() {
                     <Button
                       variant="link"
                       size="sm"
-                      className="p-0 h-auto font-medium"
+                      className="p-0 h-auto font-bold text-base"
                       onClick={() => navigate(`/qr-stands/${transaction.qr_stand_order_info!.id}`)}
                     >
                       #{transaction.qr_stand_order_info.id}

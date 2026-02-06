@@ -246,9 +246,9 @@ export default function OrdersList() {
   const columns = [
     {
       key: 'id',
-      label: 'Order',
+      label: 'Order ID',
       render: (item: Order) => (
-        <span className="font-mono font-medium">#{item.id}</span>
+        <span className="font-mono font-bold text-base">#{item.id}</span>
       ),
     },
     {
@@ -336,7 +336,7 @@ export default function OrdersList() {
     <CardContent className="p-4">
       <div className="flex justify-between items-start mb-3">
         <div>
-          <div className="font-mono font-semibold text-foreground">Order #{order.id}</div>
+          <div className="font-mono font-bold text-lg text-foreground">Order #{order.id}</div>
           <CustomerInfoCell
             name={order.name}
             phone={order.phone}
@@ -385,6 +385,7 @@ export default function OrdersList() {
           <Button
             variant="outline"
             size="sm"
+            className="text-amber-600 hover:bg-amber-50 hover:text-amber-700 border-amber-200"
             onClick={(e) => {
               e.stopPropagation();
               navigate(`/orders/${order.id}/edit`);
@@ -397,7 +398,7 @@ export default function OrdersList() {
           <Button
             variant="outline"
             size="sm"
-            className="text-destructive hover:text-destructive"
+            className="text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30"
             onClick={(e) => {
               e.stopPropagation();
               setDeleteId(order.id);
@@ -486,7 +487,7 @@ export default function OrdersList() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8"
+                    className="h-8 w-8 text-amber-600 hover:bg-amber-50 hover:text-amber-700"
                     onClick={() => navigate(`/orders/${item.id}/edit`)}
                   >
                     <Edit className="h-4 w-4" />
@@ -496,7 +497,7 @@ export default function OrdersList() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
                     onClick={() => setDeleteId(item.id)}
                   >
                     <Trash2 className="h-4 w-4" />
