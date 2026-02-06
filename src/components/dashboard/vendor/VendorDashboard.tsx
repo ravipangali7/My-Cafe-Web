@@ -54,7 +54,7 @@ export function VendorDashboard({
   return (
     <div className={cn('space-y-8', isMobile && 'space-y-10')}>
       {/* Vendor greeting - logo, name, and Online/Offline toggle */}
-      <div className="flex flex-col flex-wrap items-center gap-4 p-4 rounded-xl bg-card border border-border">
+      <div className="flex flex-col flex-wrap gap-4 p-4 rounded-xl bg-card border border-border">
       <div className="flex flex-wrap items-center">
         {vendor?.logo_url ? (
           <img
