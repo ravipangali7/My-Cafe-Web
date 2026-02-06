@@ -31,6 +31,7 @@ interface ProductCardProps {
   onAddToCart: (product: Product, variant: ProductVariant) => void;
   selectedVariants: Record<number, number>; // productId -> variantId
   onVariantSelect: (productId: number, variantId: number) => void;
+  addDisabled?: boolean;
 }
 
 export function ProductCard({
@@ -39,6 +40,7 @@ export function ProductCard({
   onAddToCart,
   selectedVariants,
   onVariantSelect,
+  addDisabled = false,
 }: ProductCardProps) {
   const selectedVariantId = selectedVariants[product.id] || product.variants[0]?.id;
   const selectedVariant = product.variants.find(v => v.id === selectedVariantId) || product.variants[0];
@@ -135,15 +137,17 @@ export function ProductCard({
 
       {/* Add Button */}
       <button
-        onClick={() => selectedVariant && onAddToCart(product, selectedVariant)}
+        onClick={() => !addDisabled && selectedVariant && onAddToCart(product, selectedVariant)}
+        disabled={addDisabled}
         className={cn(
           'w-full py-2 rounded-lg text-sm font-medium transition-all',
+          addDisabled && 'cursor-not-allowed opacity-60',
           isInCart
             ? 'bg-coral-100 text-coral-600 border border-coral-200'
             : 'bg-coral-500 text-white hover:bg-coral-600'
         )}
       >
-        {isInCart ? 'Added' : 'Add'}
+        {addDisabled ? 'Unavailable' : isInCart ? 'Added' : 'Add'}
       </button>
     </div>
   );

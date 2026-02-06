@@ -38,6 +38,7 @@ interface Vendor {
   name: string;
   phone: string;
   logo_url: string | null;
+  is_online?: boolean;
 }
 
 interface OrderPanelProps {
@@ -94,7 +95,13 @@ export function OrderPanel({
       });
   }, []);
 
+  const vendorOffline = vendor.is_online === false;
+
   const handleSubmit = async () => {
+    if (vendorOffline) {
+      toast.error('Restaurant is currently offline. Orders cannot be placed.');
+      return;
+    }
     if (!guestName.trim()) {
       toast.error('Please enter your name');
       return;
@@ -134,8 +141,7 @@ export function OrderPanel({
       });
 
       if (paymentResult.error) {
-        toast.error(paymentResult.error || 'Failed to initiate payment');
-        toast.error('Payment is required. Please try again.');
+        toast.error(paymentResult.error);
         return;
       }
 
@@ -320,10 +326,13 @@ export function OrderPanel({
         </div>
 
         {/* Place Order Button */}
+        {vendorOffline && (
+          <p className="text-sm text-muted-foreground text-center py-2">Restaurant is currently closed.</p>
+        )}
         <Button
           onClick={handleSubmit}
-          disabled={submitting || cart.length === 0}
-          className="w-full bg-coral-500 hover:bg-coral-600 text-white py-3 rounded-xl font-semibold"
+          disabled={submitting || cart.length === 0 || vendorOffline}
+          className="w-full bg-coral-500 hover:bg-coral-600 text-white py-3 rounded-xl font-semibold disabled:opacity-60"
           size="lg"
         >
           {submitting ? (
@@ -331,6 +340,8 @@ export function OrderPanel({
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               Processing...
             </>
+          ) : vendorOffline ? (
+            'Restaurant closed'
           ) : (
             'Place Order & Pay'
           )}

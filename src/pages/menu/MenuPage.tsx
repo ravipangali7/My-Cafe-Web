@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { ShoppingCart, Search, Plus } from 'lucide-react';
+import { ShoppingCart, Search, Store } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
@@ -43,6 +43,7 @@ interface Vendor {
   name: string;
   phone: string;
   logo_url: string | null;
+  is_online?: boolean;
 }
 
 interface MenuData {
@@ -261,6 +262,48 @@ export default function MenuPage() {
     );
   }
 
+  const isVendorOnline = menuData.vendor.is_online !== false;
+
+  // Restaurant is closed: show full-page message, no ordering
+  if (!isVendorOnline) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 flex flex-col">
+        {/* Minimal header with vendor info only */}
+        <div className="bg-white/90 backdrop-blur-sm border-b border-slate-200 p-4 sticky top-0 z-20">
+          <div className="max-w-7xl mx-auto flex items-center gap-3">
+            {menuData.vendor.logo_url ? (
+              <img
+                src={menuData.vendor.logo_url}
+                alt={menuData.vendor.name}
+                className="h-12 w-12 rounded-full object-cover border-2 border-slate-200"
+              />
+            ) : (
+              <div className="h-12 w-12 rounded-full bg-slate-300 border-2 border-slate-200 flex items-center justify-center text-white font-bold text-lg">
+                {menuData.vendor.name.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div>
+              <h1 className="text-xl font-bold text-slate-800">{menuData.vendor.name}</h1>
+              <p className="text-sm text-slate-500">Our Menu</p>
+            </div>
+          </div>
+        </div>
+        {/* Centered "Restaurant is Closed" section */}
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="max-w-md w-full text-center">
+            <div className="mx-auto w-20 h-20 rounded-full bg-slate-200/80 flex items-center justify-center mb-6">
+              <Store className="h-10 w-10 text-slate-500" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-800 mb-2">Restaurant is Closed</h2>
+            <p className="text-slate-600">
+              This restaurant is currently offline. Please check back later.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const filteredProducts = getFilteredProducts();
 
   return (
@@ -359,6 +402,7 @@ export default function MenuPage() {
                   onAddToCart={addToCart}
                   selectedVariants={selectedVariants}
                   onVariantSelect={handleVariantSelect}
+                  addDisabled={!isVendorOnline}
                 />
               ))}
             </div>

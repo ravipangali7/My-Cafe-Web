@@ -7,9 +7,12 @@ import { TransactionHistoryTable } from '../TransactionHistoryTable';
 import { VendorDashboardData } from '@/lib/types';
 import { useVendor } from '@/contexts/VendorContext';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Store } from 'lucide-react';
+import { VendorOnlineToggle } from './VendorOnlineToggle';
 
 const DASHBOARD_TABLE_LIMIT = 5;
 
@@ -46,12 +49,12 @@ export function VendorDashboard({
   loading = false,
 }: VendorDashboardProps) {
   const isMobile = useIsMobile();
-  const { vendor } = useVendor();
+  const { vendor, refetch, loading: vendorLoading } = useVendor();
 
   return (
     <div className={cn('space-y-8', isMobile && 'space-y-10')}>
-      {/* Vendor greeting - logo and name */}
-      <div className="flex items-center gap-4 p-4 rounded-xl bg-card border border-border">
+      {/* Vendor greeting - logo, name, and Online/Offline toggle */}
+      <div className="flex flex-wrap items-center gap-4 p-4 rounded-xl bg-card border border-border">
         {vendor?.logo_url ? (
           <img
             src={vendor.logo_url}
@@ -63,12 +66,26 @@ export function VendorDashboard({
             <Store className="h-7 w-7 text-primary" />
           </div>
         )}
-        <div>
+        <div className="flex-1 min-w-0">
           <h1 className="text-xl font-semibold text-foreground">
             Hello, {vendor?.name || 'Vendor'}!
           </h1>
           <p className="text-sm text-muted-foreground">Here’s your dashboard overview.</p>
         </div>
+        {vendor && (
+          <VendorOnlineToggle
+            isOnline={vendor.is_online !== false}
+            onToggle={async (next) => {
+              const res = await api.put<{ user?: unknown }>('/api/auth/user/update/', { is_online: next });
+              if (res.error) {
+                toast.error(res.error);
+                throw new Error(res.error);
+              }
+              await refetch();
+            }}
+            disabled={vendorLoading}
+          />
+        )}
       </div>
 
       {/* Overview - Stats */}

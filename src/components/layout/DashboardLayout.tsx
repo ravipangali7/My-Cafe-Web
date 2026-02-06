@@ -37,7 +37,10 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useVendor } from '@/contexts/VendorContext';
+import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import { VendorOnlineToggle } from '@/components/dashboard/vendor/VendorOnlineToggle';
 import { BottomNavigation } from './BottomNavigation';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -77,7 +80,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
-  const { vendor } = useVendor();
+  const { vendor, refetch, loading } = useVendor();
   const isMobile = useIsMobile();
 
   // Keep Transactions expanded when on transactions page
@@ -280,6 +283,21 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
           
           <div className="flex items-center gap-2">
+            {/* Online/Offline toggle - Only for vendors (non-superusers) */}
+            {!user?.is_superuser && vendor && (
+              <VendorOnlineToggle
+                isOnline={vendor.is_online !== false}
+                onToggle={async (next) => {
+                  const res = await api.put<{ user?: unknown }>('/api/auth/user/update/', { is_online: next });
+                  if (res.error) {
+                    toast.error(res.error);
+                    throw new Error(res.error);
+                  }
+                  await refetch();
+                }}
+                disabled={loading}
+              />
+            )}
             {/* Live Order Button - Only for vendors (non-superusers) */}
             {!user?.is_superuser && (
               <Link to="/live-orders">

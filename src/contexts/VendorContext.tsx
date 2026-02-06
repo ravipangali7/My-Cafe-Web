@@ -9,6 +9,7 @@ interface Vendor {
   logo_url: string | null;
   expire_date: string | null;
   is_active: boolean;
+  is_online?: boolean;
   created_at: string;
   updated_at: string;
 }
