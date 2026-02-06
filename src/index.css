@@ -107,9 +107,10 @@
     }
   }
 
-  /* Safe area padding for mobile - clears bottom nav (6rem) + device safe area */
+  /* Safe area padding for mobile */
   .safe-area-bottom {
-    padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+    /* padding-bottom: env(safe-area-inset-bottom, "1000px"); */
+    padding-bottom: '1000px';
   }
 
   .safe-area-top {

@@ -68,7 +68,7 @@ export function PremiumStatsCard({
   return (
     <Card
       className={cn(
-        'relative overflow-hidden transition-all duration-200 border min-h-[72px] md:min-h-0',
+        'relative overflow-hidden transition-all duration-200 border',
         styles.card,
         onClick && 'cursor-pointer hover:shadow-md active:scale-[0.98]'
       )}
@@ -77,7 +77,7 @@ export function PremiumStatsCard({
       <CardContent className="p-3 md:p-4">
         <div className="flex items-start justify-between gap-2 md:gap-3">
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide line-clamp-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide truncate">
               {label}
             </p>
             <div className="mt-0.5 md:mt-1 flex items-baseline gap-1">

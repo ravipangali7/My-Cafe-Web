@@ -262,49 +262,46 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       )}>
         {/* Top bar - safe area and slightly taller on mobile for app feel */}
         <header className={cn(
-          "sticky top-0 z-30 bg-card border-b border-border flex items-center justify-between lg:px-6",
-          isMobile ? "h-20 px-3" : "h-16 px-4"
+          "sticky top-0 z-30 bg-card border-b border-border flex items-center justify-between px-4 lg:px-6",
+          isMobile ? "h-20" : "h-16"
         )}>
-          <div className="flex items-center min-w-0">
+          <div className="flex items-center">
             {isMobile && (
               <>
-                <Button
-                  variant="ghost"
-                  size="icon"
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
                   onClick={() => setSidebarOpen(true)}
-                  className="touch-target flex-shrink-0 min-h-[44px] min-w-[44px]"
                 >
                   <Menu className="h-5 w-5" />
                 </Button>
-                <Link to="/dashboard" className="flex items-center ml-2 min-w-0">
+                <Link to="/dashboard" className="flex items-center ml-2">
                   <img src="/logo.png" alt="My Cafe" className="h-8 w-auto" />
                 </Link>
               </>
             )}
           </div>
-
-          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+          
+          <div className="flex items-center gap-2">
             {/* Online/Offline toggle - Only for vendors (non-superusers) */}
             {!user?.is_superuser && vendor && (
-              <div className="flex-shrink-0">
-                <VendorOnlineToggle
-                  isOnline={vendor.is_online !== false}
-                  onToggle={async (next) => {
-                    const res = await api.put<{ user?: unknown }>('/api/auth/user/update/', { is_online: next });
-                    if (res.error) {
-                      toast.error(res.error);
-                      throw new Error(res.error);
-                    }
-                    await refetch();
-                  }}
-                  disabled={loading}
-                />
-              </div>
+              <VendorOnlineToggle
+                isOnline={vendor.is_online !== false}
+                onToggle={async (next) => {
+                  const res = await api.put<{ user?: unknown }>('/api/auth/user/update/', { is_online: next });
+                  if (res.error) {
+                    toast.error(res.error);
+                    throw new Error(res.error);
+                  }
+                  await refetch();
+                }}
+                disabled={loading}
+              />
             )}
             {/* Live Order Button - Only for vendors (non-superusers) */}
             {!user?.is_superuser && (
-              <Link to="/live-orders" className="touch-target flex-shrink-0">
-                <Button variant="default" size="sm" className="gap-2 min-h-[44px] min-w-[44px] sm:min-w-0 sm:min-h-0 p-0 sm:px-3 sm:py-2">
+              <Link to="/live-orders">
+                <Button variant="default" size="sm" className="gap-2">
                   <Radio className="h-4 w-4" />
                   <span className="hidden sm:inline">Live Order</span>
                 </Button>
@@ -313,7 +310,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <Button
               variant="ghost"
               size="sm"
-              className="gap-2 text-muted-foreground hover:text-foreground touch-target min-h-[44px] min-w-[44px] sm:min-w-0 sm:min-h-0 p-0 sm:px-3 sm:py-2"
+              className="gap-2 text-muted-foreground hover:text-foreground"
               onClick={() => setLogoutDialogOpen(true)}
             >
               <LogOut className="h-4 w-4" />
