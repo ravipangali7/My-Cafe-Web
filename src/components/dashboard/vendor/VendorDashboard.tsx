@@ -72,7 +72,7 @@ export function VendorDashboard({
           </h1>
           <p className="text-sm text-muted-foreground">Here’s your dashboard overview.</p>
         </div>
-        {vendor && (
+        {!isMobile && vendor && (
           <VendorOnlineToggle
             isOnline={vendor.is_online !== false}
             onToggle={async (next) => {
@@ -136,6 +136,45 @@ export function VendorDashboard({
         loading={loading}
       />
       </Section>
+
+      {/* Mobile-only bottom card: logo, name, overview text, and toggle + status */}
+      {isMobile && vendor && (
+        <div className="p-4 rounded-xl bg-card border border-border grid grid-cols-2 gap-x-4 gap-y-4 items-center">
+          <div className="flex items-center gap-3 min-w-0">
+            {vendor.logo_url ? (
+              <img
+                src={vendor.logo_url}
+                alt={vendor.name}
+                className="h-12 w-12 rounded-full object-cover border-2 border-border shrink-0"
+              />
+            ) : (
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center border-2 border-border shrink-0">
+                <Store className="h-6 w-6 text-primary" />
+              </div>
+            )}
+          </div>
+          <h2 className="text-base font-semibold text-foreground truncate">
+            {vendor.name}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Your Dashboard Overview
+          </p>
+          <div className="flex items-center justify-end">
+            <VendorOnlineToggle
+              isOnline={vendor.is_online !== false}
+              onToggle={async (next) => {
+                const res = await api.put<{ user?: unknown }>('/api/auth/user/update/', { is_online: next });
+                if (res.error) {
+                  toast.error(res.error);
+                  throw new Error(res.error);
+                }
+                await refetch();
+              }}
+              disabled={vendorLoading}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

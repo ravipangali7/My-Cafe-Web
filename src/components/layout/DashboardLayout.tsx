@@ -284,8 +284,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
 
           <div className="flex flex-shrink-0 items-center gap-1 sm:gap-2">
-            {/* Online/Offline toggle - Only for vendors (non-superusers) */}
-            {!user?.is_superuser && vendor && (
+            {/* Online/Offline toggle - Only for vendors (non-superusers), hidden on mobile (shown in dashboard bottom card) */}
+            {!user?.is_superuser && vendor && !isMobile && (
               <div className="flex-shrink-0">
                 <VendorOnlineToggle
                   isOnline={vendor.is_online !== false}
