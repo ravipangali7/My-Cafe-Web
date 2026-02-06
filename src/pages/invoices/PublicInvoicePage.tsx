@@ -298,8 +298,8 @@ export default function PublicInvoicePage() {
             <table className="invoice-table w-full">
               <thead>
                 <tr>
-                  <th className="invoice-th-image">Item Image</th>
-                  <th className="text-left py-3 pr-4">Item Name</th>
+                  <th className="invoice-th-image" aria-label="Item image" />
+                  <th className="invoice-th-name text-left py-3 pr-4" aria-label="Item name" />
                   <th className="text-right py-3 px-2">Quantity</th>
                   <th className="text-right py-3 px-2">Price</th>
                   <th className="text-right py-3 px-2">Discount</th>
@@ -369,30 +369,7 @@ export default function PublicInvoicePage() {
             </div>
           </div>
 
-          {/* TERMS & CONDITIONS | PAYMENT METHOD */}
           <div className="invoice-divider mx-6 md:mx-8" />
-          <div className="px-6 md:px-8 py-4 grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div>
-              <p className="invoice-heading mb-2">Terms &amp; conditions</p>
-              <p className="invoice-body-text text-sm">
-                {order.remarks || 'Thank you for your order.'}
-              </p>
-            </div>
-            <div className="text-left sm:text-right">
-              <p className="invoice-heading mb-2">Payment method</p>
-              <p className="invoice-body-text text-sm">
-                {order.payment_method ? (
-                  <>
-                    Payment: {order.payment_method}
-                    <br />
-                    Date: {orderDate}
-                  </>
-                ) : (
-                  `Date: ${orderDate}`
-                )}
-              </p>
-            </div>
-          </div>
 
           {/* Footer band - olive green */}
           <div className="invoice-footer-band mt-6" />
