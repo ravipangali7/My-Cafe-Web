@@ -34,6 +34,8 @@ interface PremiumTableProps<T> {
   data: T[];
   loading?: boolean;
   onRowClick?: (item: T) => void;
+  /** When provided and on mobile, card click calls this instead of onRowClick (e.g. to open action modal). */
+  onMobileCardClick?: (item: T) => void;
   emptyMessage?: string;
   emptyIcon?: ReactNode;
   actions?: {
@@ -53,6 +55,7 @@ export function PremiumTable<T extends { id: string | number }>({
   data,
   loading = false,
   onRowClick,
+  onMobileCardClick,
   emptyMessage = 'No data found',
   emptyIcon,
   actions,
@@ -92,7 +95,7 @@ export function PremiumTable<T extends { id: string | number }>({
       return (
         <div className={cn('space-y-3', className)}>
           {Array.from({ length: 5 }).map((_, i) => (
-            <Card key={i}>
+            <Card key={i} className="glass-card rounded-2xl">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <Skeleton className="h-12 w-12 rounded-full" />
@@ -161,17 +164,18 @@ export function PremiumTable<T extends { id: string | number }>({
 
   // Mobile card view - full-width cards with glassmorphism
   if (isMobile && mobileCard) {
+    const handleCardClick = onMobileCardClick ?? onRowClick;
     return (
       <div className={cn('space-y-2 md:space-y-3 w-full', className)}>
         {safeData.map((item, index) => (
           <Card
             key={item.id}
             className={cn(
-              'overflow-hidden transition-all duration-200 w-full touch-target min-h-[44px]',
-              'bg-background/80 backdrop-blur-md border border-border/50 shadow-lg',
-              onRowClick && 'cursor-pointer active:scale-[0.99]'
+              'overflow-hidden transition-all duration-200 w-full touch-target min-h-[44px] glass-card rounded-2xl',
+              'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+              handleCardClick && 'cursor-pointer active:scale-[0.99]'
             )}
-            onClick={() => onRowClick?.(item)}
+            onClick={() => handleCardClick?.(item)}
           >
             {mobileCard(item, index)}
           </Card>

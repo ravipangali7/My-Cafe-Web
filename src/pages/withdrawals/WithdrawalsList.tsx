@@ -13,6 +13,7 @@ import { FilterBar } from '@/components/ui/filter-bar';
 import { PremiumStatsCards, ScrollableStatsCards, formatCurrency } from '@/components/ui/premium-stats-card';
 import { VendorInfoCell, ShareholderInfoCell } from '@/components/ui/vendor-info-cell';
 import { ConfirmationModal } from '@/components/ui/confirmation-modal';
+import { ItemActionsModal } from '@/components/ui/item-actions-modal';
 import { SimplePagination } from '@/components/ui/simple-pagination';
 import { Card, CardContent } from '@/components/ui/card';
 import { api } from '@/lib/api';
@@ -87,6 +88,7 @@ export default function WithdrawalsList() {
   
   // Delete modal
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [selectedWithdrawal, setSelectedWithdrawal] = useState<ShareholderWithdrawal | null>(null);
 
   const fetchWithdrawals = useCallback(async () => {
     setLoading(true);
@@ -333,7 +335,7 @@ export default function WithdrawalsList() {
     { label: 'Failed Amount', value: formatCurrency(stats.failed_amount || 0), icon: IndianRupee, variant: 'destructive' as const },
   ];
 
-  const renderMobileCard = (withdrawal: ShareholderWithdrawal, index: number) => (
+  const renderMobileCard = (withdrawal: ShareholderWithdrawal) => (
     <CardContent className="p-4">
       <div className="flex justify-between items-start mb-3">
         <div>
@@ -349,11 +351,9 @@ export default function WithdrawalsList() {
           </div>
         </div>
       </div>
-      
       <div className="flex items-center gap-2">
         <StatusBadge status={withdrawal.status} variant={getStatusVariant(withdrawal.status)} />
       </div>
-
       {withdrawal.remarks && (
         <MobileCardRow
           label="Remarks"
@@ -361,48 +361,18 @@ export default function WithdrawalsList() {
           className="mt-2"
         />
       )}
-      
-      <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-border">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/withdrawals/${withdrawal.id}`);
-          }}
-        >
-          <Eye className="h-4 w-4 mr-1" />
-          View
-        </Button>
-        {user?.is_superuser && withdrawal.status === 'pending' && (
-          <>
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-success hover:text-success"
-              onClick={(e) => {
-                e.stopPropagation();
-                setApproveId(withdrawal.id);
-              }}
-            >
-              <CheckCircle className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30"
-              onClick={(e) => {
-                e.stopPropagation();
-                setRejectId(withdrawal.id);
-              }}
-            >
-              <XCircle className="h-4 w-4" />
-            </Button>
-          </>
-        )}
-      </div>
     </CardContent>
   );
+
+  const withdrawalModalActions = selectedWithdrawal
+    ? [
+        { label: 'View', icon: <Eye className="h-4 w-4" />, onClick: () => navigate(`/withdrawals/${selectedWithdrawal.id}`), variant: 'view' as const },
+        ...(user?.is_superuser && selectedWithdrawal.status === 'pending' ? [
+          { label: 'Approve', icon: <CheckCircle className="h-4 w-4" />, onClick: () => setApproveId(selectedWithdrawal.id), variant: 'success' as const },
+          { label: 'Reject', icon: <XCircle className="h-4 w-4" />, onClick: () => setRejectId(selectedWithdrawal.id), variant: 'delete' as const },
+        ] : []),
+      ]
+    : [];
 
   const canRequestWithdrawal = user?.is_shareholder || user?.is_superuser;
 
@@ -460,6 +430,7 @@ export default function WithdrawalsList() {
           emptyMessage="No withdrawals found"
           emptyIcon={<FileX className="h-12 w-12 text-muted-foreground" />}
           onRowClick={(item) => navigate(`/withdrawals/${item.id}`)}
+          onMobileCardClick={(item) => setSelectedWithdrawal(item)}
           actions={user?.is_superuser ? {
             onView: (item) => navigate(`/withdrawals/${item.id}`),
             custom: (item) => item.status === 'pending' ? (
@@ -506,6 +477,14 @@ export default function WithdrawalsList() {
             />
           </div>
         )}
+
+        <ItemActionsModal
+          open={!!selectedWithdrawal}
+          onOpenChange={(open) => !open && setSelectedWithdrawal(null)}
+          title={selectedWithdrawal ? `Withdrawal #${selectedWithdrawal.id}` : ''}
+          description={selectedWithdrawal ? `${formatCurrency(selectedWithdrawal.amount)} · ${selectedWithdrawal.user_info?.name ?? ''}` : undefined}
+          actions={withdrawalModalActions}
+        />
 
         {/* Create Withdrawal Dialog */}
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>

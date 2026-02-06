@@ -25,13 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { ItemActionsModal } from '@/components/ui/item-actions-modal';
 
 interface Category {
   id: number;
@@ -340,7 +334,7 @@ export default function CategoriesList() {
             categories.map((category) => (
               <Card
                 key={category.id}
-                className="cursor-pointer hover:bg-accent transition-colors"
+                className="glass-card rounded-2xl cursor-pointer active:scale-[0.99] transition-all duration-200 touch-target"
                 onClick={() => setSelectedCategoryId(category.id)}
               >
                 <CardContent className="p-4">
@@ -389,55 +383,17 @@ export default function CategoriesList() {
       )}
 
       {selectedCategory && (
-        <Dialog open={!!selectedCategoryId} onOpenChange={(open) => !open && setSelectedCategoryId(null)}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>{selectedCategory.name}</DialogTitle>
-              <DialogDescription>
-                Created {new Date(selectedCategory.created_at).toLocaleDateString()}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex flex-col gap-2 py-4">
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => {
-                  setSelectedCategoryId(null);
-                  navigate(`/categories/${selectedCategory.id}`);
-                }}
-              >
-                <Eye className="h-4 w-4 mr-2" />
-                View
-              </Button>
-              {canEditSelected && (
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => {
-                    setSelectedCategoryId(null);
-                    navigate(`/categories/${selectedCategory.id}/edit`);
-                  }}
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit
-                </Button>
-              )}
-              {canDeleteSelected && (
-                <Button
-                  variant="destructive"
-                  className="w-full justify-start"
-                  onClick={() => {
-                    setSelectedCategoryId(null);
-                    setDeleteId(selectedCategory.id);
-                  }}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </Button>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
+        <ItemActionsModal
+          open={!!selectedCategoryId}
+          onOpenChange={(open) => !open && setSelectedCategoryId(null)}
+          title={selectedCategory.name}
+          description={`Created ${new Date(selectedCategory.created_at).toLocaleDateString()}`}
+          actions={[
+            { label: 'View', icon: <Eye className="h-4 w-4" />, onClick: () => { setSelectedCategoryId(null); navigate(`/categories/${selectedCategory.id}`); }, variant: 'view' as const },
+            ...(canEditSelected ? [{ label: 'Edit', icon: <Edit className="h-4 w-4" />, onClick: () => { setSelectedCategoryId(null); navigate(`/categories/${selectedCategory.id}/edit`); }, variant: 'edit' as const }] : []),
+            ...(canDeleteSelected ? [{ label: 'Delete', icon: <Trash2 className="h-4 w-4" />, onClick: () => { setSelectedCategoryId(null); setDeleteId(selectedCategory.id); }, variant: 'delete' as const }] : []),
+          ]}
+        />
       )}
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>

@@ -12,6 +12,7 @@ import { DateFilterButtons, DateFilterType } from '@/components/ui/date-filter-b
 import { PremiumStatsCards, formatCurrency } from '@/components/ui/premium-stats-card';
 import { VendorInfoCell } from '@/components/ui/vendor-info-cell';
 import { ConfirmationModal } from '@/components/ui/confirmation-modal';
+import { ItemActionsModal } from '@/components/ui/item-actions-modal';
 import { SimplePagination } from '@/components/ui/simple-pagination';
 import { CardContent } from '@/components/ui/card';
 import { api, fetchPaginated } from '@/lib/api';
@@ -71,6 +72,7 @@ export default function QRStandOrdersList() {
     revenue: '0',
   });
   const [loadingStats, setLoadingStats] = useState(true);
+  const [selectedOrder, setSelectedOrder] = useState<QRStandOrder | null>(null);
 
   const fetchOrders = useCallback(async () => {
     if (!user) return;
@@ -313,7 +315,7 @@ export default function QRStandOrdersList() {
     { label: 'Revenue', value: formatCurrency(stats.revenue || '0'), icon: IndianRupee, variant: 'highlight' as const },
   ];
 
-  const renderMobileCard = (order: QRStandOrder, index: number) => (
+  const renderMobileCard = (order: QRStandOrder) => (
     <CardContent className="p-4">
       <div className="flex justify-between items-start mb-3">
         <div>
@@ -335,59 +337,27 @@ export default function QRStandOrdersList() {
           <div className="text-xs text-muted-foreground">Qty: {order.quantity}</div>
         </div>
       </div>
-      
       <div className="flex items-center gap-2 flex-wrap">
         <StatusBadge status={order.order_status} variant={getOrderStatusVariant(order.order_status)} />
         <StatusBadge status={order.payment_status} variant={getPaymentStatusVariant(order.payment_status)} />
       </div>
-
       <MobileCardRow
         label="Created"
         value={new Date(order.created_at).toLocaleDateString()}
         className="mt-2"
       />
-      
-      <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-border">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/qr-stands/${order.id}`);
-          }}
-        >
-          <Eye className="h-4 w-4 mr-1" />
-          View
-        </Button>
-        {user?.is_superuser && (
-          <>
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-amber-600 hover:bg-amber-50 hover:text-amber-700 border-amber-200"
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate(`/qr-stands/${order.id}`);
-              }}
-            >
-              <Edit className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30"
-              onClick={(e) => {
-                e.stopPropagation();
-                setDeleteId(order.id);
-              }}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </>
-        )}
-      </div>
     </CardContent>
   );
+
+  const qrOrderModalActions = selectedOrder
+    ? [
+        { label: 'View', icon: <Eye className="h-4 w-4" />, onClick: () => navigate(`/qr-stands/${selectedOrder.id}`), variant: 'view' as const },
+        ...(user?.is_superuser ? [
+          { label: 'Edit', icon: <Edit className="h-4 w-4" />, onClick: () => navigate(`/qr-stands/${selectedOrder.id}`), variant: 'edit' as const },
+          { label: 'Delete', icon: <Trash2 className="h-4 w-4" />, onClick: () => setDeleteId(selectedOrder.id), variant: 'delete' as const },
+        ] : []),
+      ]
+    : [];
 
   return (
     <DashboardLayout>
@@ -432,6 +402,7 @@ export default function QRStandOrdersList() {
           showSerialNumber={false}
           emptyMessage="No QR stand orders found"
           onRowClick={(item) => navigate(`/qr-stands/${item.id}`)}
+          onMobileCardClick={(item) => setSelectedOrder(item)}
           actions={user?.is_superuser ? {
             onView: (item) => navigate(`/qr-stands/${item.id}`),
             onEdit: (item) => navigate(`/qr-stands/${item.id}`),
@@ -451,6 +422,14 @@ export default function QRStandOrdersList() {
             />
           </div>
         )}
+
+        <ItemActionsModal
+          open={!!selectedOrder}
+          onOpenChange={(open) => !open && setSelectedOrder(null)}
+          title={selectedOrder ? `QR Order #${selectedOrder.id}` : ''}
+          description={selectedOrder ? `${formatCurrency(selectedOrder.total_price)} · Qty: ${selectedOrder.quantity}` : undefined}
+          actions={qrOrderModalActions}
+        />
 
         <ConfirmationModal
           open={!!deleteId}

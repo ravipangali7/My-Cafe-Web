@@ -25,13 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { ItemActionsModal } from '@/components/ui/item-actions-modal';
 
 interface Unit {
   id: number;
@@ -331,7 +325,7 @@ export default function UnitsList() {
             units.map((unit) => (
               <Card
                 key={unit.id}
-                className="cursor-pointer hover:bg-accent transition-colors"
+                className="glass-card rounded-2xl cursor-pointer active:scale-[0.99] transition-all duration-200 touch-target"
                 onClick={() => setSelectedUnitId(unit.id)}
               >
                 <CardContent className="p-4">
@@ -367,53 +361,17 @@ export default function UnitsList() {
       )}
 
       {selectedUnit && (
-        <Dialog open={!!selectedUnitId} onOpenChange={(open) => !open && setSelectedUnitId(null)}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>{selectedUnit.name}</DialogTitle>
-              <DialogDescription>Symbol: {selectedUnit.symbol}</DialogDescription>
-            </DialogHeader>
-            <div className="flex flex-col gap-2 py-4">
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => {
-                  setSelectedUnitId(null);
-                  navigate(`/units/${selectedUnit.id}`);
-                }}
-              >
-                <Eye className="h-4 w-4 mr-2" />
-                View
-              </Button>
-              {canEditSelected && (
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => {
-                    setSelectedUnitId(null);
-                    navigate(`/units/${selectedUnit.id}/edit`);
-                  }}
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit
-                </Button>
-              )}
-              {canDeleteSelected && (
-                <Button
-                  variant="destructive"
-                  className="w-full justify-start"
-                  onClick={() => {
-                    setSelectedUnitId(null);
-                    setDeleteId(selectedUnit.id);
-                  }}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </Button>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
+        <ItemActionsModal
+          open={!!selectedUnitId}
+          onOpenChange={(open) => !open && setSelectedUnitId(null)}
+          title={selectedUnit.name}
+          description={`Symbol: ${selectedUnit.symbol}`}
+          actions={[
+            { label: 'View', icon: <Eye className="h-4 w-4" />, onClick: () => { setSelectedUnitId(null); navigate(`/units/${selectedUnit.id}`); }, variant: 'view' as const },
+            ...(canEditSelected ? [{ label: 'Edit', icon: <Edit className="h-4 w-4" />, onClick: () => { setSelectedUnitId(null); navigate(`/units/${selectedUnit.id}/edit`); }, variant: 'edit' as const }] : []),
+            ...(canDeleteSelected ? [{ label: 'Delete', icon: <Trash2 className="h-4 w-4" />, onClick: () => { setSelectedUnitId(null); setDeleteId(selectedUnit.id); }, variant: 'delete' as const }] : []),
+          ]}
+        />
       )}
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>

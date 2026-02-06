@@ -10,6 +10,7 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { PremiumStatsCards } from '@/components/ui/premium-stats-card';
 import { VendorInfoCell } from '@/components/ui/vendor-info-cell';
 import { ConfirmationModal } from '@/components/ui/confirmation-modal';
+import { ItemActionsModal } from '@/components/ui/item-actions-modal';
 import { SimplePagination } from '@/components/ui/simple-pagination';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
@@ -61,6 +62,7 @@ export default function KYCManagement() {
   // Approve/Reject modals
   const [approveId, setApproveId] = useState<number | null>(null);
   const [rejectId, setRejectId] = useState<number | null>(null);
+  const [selectedKyc, setSelectedKyc] = useState<KYCItem | null>(null);
 
   const fetchKYCList = useCallback(async () => {
     if (!user?.is_superuser) return;
@@ -238,7 +240,7 @@ export default function KYCManagement() {
     { label: 'Rejected', value: stats.rejected, icon: XCircle, variant: 'destructive' as const },
   ];
 
-  const renderMobileCard = (item: KYCItem, index: number) => (
+  const renderMobileCard = (item: KYCItem) => (
     <CardContent className="p-4">
       <div className="flex items-start justify-between gap-3">
         <VendorInfoCell
@@ -249,7 +251,6 @@ export default function KYCManagement() {
         />
         <StatusBadge status={item.kyc_status} variant={getStatusVariant(item.kyc_status)} />
       </div>
-
       <div className="mt-3 space-y-1">
         <MobileCardRow
           label="Document"
@@ -260,48 +261,18 @@ export default function KYCManagement() {
           value={new Date(item.created_at).toLocaleDateString()}
         />
       </div>
-      
-      <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-border">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/kyc-management/${item.id}`);
-          }}
-        >
-          <Eye className="h-4 w-4 mr-1" />
-          View
-        </Button>
-        {item.kyc_status === 'pending' && (
-          <>
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-success hover:text-success"
-              onClick={(e) => {
-                e.stopPropagation();
-                setApproveId(item.id);
-              }}
-            >
-              <CheckCircle className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-destructive hover:text-destructive"
-              onClick={(e) => {
-                e.stopPropagation();
-                setRejectId(item.id);
-              }}
-            >
-              <XCircle className="h-4 w-4" />
-            </Button>
-          </>
-        )}
-      </div>
     </CardContent>
   );
+
+  const kycModalActions = selectedKyc
+    ? [
+        { label: 'View', icon: <Eye className="h-4 w-4" />, onClick: () => navigate(`/kyc-management/${selectedKyc.id}`), variant: 'view' as const },
+        ...(selectedKyc.kyc_status === 'pending' ? [
+          { label: 'Approve', icon: <CheckCircle className="h-4 w-4" />, onClick: () => setApproveId(selectedKyc.id), variant: 'success' as const },
+          { label: 'Reject', icon: <XCircle className="h-4 w-4" />, onClick: () => setRejectId(selectedKyc.id), variant: 'delete' as const },
+        ] : []),
+      ]
+    : [];
 
   // Redirect if not superuser
   if (user && !user.is_superuser) {
@@ -362,6 +333,7 @@ export default function KYCManagement() {
           emptyMessage="No KYC submissions found"
           emptyIcon={<Shield className="h-12 w-12 text-muted-foreground" />}
           onRowClick={(item) => navigate(`/kyc-management/${item.id}`)}
+          onMobileCardClick={(item) => setSelectedKyc(item)}
           actions={{
             onView: (item) => navigate(`/kyc-management/${item.id}`),
             custom: (item) => item.kyc_status === 'pending' ? (
@@ -414,6 +386,14 @@ export default function KYCManagement() {
             />
           </div>
         )}
+
+        <ItemActionsModal
+          open={!!selectedKyc}
+          onOpenChange={(open) => !open && setSelectedKyc(null)}
+          title={selectedKyc?.name ?? ''}
+          description={selectedKyc ? `${getDocumentTypeLabel(selectedKyc.kyc_document_type)} · ${selectedKyc.kyc_status}` : undefined}
+          actions={kycModalActions}
+        />
 
         {/* Approve Modal */}
         <ConfirmationModal

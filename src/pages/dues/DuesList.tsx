@@ -8,6 +8,7 @@ import { PremiumTable, MobileCardRow } from '@/components/ui/premium-table';
 import { FilterBar } from '@/components/ui/filter-bar';
 import { PremiumStatsCards, formatCurrency } from '@/components/ui/premium-stats-card';
 import { VendorInfoCell } from '@/components/ui/vendor-info-cell';
+import { ItemActionsModal } from '@/components/ui/item-actions-modal';
 import { SimplePagination } from '@/components/ui/simple-pagination';
 import { CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -46,6 +47,7 @@ export default function DuesList() {
     outstanding_amount: 0,
   });
   const [dueThreshold, setDueThreshold] = useState(1000);
+  const [selectedDue, setSelectedDue] = useState<VendorDue | null>(null);
 
   const fetchDues = useCallback(async () => {
     setLoading(true);
@@ -175,7 +177,7 @@ export default function DuesList() {
     { label: 'Outstanding Amount', value: formatCurrency(stats.outstanding_amount), icon: Wallet, variant: 'warning' as const },
   ];
 
-  const renderMobileCard = (vendor: VendorDue, index: number) => (
+  const renderMobileCard = (vendor: VendorDue) => (
     <CardContent className="p-4">
       <div className="flex items-start justify-between gap-3">
         <VendorInfoCell
@@ -195,28 +197,17 @@ export default function DuesList() {
           )}
         </div>
       </div>
-
       <MobileCardRow
         label="Balance"
         value={formatCurrency(vendor.balance)}
         className="mt-3"
       />
-      
-      <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-border">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/dues/${vendor.id}`);
-          }}
-        >
-          <Eye className="h-4 w-4 mr-1" />
-          View
-        </Button>
-      </div>
     </CardContent>
   );
+
+  const dueModalActions = selectedDue
+    ? [{ label: 'View', icon: <Eye className="h-4 w-4" />, onClick: () => navigate(`/dues/${selectedDue.id}`), variant: 'view' as const }]
+    : [];
 
   return (
     <DashboardLayout>
@@ -258,10 +249,19 @@ export default function DuesList() {
           emptyMessage="No dues found"
           emptyIcon={<Wallet className="h-12 w-12 text-muted-foreground" />}
           onRowClick={(item) => navigate(`/dues/${item.id}`)}
+          onMobileCardClick={(item) => setSelectedDue(item)}
           actions={{
             onView: (item) => navigate(`/dues/${item.id}`),
           }}
           mobileCard={renderMobileCard}
+        />
+
+        <ItemActionsModal
+          open={!!selectedDue}
+          onOpenChange={(open) => !open && setSelectedDue(null)}
+          title={selectedDue?.name ?? ''}
+          description={selectedDue ? formatCurrency(selectedDue.due_balance) : undefined}
+          actions={dueModalActions}
         />
 
         {count > pageSize && (

@@ -124,6 +124,15 @@
     -webkit-backdrop-filter: blur(12px);
   }
 
+  /* Glass card for mobile listing pages: semi-transparent, blur, shadow, readable text */
+  .glass-card {
+    background: hsl(var(--card) / 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid hsl(var(--border) / 0.5);
+    box-shadow: 0 4px 12px -2px rgb(0 0 0 / 0.08), 0 2px 6px -2px rgb(0 0 0 / 0.04);
+  }
+
   /* Status indicator dot */
   .status-dot {
     width: 8px;

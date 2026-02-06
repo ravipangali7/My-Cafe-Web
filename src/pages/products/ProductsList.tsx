@@ -12,6 +12,7 @@ import { DateFilterButtons, DateFilterType } from '@/components/ui/date-filter-b
 import { PremiumStatsCards } from '@/components/ui/premium-stats-card';
 import { VendorInfoCell } from '@/components/ui/vendor-info-cell';
 import { ConfirmationModal } from '@/components/ui/confirmation-modal';
+import { ItemActionsModal } from '@/components/ui/item-actions-modal';
 import { SimplePagination } from '@/components/ui/simple-pagination';
 import { CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -75,6 +76,7 @@ export default function ProductsList() {
   });
   const [loadingStats, setLoadingStats] = useState(true);
   const [togglingId, setTogglingId] = useState<number | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const fetchProducts = useCallback(async () => {
     if (!user) return;
@@ -337,7 +339,7 @@ export default function ProductsList() {
     { label: 'Top Selling', value: stats.top_selling || 0, icon: TrendingUp, variant: 'highlight' as const },
   ];
 
-  const renderMobileCard = (product: Product, index: number) => (
+  const renderMobileCard = (product: Product) => (
     <CardContent className="p-4">
       <div className="flex items-start gap-3">
         <Avatar className="h-16 w-16 rounded-lg flex-shrink-0">
@@ -353,7 +355,6 @@ export default function ProductsList() {
               <p className="text-sm text-muted-foreground">{product.category_name || 'No category'}</p>
             </div>
           </div>
-          
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             <StatusBadge status={product.type} variant={product.type === 'veg' ? 'success' : 'destructive'} />
             {canEditItem(user, product) ? (
@@ -371,49 +372,16 @@ export default function ProductsList() {
           </div>
         </div>
       </div>
-      
-      <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-border">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/products/${product.id}`);
-          }}
-        >
-          <Eye className="h-4 w-4 mr-1" />
-          View
-        </Button>
-        {canEditItem(user, product) && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="text-amber-600 hover:bg-amber-50 hover:text-amber-700 border-amber-200"
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/products/${product.id}/edit`);
-          }}
-        >
-          <Edit className="h-4 w-4 mr-1" />
-          Edit
-        </Button>
-        )}
-        {canDeleteItem(user, product) && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30"
-            onClick={(e) => {
-              e.stopPropagation();
-              setDeleteId(product.id);
-            }}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
     </CardContent>
   );
+
+  const productModalActions = selectedProduct
+    ? [
+        { label: 'View', icon: <Eye className="h-4 w-4" />, onClick: () => navigate(`/products/${selectedProduct.id}`), variant: 'view' as const },
+        ...(canEditItem(user, selectedProduct) ? [{ label: 'Edit', icon: <Edit className="h-4 w-4" />, onClick: () => navigate(`/products/${selectedProduct.id}/edit`), variant: 'edit' as const }] : []),
+        ...(canDeleteItem(user, selectedProduct) ? [{ label: 'Delete', icon: <Trash2 className="h-4 w-4" />, onClick: () => setDeleteId(selectedProduct.id), variant: 'delete' as const }] : []),
+      ]
+    : [];
 
   return (
     <DashboardLayout>
@@ -460,6 +428,7 @@ export default function ProductsList() {
           showSerialNumber={true}
           emptyMessage="No products found"
           onRowClick={(item) => navigate(`/products/${item.id}`)}
+          onMobileCardClick={(item) => setSelectedProduct(item)}
           actions={{
             onView: (item) => navigate(`/products/${item.id}`),
             onEdit: canEditItem(user, {}) ? (item) => navigate(`/products/${item.id}/edit`) : undefined,
@@ -477,6 +446,14 @@ export default function ProductsList() {
             />
           </div>
         )}
+
+        <ItemActionsModal
+          open={!!selectedProduct}
+          onOpenChange={(open) => !open && setSelectedProduct(null)}
+          title={selectedProduct?.name ?? ''}
+          description={selectedProduct ? (selectedProduct.category_name ?? 'No category') : undefined}
+          actions={productModalActions}
+        />
 
         <ConfirmationModal
           open={!!deleteId}

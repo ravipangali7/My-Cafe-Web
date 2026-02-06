@@ -11,6 +11,7 @@ import { PremiumStatsCards, formatCurrency } from '@/components/ui/premium-stats
 import { VendorInfoCell } from '@/components/ui/vendor-info-cell';
 import { TimeRemaining, TimeRemainingBadge } from '@/components/ui/time-remaining';
 import { ConfirmationModal } from '@/components/ui/confirmation-modal';
+import { ItemActionsModal } from '@/components/ui/item-actions-modal';
 import { Switch } from '@/components/ui/switch';
 import { api, fetchPaginated } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
@@ -52,6 +53,7 @@ export default function VendorsList() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   const [search, setSearch] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
   const [userId, setUserId] = useState<number | null>(null);
@@ -326,7 +328,7 @@ export default function VendorsList() {
     { label: 'Due Blocked', value: stats.due_blocked_vendors || 0, icon: Ban, variant: 'destructive' as const },
   ] : [];
 
-  const renderMobileCard = (vendor: Vendor, index: number) => (
+  const renderMobileCard = (vendor: Vendor) => (
     <CardContent className="p-4">
       <div className="flex items-start gap-3">
         <Avatar className="h-12 w-12 flex-shrink-0">
@@ -346,7 +348,6 @@ export default function VendorsList() {
               variant={getActiveStatusVariant(vendor.is_active)}
             />
           </div>
-          
           <div className="mt-3 space-y-2">
             <MobileCardRow
               label="Expiry"
@@ -372,49 +373,16 @@ export default function VendorsList() {
           </div>
         </div>
       </div>
-      
-      <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-border">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/vendors/${vendor.id}`);
-          }}
-        >
-          <Eye className="h-4 w-4 mr-1" />
-          View
-        </Button>
-        {(user?.is_superuser || vendor.id === user?.id) && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-amber-600 hover:bg-amber-50 hover:text-amber-700 border-amber-200"
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/vendors/${vendor.id}/edit`);
-            }}
-          >
-            <Edit className="h-4 w-4 mr-1" />
-            Edit
-          </Button>
-        )}
-        {user?.is_superuser && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30"
-            onClick={(e) => {
-              e.stopPropagation();
-              setDeleteId(vendor.id);
-            }}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
     </CardContent>
   );
+
+  const vendorModalActions = selectedVendor
+    ? [
+        { label: 'View', icon: <Eye className="h-4 w-4" />, onClick: () => navigate(`/vendors/${selectedVendor.id}`), variant: 'view' as const },
+        ...((user?.is_superuser || selectedVendor.id === user?.id) ? [{ label: 'Edit', icon: <Edit className="h-4 w-4" />, onClick: () => navigate(selectedVendor.id === user?.id ? '/vendors/edit' : `/vendors/${selectedVendor.id}/edit`), variant: 'edit' as const }] : []),
+        ...(user?.is_superuser ? [{ label: 'Delete', icon: <Trash2 className="h-4 w-4" />, onClick: () => setDeleteId(selectedVendor.id), variant: 'delete' as const }] : []),
+      ]
+    : [];
 
   return (
     <DashboardLayout>
@@ -460,6 +428,7 @@ export default function VendorsList() {
           showSerialNumber={true}
           emptyMessage="No vendors found"
           onRowClick={(item) => navigate(`/vendors/${item.id}`)}
+          onMobileCardClick={(item) => setSelectedVendor(item)}
           actions={{
             onView: (item) => navigate(`/vendors/${item.id}`),
             onEdit: (item) => navigate(item.id === user?.id ? '/vendors/edit' : `/vendors/${item.id}/edit`),
@@ -477,6 +446,14 @@ export default function VendorsList() {
             />
           </div>
         )}
+
+        <ItemActionsModal
+          open={!!selectedVendor}
+          onOpenChange={(open) => !open && setSelectedVendor(null)}
+          title={selectedVendor?.name ?? ''}
+          description={selectedVendor?.phone}
+          actions={vendorModalActions}
+        />
 
         <ConfirmationModal
           open={!!deleteId}

@@ -10,6 +10,7 @@ import { FilterBar } from '@/components/ui/filter-bar';
 import { DateFilterButtons, DateFilterType } from '@/components/ui/date-filter-buttons';
 import { ScrollableStatsCards, PremiumStatsCards, formatCurrency } from '@/components/ui/premium-stats-card';
 import { VendorInfoCell } from '@/components/ui/vendor-info-cell';
+import { ItemActionsModal } from '@/components/ui/item-actions-modal';
 import { SimplePagination } from '@/components/ui/simple-pagination';
 import { CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -98,6 +99,7 @@ export default function TransactionsList() {
     shareholder_withdrawals: 0,
   });
   const [loadingStats, setLoadingStats] = useState(true);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
   const fetchTransactions = useCallback(async () => {
     if (!user) return;
@@ -398,7 +400,7 @@ export default function TransactionsList() {
     { label: 'Withdrawals', value: stats.shareholder_withdrawals || 0, icon: ArrowDownLeft, variant: 'destructive' as const },
   ];
 
-  const renderMobileCard = (transaction: Transaction, index: number) => {
+  const renderMobileCard = (transaction: Transaction) => {
     const CategoryIcon = getCategoryIcon(transaction.transaction_category);
     return (
       <CardContent className="p-3">
@@ -419,7 +421,6 @@ export default function TransactionsList() {
             </div>
           </div>
         </div>
-        
         <div className="flex items-center gap-1.5 flex-wrap">
           <StatusBadge 
             status={TRANSACTION_TYPE_LABELS[transaction.transaction_type] || transaction.transaction_type} 
@@ -432,7 +433,6 @@ export default function TransactionsList() {
             </Badge>
           )}
         </div>
-
         {(transaction.order_id || transaction.qr_stand_order_id) && (
           <MobileCardRow
             label="Reference"
@@ -440,24 +440,13 @@ export default function TransactionsList() {
             className="mt-1.5"
           />
         )}
-        
-        <div className="flex items-center justify-end gap-2 mt-3 pt-2 border-t border-border">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 text-xs"
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/transactions/${transaction.id}`);
-            }}
-          >
-            <Eye className="h-3.5 w-3.5 mr-1" />
-            View
-          </Button>
-        </div>
       </CardContent>
     );
   };
+
+  const transactionModalActions = selectedTransaction
+    ? [{ label: 'View', icon: <Eye className="h-4 w-4" />, onClick: () => navigate(`/transactions/${selectedTransaction.id}`), variant: 'view' as const }]
+    : [];
 
   return (
     <DashboardLayout>
@@ -517,10 +506,19 @@ export default function TransactionsList() {
           showSerialNumber={false}
           emptyMessage="No transactions found"
           onRowClick={(item) => navigate(`/transactions/${item.id}`)}
+          onMobileCardClick={(item) => setSelectedTransaction(item)}
           actions={{
             onView: (item) => navigate(`/transactions/${item.id}`),
           }}
           mobileCard={renderMobileCard}
+        />
+
+        <ItemActionsModal
+          open={!!selectedTransaction}
+          onOpenChange={(open) => !open && setSelectedTransaction(null)}
+          title={selectedTransaction ? `Transaction #${selectedTransaction.id}` : ''}
+          description={selectedTransaction ? `${selectedTransaction.transaction_type === 'in' ? '+' : '-'}${formatCurrency(selectedTransaction.amount)}` : undefined}
+          actions={transactionModalActions}
         />
 
         {count > pageSize && (

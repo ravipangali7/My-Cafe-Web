@@ -11,6 +11,7 @@ import { DateFilterButtons, DateFilterType } from '@/components/ui/date-filter-b
 import { PremiumStatsCards, ScrollableStatsCards, formatCurrency } from '@/components/ui/premium-stats-card';
 import { VendorInfoCell, CustomerInfoCell } from '@/components/ui/vendor-info-cell';
 import { ConfirmationModal } from '@/components/ui/confirmation-modal';
+import { ItemActionsModal } from '@/components/ui/item-actions-modal';
 import { SimplePagination } from '@/components/ui/simple-pagination';
 import { CardContent } from '@/components/ui/card';
 import { api, fetchPaginated, getPublicInvoiceUrl, openInBrowser, isWebView } from '@/lib/api';
@@ -82,6 +83,7 @@ export default function OrdersList() {
     revenue: '0',
   });
   const [loadingStats, setLoadingStats] = useState(true);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   const fetchOrders = useCallback(async () => {
     if (!user) return;
@@ -332,7 +334,7 @@ export default function OrdersList() {
     { label: 'Total Revenue', value: formatCurrency(stats.revenue || '0'), icon: IndianRupee, variant: 'highlight' as const },
   ];
 
-  const renderMobileCard = (order: Order, index: number) => (
+  const renderMobileCard = (order: Order) => (
     <CardContent className="p-4">
       <div className="flex justify-between items-start mb-3">
         <div>
@@ -351,65 +353,21 @@ export default function OrdersList() {
           </div>
         </div>
       </div>
-      
       <div className="flex items-center gap-2 flex-wrap">
         <StatusBadge status={order.status} variant={getOrderStatusVariant(order.status)} />
         <StatusBadge status={order.payment_status} variant={getPaymentStatusVariant(order.payment_status)} />
       </div>
-      
-      <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-border">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleDownloadInvoice(order.id, e);
-          }}
-          disabled={downloadingInvoiceId === order.id}
-        >
-          <Download className="h-4 w-4 mr-1" />
-          Invoice
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/orders/${order.id}`);
-          }}
-        >
-          <Eye className="h-4 w-4 mr-1" />
-          View
-        </Button>
-        {canEditItem(user, order) && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-amber-600 hover:bg-amber-50 hover:text-amber-700 border-amber-200"
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/orders/${order.id}/edit`);
-            }}
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-        )}
-        {canDeleteOrder(user) && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30"
-            onClick={(e) => {
-              e.stopPropagation();
-              setDeleteId(order.id);
-            }}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
     </CardContent>
   );
+
+  const orderModalActions = selectedOrder
+    ? [
+        { label: 'View', icon: <Eye className="h-4 w-4" />, onClick: () => navigate(`/orders/${selectedOrder.id}`), variant: 'view' as const },
+        { label: 'Invoice', icon: <Download className="h-4 w-4" />, onClick: () => handleDownloadInvoice(selectedOrder.id), variant: 'primary' as const },
+        ...(canEditItem(user, selectedOrder) ? [{ label: 'Edit', icon: <Edit className="h-4 w-4" />, onClick: () => navigate(`/orders/${selectedOrder.id}/edit`), variant: 'edit' as const }] : []),
+        ...(canDeleteOrder(user) ? [{ label: 'Delete', icon: <Trash2 className="h-4 w-4" />, onClick: () => setDeleteId(selectedOrder.id), variant: 'delete' as const }] : []),
+      ]
+    : [];
 
   return (
     <DashboardLayout>
@@ -460,6 +418,7 @@ export default function OrdersList() {
           showSerialNumber={false}
           emptyMessage="No orders found"
           onRowClick={(item) => navigate(`/orders/${item.id}`)}
+          onMobileCardClick={(item) => setSelectedOrder(item)}
           actions={{
             onView: (item) => navigate(`/orders/${item.id}`),
             onEdit: canEditItem(user, {}) ? (item) => navigate(`/orders/${item.id}/edit`) : undefined,
@@ -518,6 +477,14 @@ export default function OrdersList() {
             />
           </div>
         )}
+
+        <ItemActionsModal
+          open={!!selectedOrder}
+          onOpenChange={(open) => !open && setSelectedOrder(null)}
+          title={selectedOrder ? `Order #${selectedOrder.id}` : ''}
+          description={selectedOrder ? `${selectedOrder.name} · ${formatCurrency(selectedOrder.total)}` : undefined}
+          actions={orderModalActions}
+        />
 
         <ConfirmationModal
           open={!!deleteId}

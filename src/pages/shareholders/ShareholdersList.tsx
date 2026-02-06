@@ -11,6 +11,7 @@ import { FilterBar } from '@/components/ui/filter-bar';
 import { PremiumStatsCards, formatCurrency } from '@/components/ui/premium-stats-card';
 import { ShareDistributionCard } from '@/components/ui/share-pie-chart';
 import { ShareholderInfoCell } from '@/components/ui/vendor-info-cell';
+import { ItemActionsModal } from '@/components/ui/item-actions-modal';
 import { SimplePagination } from '@/components/ui/simple-pagination';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { api } from '@/lib/api';
@@ -59,6 +60,7 @@ export default function ShareholdersList() {
     distributed_amount: 0,
   });
   const [editingShareholder, setEditingShareholder] = useState<Shareholder | null>(null);
+  const [selectedShareholder, setSelectedShareholder] = useState<Shareholder | null>(null);
   const [editForm, setEditForm] = useState({ is_shareholder: true, share_percentage: 0 });
   const [saving, setSaving] = useState(false);
 
@@ -206,7 +208,7 @@ export default function ShareholdersList() {
     { label: 'Shareholder Balance', value: formatCurrency(stats.total_shareholder_balance), icon: Wallet, variant: 'highlight' as const },
   ];
 
-  const renderMobileCard = (shareholder: Shareholder, index: number) => (
+  const renderMobileCard = (shareholder: Shareholder) => (
     <CardContent className="p-4">
       <ShareholderInfoCell
         name={shareholder.name}
@@ -215,7 +217,6 @@ export default function ShareholdersList() {
         percentage={shareholder.share_percentage}
         balance={shareholder.balance}
       />
-      
       <div className="mt-3 space-y-1">
         <MobileCardRow
           label="Due Balance"
@@ -226,30 +227,15 @@ export default function ShareholdersList() {
           }
         />
       </div>
-      
-      <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-border">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/shareholders/${shareholder.id}`);
-          }}
-        >
-          <Eye className="h-4 w-4 mr-1" />
-          View
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={(e) => handleEdit(shareholder, e)}
-        >
-          <Edit className="h-4 w-4 mr-1" />
-          Edit
-        </Button>
-      </div>
     </CardContent>
   );
+
+  const shareholderModalActions = selectedShareholder
+    ? [
+        { label: 'View', icon: <Eye className="h-4 w-4" />, onClick: () => navigate(`/shareholders/${selectedShareholder.id}`), variant: 'view' as const },
+        { label: 'Edit', icon: <Edit className="h-4 w-4" />, onClick: () => handleEdit(selectedShareholder), variant: 'edit' as const },
+      ]
+    : [];
 
   if (!user?.is_superuser) {
     return (
@@ -299,11 +285,20 @@ export default function ShareholdersList() {
           showSerialNumber={true}
           emptyMessage="No shareholders found"
           onRowClick={(item) => navigate(`/shareholders/${item.id}`)}
+          onMobileCardClick={(item) => setSelectedShareholder(item)}
           actions={{
             onView: (item) => navigate(`/shareholders/${item.id}`),
             onEdit: (item) => handleEdit(item),
           }}
           mobileCard={renderMobileCard}
+        />
+
+        <ItemActionsModal
+          open={!!selectedShareholder}
+          onOpenChange={(open) => !open && setSelectedShareholder(null)}
+          title={selectedShareholder?.name ?? ''}
+          description={selectedShareholder ? `${selectedShareholder.share_percentage}% · ${formatCurrency(selectedShareholder.balance ?? 0)}` : undefined}
+          actions={shareholderModalActions}
         />
 
         {count > pageSize && (
