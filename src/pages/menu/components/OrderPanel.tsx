@@ -182,7 +182,7 @@ export function OrderPanel({
                 className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50"
               >
                 {/* Product Image */}
-                <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                <div className="w-12 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                   {item.product.image_url ? (
                     <img
                       src={item.product.image_url}
@@ -210,7 +210,7 @@ export function OrderPanel({
                       ₹{(price * item.quantity).toFixed(2)}
                     </p>
                   </div>
-                  <div>
+                  <div className="flex items-center gap-2">
                     {/* Quantity Controls */}
                     <div className="flex items-center gap-2">
                       <button
