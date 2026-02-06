@@ -20,13 +20,18 @@
   background-color: var(--invoice-bg);
 }
 
-/* Header: logo left, vendor name/address/phone right */
+/* Header: logo + name + phone left; location right */
 .invoice-header {
   border-bottom: 1px solid var(--invoice-border);
 }
 
 .invoice-header-vendor {
   min-width: 0;
+}
+
+.invoice-header-location {
+  max-width: 45%;
+  word-break: break-word;
 }
 
 .invoice-vendor-name {

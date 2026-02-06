@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
-import { Download, ArrowLeft, Store, Receipt, Image } from 'lucide-react';
+import { Download, ArrowLeft, Store, Receipt, Image, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -214,7 +214,6 @@ export default function PublicInvoicePage() {
   const subtotal = items.reduce((sum, i) => sum + parseFloat(i.total), 0);
   const transactionCharge = order.transaction_charge != null ? parseFloat(order.transaction_charge) : 0;
   const total = parseFloat(order.total);
-  const customerNumber = order.customer_number ?? `Order #${order.id}`;
   const orderDate = new Date(order.created_at).toLocaleDateString('en-GB', {
     day: '2-digit',
     month: '2-digit',
@@ -233,24 +232,33 @@ export default function PublicInvoicePage() {
         </div>
         {/* Invoice content card - printed as-is */}
         <div ref={invoiceCardRef} className="invoice-card bg-[var(--invoice-bg)] rounded-lg shadow-md overflow-hidden">
-          {/* Header: vendor logo left, vendor name / address / phone right */}
-          <div className="invoice-header px-6 md:px-8 pt-6 pb-4 flex flex-row items-start gap-4">
-            <div className="invoice-logo-ring flex-shrink-0">
-              <img
-                src={vendor?.logo_url || FALLBACK_LOGO_DATA_URL}
-                alt={vendor?.name ?? 'Vendor'}
-                className="invoice-logo-img"
-              />
+          {/* Header: logo + name + mobile left; vendor location right */}
+          <div className="invoice-header px-6 md:px-8 pt-6 pb-4 flex flex-row items-start justify-between gap-4">
+            <div className="flex flex-row items-start gap-4 min-w-0 flex-1">
+              <div className="invoice-logo-ring flex-shrink-0">
+                <img
+                  src={vendor?.logo_url || FALLBACK_LOGO_DATA_URL}
+                  alt={vendor?.name ?? 'Vendor'}
+                  className="invoice-logo-img"
+                />
+              </div>
+              <div className="invoice-header-vendor min-w-0">
+                <h1 className="invoice-vendor-name text-xl font-bold" style={{ color: 'var(--invoice-text)' }}>
+                  {vendor?.name ?? 'Vendor'}
+                </h1>
+                {vendor?.phone != null && vendor.phone !== '' && (
+                  <p className="invoice-body-text text-sm mt-1">Mobile: {vendor.phone}</p>
+                )}
+              </div>
             </div>
-            <div className="invoice-header-vendor flex-1 min-w-0">
-              <h1 className="invoice-vendor-name text-xl font-bold" style={{ color: 'var(--invoice-text)' }}>
-                {vendor?.name ?? 'Vendor'}
-              </h1>
-              {vendor?.address != null && vendor.address !== '' && (
-                <p className="invoice-body-text text-sm mt-1">{vendor.address}</p>
-              )}
-              {vendor?.phone != null && vendor.phone !== '' && (
-                <p className="invoice-body-text text-sm">Mobile: {vendor.phone}</p>
+            <div className="invoice-header-location flex-shrink-0 text-right text-sm invoice-body-text">
+              {vendor?.address != null && vendor.address.trim() !== '' ? (
+                vendor.address
+              ) : (
+                <span className="inline-flex items-center gap-1">
+                  <MapPin className="h-4 w-4 flex-shrink-0" aria-hidden />
+                  Location not set
+                </span>
               )}
             </div>
           </div>
@@ -258,8 +266,8 @@ export default function PublicInvoicePage() {
           {/* Thick separator */}
           <div className="invoice-divider-thick mx-6 md:mx-8" />
 
-          {/* Invoice meta: Invoice No. (bold), Invoice Date. No Due Date. */}
-          <div className="px-6 md:px-8 py-3 flex flex-wrap gap-x-6 gap-y-1">
+          {/* Invoice meta: Invoice No. left, Invoice Date right */}
+          <div className="px-6 md:px-8 py-3 flex flex-row flex-wrap justify-between gap-x-4 gap-y-1 invoice-meta-row">
             <p className="invoice-body-text">
               <span className="invoice-heading">Invoice No.:</span>{' '}
               <span className="invoice-meta-highlight font-bold">{order.id}</span>
@@ -269,42 +277,17 @@ export default function PublicInvoicePage() {
             </p>
           </div>
 
-          {/* Customer information */}
+          {/* Customer information: name left, phone right */}
           <div className="px-6 md:px-8 pb-3">
-            <div className="invoice-customer-block">
+            <div className="flex flex-row flex-wrap justify-between gap-x-4 gap-y-1 invoice-customer-row">
               <p className="invoice-body-text">
                 <span className="invoice-heading">Customer name:</span>{' '}
                 {order.customer_name ?? 'Customer'}
               </p>
               <p className="invoice-body-text">
-                <span className="invoice-heading">Customer number:</span> {customerNumber}
+                <span className="invoice-heading">Customer phone:</span>{' '}
+                {order.customer_phone ?? '—'}
               </p>
-            </div>
-            <div className="invoice-divider my-4" />
-          </div>
-
-          {/* BILL TO | SHIP TO */}
-          <div className="px-6 md:px-8 pb-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div>
-                <p className="invoice-heading mb-2">BILL TO</p>
-                <p className="font-semibold invoice-body-text">{vendor?.name ?? 'Vendor'}</p>
-                {vendor?.address != null && vendor.address !== '' && (
-                  <p className="invoice-body-text text-sm">{vendor.address}</p>
-                )}
-                {vendor?.phone != null && vendor.phone !== '' && (
-                  <p className="invoice-body-text text-sm">{vendor.phone}</p>
-                )}
-              </div>
-              <div className="text-left sm:text-right">
-                <p className="invoice-heading mb-2">SHIP TO</p>
-                <p className="font-semibold invoice-body-text">
-                  {order.customer_name ?? 'Customer'}
-                </p>
-                {order.customer_phone != null && order.customer_phone !== '' && (
-                  <p className="invoice-body-text text-sm">{order.customer_phone}</p>
-                )}
-              </div>
             </div>
             <div className="invoice-divider my-4" />
           </div>
