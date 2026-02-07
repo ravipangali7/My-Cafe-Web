@@ -29,6 +29,7 @@ import {
   FileText
 } from 'lucide-react';
 import { TransactionCategory, TransactionType as TxnType, TRANSACTION_CATEGORY_LABELS, TRANSACTION_TYPE_LABELS } from '@/lib/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface TransactionDetail {
   id: number;
@@ -83,6 +84,7 @@ interface TransactionDetail {
 export default function TransactionView() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [transaction, setTransaction] = useState<TransactionDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -268,8 +270,8 @@ export default function TransactionView() {
               </CardContent>
             </Card>
 
-            {/* UG Payment Gateway Details */}
-            {(transaction.ug_order_id || transaction.ug_client_txn_id) && (
+            {/* UG Payment Gateway Details - only for superuser */}
+            {user?.is_superuser && (transaction.ug_order_id || transaction.ug_client_txn_id) && (
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg flex items-center gap-2">
