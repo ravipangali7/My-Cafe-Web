@@ -299,7 +299,7 @@ export default function Dashboard() {
     setVendorLoading(true);
     try {
       const response = await api.get<LegacyVendorDashboardData>('/api/dashboard/vendor-data/', {
-        params: { date_filter: dateFilter },
+        date_filter: dateFilter,
       });
       if (response.data) {
         setVendorData(transformVendorData(response.data));
@@ -318,7 +318,7 @@ export default function Dashboard() {
     setSuperAdminLoading(true);
     try {
       const response = await api.get<LegacySuperAdminDashboardData>('/api/dashboard/super-admin-data/', {
-        params: { date_filter: dateFilter },
+        date_filter: dateFilter,
       });
       if (response.data) {
         setSuperAdminData(transformSuperAdminData(response.data));
@@ -332,6 +332,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (user) {
+      setVendorData(null);
+      setSuperAdminData(null);
       fetchVendorData(range);
       if (user.is_superuser) {
         fetchSuperAdminData(range);
