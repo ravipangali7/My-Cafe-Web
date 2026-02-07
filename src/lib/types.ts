@@ -287,6 +287,18 @@ export const TRANSACTION_TYPE_LABELS: Record<TransactionType, string> = {
 // Period type for charts
 export type DashboardPeriod = 'daily' | 'weekly' | 'monthly';
 
+// Date range filter for dashboard (API: date_filter)
+export type DashboardDateFilter = 'today' | 'yesterday' | 'weekly' | 'monthly' | 'yearly' | 'all';
+
+export const DASHBOARD_DATE_FILTER_OPTIONS: { value: DashboardDateFilter; label: string }[] = [
+  { value: 'today', label: 'Today' },
+  { value: 'yesterday', label: 'Yesterday' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'yearly', label: 'Yearly' },
+  { value: 'all', label: 'All Time' },
+];
+
 // Revenue trend data point
 export interface RevenueTrendPoint {
   date: string;

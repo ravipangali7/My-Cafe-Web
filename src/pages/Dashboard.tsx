@@ -17,7 +17,10 @@ import {
   SystemDashboardData,
   RevenueTrendPoint,
   ProductInsight,
+  DashboardDateFilter,
+  DASHBOARD_DATE_FILTER_OPTIONS,
 } from '@/lib/types';
+import { DateFilterBar } from '@/components/dashboard/DateFilterBar';
 
 // API response interfaces (for transforming legacy API data)
 interface LegacyVendorDashboardData {
@@ -148,12 +151,23 @@ interface LegacySuperAdminDashboardData {
   top_revenue_vendors?: Array<any>;
 }
 
+const VALID_RANGE_VALUES = new Set(DASHBOARD_DATE_FILTER_OPTIONS.map((o) => o.value));
+
+function getRangeFromSearchParams(searchParams: URLSearchParams): DashboardDateFilter {
+  const range = searchParams.get('range');
+  if (range && VALID_RANGE_VALUES.has(range as DashboardDateFilter)) {
+    return range as DashboardDateFilter;
+  }
+  return 'today';
+}
+
 export default function Dashboard() {
   const { vendor } = useVendor();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  
+  const [searchParams, setSearchParams] = useSearchParams();
+  const range = getRangeFromSearchParams(searchParams);
+
   // Vendor dashboard data
   const [vendorData, setVendorData] = useState<VendorDashboardData | null>(null);
   const [vendorLoading, setVendorLoading] = useState(true);
@@ -279,12 +293,14 @@ export default function Dashboard() {
   }, []);
 
   // Fetch vendor dashboard data
-  const fetchVendorData = useCallback(async () => {
+  const fetchVendorData = useCallback(async (dateFilter: DashboardDateFilter) => {
     if (!user) return;
-    
+
     setVendorLoading(true);
     try {
-      const response = await api.get<LegacyVendorDashboardData>('/api/dashboard/vendor-data/');
+      const response = await api.get<LegacyVendorDashboardData>('/api/dashboard/vendor-data/', {
+        params: { date_filter: dateFilter },
+      });
       if (response.data) {
         setVendorData(transformVendorData(response.data));
       }
@@ -296,12 +312,14 @@ export default function Dashboard() {
   }, [user, transformVendorData]);
 
   // Fetch super admin dashboard data
-  const fetchSuperAdminData = useCallback(async () => {
+  const fetchSuperAdminData = useCallback(async (dateFilter: DashboardDateFilter) => {
     if (!user || !user.is_superuser) return;
-    
+
     setSuperAdminLoading(true);
     try {
-      const response = await api.get<LegacySuperAdminDashboardData>('/api/dashboard/super-admin-data/');
+      const response = await api.get<LegacySuperAdminDashboardData>('/api/dashboard/super-admin-data/', {
+        params: { date_filter: dateFilter },
+      });
       if (response.data) {
         setSuperAdminData(transformSuperAdminData(response.data));
       }
@@ -314,25 +332,25 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (user) {
-      fetchVendorData();
+      fetchVendorData(range);
       if (user.is_superuser) {
-        fetchSuperAdminData();
+        fetchSuperAdminData(range);
       }
     }
-  }, [user, fetchVendorData, fetchSuperAdminData]);
+  }, [user, range, fetchVendorData, fetchSuperAdminData]);
 
   // Refetch dashboard when user returns to tab/app (real-time feel)
   useEffect(() => {
     if (!user) return;
     const onVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        fetchVendorData();
-        if (user.is_superuser) fetchSuperAdminData();
+        fetchVendorData(range);
+        if (user.is_superuser) fetchSuperAdminData(range);
       }
     };
     document.addEventListener('visibilitychange', onVisibilityChange);
     return () => document.removeEventListener('visibilitychange', onVisibilityChange);
-  }, [user, fetchVendorData, fetchSuperAdminData]);
+  }, [user, range, fetchVendorData, fetchSuperAdminData]);
 
   // Optional polling: refetch every 90s while dashboard is visible
   useEffect(() => {
@@ -343,8 +361,8 @@ export default function Dashboard() {
       if (document.visibilityState !== 'visible') return;
       pollTimer = setInterval(() => {
         if (document.visibilityState !== 'visible') return;
-        fetchVendorData();
-        if (user.is_superuser) fetchSuperAdminData();
+        fetchVendorData(range);
+        if (user.is_superuser) fetchSuperAdminData(range);
       }, POLL_INTERVAL_MS);
     };
     const onVisibilityChange = () => {
@@ -363,7 +381,7 @@ export default function Dashboard() {
       document.removeEventListener('visibilitychange', onVisibilityChange);
       if (pollTimer) clearInterval(pollTimer);
     };
-  }, [user, fetchVendorData, fetchSuperAdminData]);
+  }, [user, range, fetchVendorData, fetchSuperAdminData]);
 
   // Request FCM token and save to backend when dashboard opens
   useEffect(() => {
@@ -489,12 +507,28 @@ export default function Dashboard() {
     return "Here's an overview of your cafe";
   };
 
+  const handleDateFilterChange = (newRange: DashboardDateFilter) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('range', newRange);
+      return next;
+    });
+  };
+
   return (
     <DashboardLayout>
-      <PageHeader 
+      <PageHeader
         title={getDashboardTitle()}
         description={getDashboardDescription()}
       />
+
+      <div className="mb-4 md:mb-6">
+        <DateFilterBar
+          value={range}
+          onChange={handleDateFilterChange}
+          disabled={vendorLoading || superAdminLoading}
+        />
+      </div>
 
       {/* Super Admin View - System Dashboard */}
       {showSuperAdminView && (
