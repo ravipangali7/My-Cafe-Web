@@ -10,6 +10,7 @@ import { getAndSaveFCMToken } from '@/lib/fcm';
 import { getFirebaseMessaging } from '@/lib/firebase-config';
 import { onMessage } from 'firebase/messaging';
 import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 import { VendorDashboard } from '@/components/dashboard/vendor';
 import { SystemDashboard } from '@/components/dashboard/system';
 import {
@@ -524,12 +525,17 @@ export default function Dashboard() {
         description={getDashboardDescription()}
       />
 
-      <div className="mb-4 md:mb-6">
+      <div className="mb-4 md:mb-6 flex flex-wrap items-center gap-2">
         <DateFilterBar
           value={range}
           onChange={handleDateFilterChange}
-          disabled={vendorLoading || superAdminLoading}
         />
+        {(vendorLoading || superAdminLoading) && (
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground" aria-live="polite">
+            <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+            Updating…
+          </span>
+        )}
       </div>
 
       {/* Super Admin View - System Dashboard */}

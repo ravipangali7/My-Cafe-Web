@@ -20,11 +20,13 @@ export function DateFilterBar({ value, onChange, className, disabled }: DateFilt
       {DASHBOARD_DATE_FILTER_OPTIONS.map((option) => (
         <Button
           key={option.value}
+          type="button"
           variant="ghost"
           size="sm"
           disabled={disabled}
+          aria-pressed={value === option.value}
           className={cn(
-            'h-8 px-3 text-xs font-medium transition-all shrink-0',
+            'h-8 px-3 text-xs font-medium transition-all shrink-0 cursor-pointer',
             value === option.value
               ? 'bg-background text-foreground shadow-sm'
               : 'text-muted-foreground hover:text-foreground hover:bg-transparent'
