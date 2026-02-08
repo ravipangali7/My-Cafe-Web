@@ -80,16 +80,16 @@ function getDateRange(filter: DateFilter): { start_date?: string; end_date?: str
   
   switch (filter) {
     case 'today':
-      return { start_date: formatDate(today) };
+      return { start_date: formatDate(today), end_date: formatDate(today) };
     case 'yesterday': {
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
-      return { start_date: formatDate(yesterday), end_date: formatDate(today) };
+      return { start_date: formatDate(yesterday), end_date: formatDate(yesterday) };
     }
     case 'last7days': {
       const weekAgo = new Date(today);
       weekAgo.setDate(weekAgo.getDate() - 7);
-      return { start_date: formatDate(weekAgo) };
+      return { start_date: formatDate(weekAgo), end_date: formatDate(today) };
     }
     case 'all':
     default:
