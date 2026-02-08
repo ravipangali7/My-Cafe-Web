@@ -47,6 +47,8 @@ interface LegacyVendorDashboardData {
   }>;
   total_orders?: number;
   total_sales?: string;
+  total_orders_all_time?: number;
+  total_sales_all_time?: string;
   total_revenue?: string;
   total_products?: number;
   total_qr_stand_orders?: number;
@@ -219,6 +221,8 @@ export default function Dashboard() {
       subscription_end_date: data.subscription?.end_date || null,
       total_orders: data.total_orders || 0,
       total_sales: parseFloat(data.total_sales || data.total_revenue || '0'),
+      total_orders_all_time: data.total_orders_all_time,
+      total_sales_all_time: data.total_sales_all_time != null ? parseFloat(data.total_sales_all_time) : undefined,
       total_products: data.total_products || 0,
       total_qr_stand_orders: data.total_qr_stand_orders || 0,
       pending_orders: data.pending_orders || [],

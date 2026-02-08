@@ -55,8 +55,8 @@ function deriveSummaryFromVendorData(data: VendorDashboardData): {
     },
     secondRowRight: {
       label: 'All Time',
-      amount: data.total_sales,
-      orders: data.total_orders,
+      amount: data.total_sales_all_time != null ? String(data.total_sales_all_time) : String(data.total_sales),
+      orders: data.total_orders_all_time ?? data.total_orders,
     },
   };
 }

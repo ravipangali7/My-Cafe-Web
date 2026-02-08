@@ -361,6 +361,8 @@ export interface VendorDashboardData {
   subscription_end_date: string | null;
   total_orders: number;
   total_sales: number;
+  total_orders_all_time?: number;
+  total_sales_all_time?: number;
   total_products: number;
   total_qr_stand_orders: number;
   
