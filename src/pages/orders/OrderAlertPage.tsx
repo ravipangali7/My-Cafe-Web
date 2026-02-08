@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 const SWIPE_THRESHOLD_PX = 80;
 const SWIPE_THRESHOLD_RATIO = 0.25;
+const PENDING_ORDERS_PAGE_SIZE = 50;
 
 interface IncomingOrderItem {
   n: string;
@@ -54,11 +55,34 @@ function getOrderFromWindow(): OrderDisplay | null {
   };
 }
 
+/** Map API order (list or detail) to OrderDisplay */
+function apiOrderToDisplay(o: any): OrderDisplay {
+  const items = (o.items || []).map((item: any) => ({
+    n: item.product_name ?? "",
+    v: item.variant_info?.unit_symbol ?? "",
+    q: String(item.quantity ?? 1),
+    p: String(item.price ?? 0),
+    t: String(item.total ?? 0),
+    op: String(item.variant_info?.price ?? item.price ?? 0),
+  }));
+  return {
+    orderId: String(o.id),
+    name: o.name ?? "",
+    table_no: o.table_no ?? "",
+    phone: o.phone ?? "",
+    total: String(o.total ?? 0),
+    itemsCount: String((o.items || []).length),
+    items,
+    order_type: o.order_type ?? undefined,
+    address: o.address ?? undefined,
+  };
+}
+
 export default function OrderAlertPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const orderIdFromUrl = searchParams.get("orderId");
-  const [order, setOrder] = useState<OrderDisplay | null>(null);
+  const [pendingOrders, setPendingOrders] = useState<OrderDisplay[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -66,68 +90,66 @@ export default function OrderAlertPage() {
   const touchStartX = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const orderId = order?.orderId ?? orderIdFromUrl ?? null;
+  const singleOrder = pendingOrders.length === 1 ? pendingOrders[0] : null;
+  const orderId = singleOrder?.orderId ?? orderIdFromUrl ?? null;
 
-  const fetchOrder = useCallback(async (orderIdOverride?: string) => {
-    const id = orderIdOverride ?? orderId;
-    if (!id) return;
-    const response = await api.get<{ order: any }>(`/api/orders/${id}/`);
+  const fetchPendingOrders = useCallback(async () => {
+    const response = await api.get<{ data: any[] }>(
+      `/api/orders/?status=pending&page_size=${PENDING_ORDERS_PAGE_SIZE}`
+    );
     if (response.error || !response.data) {
-      setError("Order not found");
+      setError("Failed to load pending orders");
       setLoading(false);
       return;
     }
-    const o = response.data.order;
-    const items = (o.items || []).map((item: any) => ({
-      n: item.product_name ?? "",
-      v: item.variant_info?.unit_symbol ?? "",
-      q: String(item.quantity ?? 1),
-      p: String(item.price ?? 0),
-      t: String(item.total ?? 0),
-      op: String(item.variant_info?.price ?? item.price ?? 0),
-    }));
-    setOrder({
-      orderId: String(o.id),
-      name: o.name ?? "",
-      table_no: o.table_no ?? "",
-      phone: o.phone ?? "",
-      total: String(o.total ?? 0),
-      itemsCount: String((o.items || []).length),
-      items,
-      order_type: o.order_type ?? undefined,
-      address: o.address ?? undefined,
-    });
+    const list = (response.data.data || []).map(apiOrderToDisplay);
+    setPendingOrders(list);
     setLoading(false);
-  }, [orderId]);
+  }, []);
 
   useEffect(() => {
     const fromWindow = getOrderFromWindow();
     if (fromWindow) {
-      setOrder(fromWindow);
-      setLoading(false);
       if (!orderIdFromUrl) {
         navigate(`/order-alert?orderId=${fromWindow.orderId}`, { replace: true });
       }
-      fetchOrder(fromWindow.orderId);
-      return;
     }
-    if (orderIdFromUrl) {
-      fetchOrder();
-    } else {
-      setError("No order specified");
-      setLoading(false);
-    }
-  }, [orderIdFromUrl, fetchOrder, navigate]);
+    fetchPendingOrders();
+  }, [orderIdFromUrl, fetchPendingOrders, navigate]);
+
+  const stopSoundAndNavigate = useCallback(
+    (
+      targetOrderId: string,
+      status: "accepted" | "rejected",
+      setProcessingFalse: () => void
+    ) => {
+      window.StopOrderAlertSound?.postMessage?.("");
+      if (status === "accepted") {
+        toast.success("Order accepted");
+        navigate(`/orders/${targetOrderId}`, { replace: true });
+      } else {
+        toast.success("Order rejected");
+        const remaining = pendingOrders.filter((o) => o.orderId !== targetOrderId);
+        if (remaining.length === 0) {
+          navigate("/orders", { replace: true });
+        } else {
+          setPendingOrders(remaining);
+          setProcessingFalse();
+        }
+      }
+    },
+    [navigate, pendingOrders]
+  );
 
   const performAction = useCallback(
-    async (status: "accepted" | "rejected") => {
-      if (!orderId || isProcessing) return;
+    async (targetOrderId: string, status: "accepted" | "rejected") => {
+      if (isProcessing) return;
       setIsProcessing(true);
       try {
         const formData = new FormData();
         formData.append("status", status);
         const response = await api.post(
-          `/api/orders/${orderId}/edit/`,
+          `/api/orders/${targetOrderId}/edit/`,
           formData,
           true
         );
@@ -136,13 +158,9 @@ export default function OrderAlertPage() {
           setIsProcessing(false);
           return;
         }
-        window.StopOrderAlertSound?.postMessage?.("");
-        if (status === "accepted") {
-          toast.success("Order accepted");
-        } else {
-          toast.success("Order rejected");
-        }
-        navigate(`/orders/${orderId}`, { replace: true });
+        stopSoundAndNavigate(targetOrderId, status, () =>
+          setIsProcessing(false)
+        );
       } catch (err) {
         toast.error(
           err instanceof Error ? err.message : "Failed to update order"
@@ -150,7 +168,7 @@ export default function OrderAlertPage() {
         setIsProcessing(false);
       }
     },
-    [orderId, isProcessing, navigate]
+    [isProcessing, stopSoundAndNavigate]
   );
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -172,9 +190,9 @@ export default function OrderAlertPage() {
     const width = containerRef.current?.offsetWidth ?? 300;
     const threshold = Math.max(SWIPE_THRESHOLD_PX, width * SWIPE_THRESHOLD_RATIO);
     if (dragOffset >= threshold) {
-      performAction("accepted");
+      performAction(singleOrder!.orderId, "accepted");
     } else if (dragOffset <= -threshold) {
-      performAction("rejected");
+      performAction(singleOrder!.orderId, "rejected");
     } else {
       setDragOffset(0);
     }
@@ -200,9 +218,9 @@ export default function OrderAlertPage() {
     const width = containerRef.current?.offsetWidth ?? 300;
     const threshold = Math.max(SWIPE_THRESHOLD_PX, width * SWIPE_THRESHOLD_RATIO);
     if (dragOffset >= threshold) {
-      performAction("accepted");
+      performAction(singleOrder!.orderId, "accepted");
     } else if (dragOffset <= -threshold) {
-      performAction("rejected");
+      performAction(singleOrder!.orderId, "rejected");
     } else {
       setDragOffset(0);
     }
@@ -213,25 +231,23 @@ export default function OrderAlertPage() {
       <div
         className="min-h-screen flex items-center justify-center"
         style={{
-          background:
-            "linear-gradient(to bottom, #1a1a1a 0%, #0d0d0d 100%)",
+          background: "linear-gradient(to bottom, #1a1a1a 0%, #0d0d0d 100%)",
         }}
       >
-        <p className="text-white/80">Loading order...</p>
+        <p className="text-white/80">Loading orders...</p>
       </div>
     );
   }
 
-  if (error || !order) {
+  if (error) {
     return (
       <div
         className="min-h-screen flex flex-col items-center justify-center gap-4 p-6"
         style={{
-          background:
-            "linear-gradient(to bottom, #1a1a1a 0%, #0d0d0d 100%)",
+          background: "linear-gradient(to bottom, #1a1a1a 0%, #0d0d0d 100%)",
         }}
       >
-        <p className="text-white/80">{error ?? "No order specified"}</p>
+        <p className="text-white/80">{error}</p>
         <button
           type="button"
           onClick={() => navigate("/orders")}
@@ -243,160 +259,307 @@ export default function OrderAlertPage() {
     );
   }
 
-  const width = containerRef.current?.offsetWidth ?? 300;
-  const threshold = Math.max(SWIPE_THRESHOLD_PX, width * SWIPE_THRESHOLD_RATIO);
-  const swipeHint =
-    dragOffset >= threshold * 0.5
-      ? "Release to accept"
-      : dragOffset <= -threshold * 0.5
-        ? "Release to reject"
-        : "← Swipe to reject  |  Swipe to accept →";
+  if (pendingOrders.length === 0) {
+    return (
+      <div
+        className="min-h-screen flex flex-col items-center justify-center gap-4 p-6"
+        style={{
+          background: "linear-gradient(to bottom, #1a1a1a 0%, #0d0d0d 100%)",
+        }}
+      >
+        <p className="text-white/80">No pending orders</p>
+        <button
+          type="button"
+          onClick={() => navigate("/orders")}
+          className="px-4 py-2 rounded-lg bg-white/20 text-white"
+        >
+          Back to Orders
+        </button>
+      </div>
+    );
+  }
+
+  const backgroundStyle = {
+    background: "linear-gradient(to bottom, #3D2314 0%, #2A1810 100%)",
+  };
+
+  if (pendingOrders.length === 1 && singleOrder) {
+    const order = singleOrder;
+    const width = containerRef.current?.offsetWidth ?? 300;
+    const threshold = Math.max(SWIPE_THRESHOLD_PX, width * SWIPE_THRESHOLD_RATIO);
+    const swipeHint =
+      dragOffset >= threshold * 0.5
+        ? "Release to accept"
+        : dragOffset <= -threshold * 0.5
+          ? "Release to reject"
+          : "← Swipe to reject  |  Swipe to accept →";
+
+    return (
+      <div
+        className="min-h-screen flex flex-col text-white"
+        style={backgroundStyle}
+      >
+        <div className="flex-1 overflow-auto p-4 pb-2">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <span className="text-2xl">🍽️</span>
+            <h1 className="text-xl font-semibold text-white/95">
+              Incoming order
+            </h1>
+          </div>
+
+          <div className="rounded-2xl bg-[#4A3328] p-4 shadow-lg mb-4">
+            <p className="text-xs font-bold text-white/70 tracking-wide mb-3">
+              CUSTOMER
+            </p>
+            <div className="space-y-2 text-sm">
+              <p>
+                <span className="text-white/65">Name:</span>{" "}
+                <span className="font-medium text-white">
+                  {order.name || "—"}
+                </span>
+              </p>
+              <p>
+                <span className="text-white/65">Phone:</span>{" "}
+                <span className="font-medium text-white">
+                  {order.phone || "—"}
+                </span>
+              </p>
+              <p className="flex items-center gap-2 flex-wrap">
+                <span
+                  className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold shrink-0"
+                  style={{
+                    backgroundColor: "rgba(212, 129, 59, 0.35)",
+                    color: "#F5E6D3",
+                    border: "1px solid rgba(212, 129, 59, 0.6)",
+                  }}
+                >
+                  {order.order_type === "delivery"
+                    ? "Delivery"
+                    : order.order_type === "packing"
+                      ? "Packing"
+                      : "Table"}
+                </span>
+              </p>
+              {(order.order_type === "table" ||
+                order.order_type === "packing") && (
+                <p className="pt-0.5">
+                  <span className="text-white/65">Table:</span>{" "}
+                  <span className="font-medium text-white">
+                    {order.table_no || "—"}
+                  </span>
+                </p>
+              )}
+              {order.order_type === "delivery" && order.address && (
+                <p className="pt-0.5">
+                  <span className="text-white/65">Address:</span>{" "}
+                  <span className="font-medium text-white">
+                    {order.address}
+                  </span>
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-2xl bg-[#4A3328] p-4 shadow-lg mb-4">
+            <p className="text-lg font-bold text-white tracking-wide mb-3">
+              Order ID: #{order.orderId}
+            </p>
+            {order.items.length > 0 ? (
+              <ul className="space-y-3">
+                {order.items.map((item, i) => (
+                  <li key={i} className="flex justify-between gap-2 text-sm">
+                    <span className="text-white font-medium">
+                      {item.n}
+                      {item.v ? ` (${item.v})` : ""}
+                    </span>
+                    <span className="text-white/85 shrink-0">
+                      {item.q} × ₹{item.p} = ₹{item.t}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-white/90">{order.itemsCount} item(s)</p>
+            )}
+            <div className="mt-3 pt-3 border-t border-white/20 flex justify-between items-center">
+              <span className="font-bold text-white/90">Total</span>
+              <span className="text-lg font-bold text-white">
+                ₹{order.total}
+              </span>
+            </div>
+          </div>
+
+          <p className="text-center text-sm text-white/60 mb-2">{swipeHint}</p>
+        </div>
+
+        <div
+          ref={containerRef}
+          className="p-4 pt-0 pb-8 touch-none select-none"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+        >
+          <div
+            className="relative h-16 rounded-full mx-2 overflow-hidden"
+            style={{ backgroundColor: "#5C3D2E" }}
+          >
+            <div
+              className="absolute inset-0 flex items-center justify-between px-4 pointer-events-none"
+              aria-hidden
+            >
+              <span
+                className="text-lg transition-opacity"
+                style={{
+                  opacity:
+                    dragOffset < 0
+                      ? 0.4 + (-dragOffset / threshold) * 0.6
+                      : 0.2,
+                }}
+              >
+                Reject
+              </span>
+              <span
+                className="text-lg text-green-400 transition-opacity"
+                style={{
+                  opacity:
+                    dragOffset > 0
+                      ? 0.4 + (dragOffset / threshold) * 0.6
+                      : 0.2,
+                }}
+              >
+                Accept
+              </span>
+            </div>
+            <div
+              className="absolute top-1 w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md transition-transform duration-75"
+              style={{
+                left: `calc(50% - 28px + ${dragOffset}px)`,
+                backgroundColor:
+                  dragOffset >= threshold * 0.3
+                    ? "#22c55e"
+                    : dragOffset <= -threshold * 0.3
+                      ? "#ef4444"
+                      : "#D4813B",
+              }}
+            >
+              ⇄
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
       className="min-h-screen flex flex-col text-white"
-      style={{
-        background:
-          "linear-gradient(to bottom, #3D2314 0%, #2A1810 100%)",
-      }}
+      style={backgroundStyle}
     >
-      <div className="flex-1 overflow-auto p-4 pb-2">
+      <div className="flex-1 overflow-auto p-4 pb-8">
         <div className="flex items-center justify-center gap-2 mb-4">
           <span className="text-2xl">🍽️</span>
           <h1 className="text-xl font-semibold text-white/95">
-            Incoming order
+            Incoming orders ({pendingOrders.length})
           </h1>
         </div>
 
-        <div className="rounded-2xl bg-[#4A3328] p-4 shadow-lg mb-4">
-          <p className="text-xs font-bold text-white/70 tracking-wide mb-3">
-            CUSTOMER
-          </p>
-          <div className="space-y-2 text-sm">
-            <p>
-              <span className="text-white/65">Name:</span>{" "}
-              <span className="font-medium text-white">
-                {order.name || "—"}
-              </span>
-            </p>
-            <p>
-              <span className="text-white/65">Phone:</span>{" "}
-              <span className="font-medium text-white">
-                {order.phone || "—"}
-              </span>
-            </p>
-            <p className="flex items-center gap-2 flex-wrap">
-              <span
-                className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold shrink-0"
-                style={{
-                  backgroundColor: "rgba(212, 129, 59, 0.35)",
-                  color: "#F5E6D3",
-                  border: "1px solid rgba(212, 129, 59, 0.6)",
-                }}
-              >
-                {order.order_type === "delivery"
-                  ? "Delivery"
-                  : order.order_type === "packing"
-                    ? "Packing"
-                    : "Table"}
-              </span>
-            </p>
-            {(order.order_type === "table" || order.order_type === "packing") && (
-              <p className="pt-0.5">
-                <span className="text-white/65">Table:</span>{" "}
-                <span className="font-medium text-white">{order.table_no || "—"}</span>
-              </p>
-            )}
-            {order.order_type === "delivery" && order.address && (
-              <p className="pt-0.5">
-                <span className="text-white/65">Address:</span>{" "}
-                <span className="font-medium text-white">{order.address}</span>
-              </p>
-            )}
-          </div>
+        <div className="space-y-4">
+          {pendingOrders.map((order) => (
+            <OrderAlertCard
+              key={order.orderId}
+              order={order}
+              onAccept={() => performAction(order.orderId, "accepted")}
+              onReject={() => performAction(order.orderId, "rejected")}
+              disabled={isProcessing}
+            />
+          ))}
         </div>
+      </div>
+    </div>
+  );
+}
 
-        <div className="rounded-2xl bg-[#4A3328] p-4 shadow-lg mb-4">
-          <p className="text-lg font-bold text-white tracking-wide mb-3">
-            Order ID: #{order.orderId}
-          </p>
-          {order.items.length > 0 ? (
-            <ul className="space-y-3">
-              {order.items.map((item, i) => (
-                <li key={i} className="flex justify-between gap-2 text-sm">
-                  <span className="text-white font-medium">
-                    {item.n}
-                    {item.v ? ` (${item.v})` : ""}
-                  </span>
-                  <span className="text-white/85 shrink-0">
-                    {item.q} × ₹{item.p} = ₹{item.t}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-white/90">{order.itemsCount} item(s)</p>
-          )}
-          <div className="mt-3 pt-3 border-t border-white/20 flex justify-between items-center">
-            <span className="font-bold text-white/90">Total</span>
-            <span className="text-lg font-bold text-white">₹{order.total}</span>
-          </div>
-        </div>
-
-        <p className="text-center text-sm text-white/60 mb-2">{swipeHint}</p>
+function OrderAlertCard({
+  order,
+  onAccept,
+  onReject,
+  disabled,
+}: {
+  order: OrderDisplay;
+  onAccept: () => void;
+  onReject: () => void;
+  disabled: boolean;
+}) {
+  return (
+    <div className="rounded-2xl bg-[#4A3328] p-4 shadow-lg">
+      <div className="rounded-xl bg-[#3d2a1f] p-3 mb-3">
+        <p className="text-xs font-bold text-white/70 tracking-wide mb-2">
+          CUSTOMER
+        </p>
+        <p className="text-sm text-white/90">
+          <span className="text-white/65">Name:</span> {order.name || "—"}
+        </p>
+        <p className="text-sm text-white/90">
+          <span className="text-white/65">Phone:</span> {order.phone || "—"}
+        </p>
+        <p className="text-sm text-white/90">
+          <span className="text-white/65">Table:</span> {order.table_no || "—"}
+        </p>
       </div>
 
-      <div
-        ref={containerRef}
-        className="p-4 pt-0 pb-8 touch-none select-none"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-      >
-        <div
-          className="relative h-16 rounded-full mx-2 overflow-hidden"
-          style={{ backgroundColor: "#5C3D2E" }}
+      <p className="text-base font-bold text-white mb-2">
+        Order ID: #{order.orderId}
+      </p>
+      {order.items.length > 0 ? (
+        <ul className="space-y-2 text-sm mb-3">
+          {order.items.slice(0, 5).map((item, i) => (
+            <li key={i} className="flex justify-between gap-2">
+              <span className="text-white/90 truncate">
+                {item.n}
+                {item.v ? ` (${item.v})` : ""}
+              </span>
+              <span className="text-white/80 shrink-0">
+                {item.q} × ₹{item.p}
+              </span>
+            </li>
+          ))}
+          {order.items.length > 5 && (
+            <li className="text-white/60 text-xs">
+              +{order.items.length - 5} more items
+            </li>
+          )}
+        </ul>
+      ) : (
+        <p className="text-white/80 text-sm mb-3">
+          {order.itemsCount} item(s)
+        </p>
+      )}
+      <div className="flex justify-between items-center mb-4">
+        <span className="font-bold text-white/90">Total</span>
+        <span className="text-lg font-bold text-white">₹{order.total}</span>
+      </div>
+
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={onReject}
+          disabled={disabled}
+          className="flex-1 py-3 rounded-xl font-semibold text-white/90 bg-red-500/30 hover:bg-red-500/50 disabled:opacity-50 border border-red-400/50"
         >
-          <div
-            className="absolute inset-0 flex items-center justify-between px-4 pointer-events-none"
-            aria-hidden
-          >
-            <span
-              className="text-lg transition-opacity"
-              style={{
-                opacity: dragOffset < 0 ? 0.4 + (-dragOffset / threshold) * 0.6 : 0.2,
-              }}
-            >
-              Reject
-            </span>
-            <span
-              className="text-lg text-green-400 transition-opacity"
-              style={{
-                opacity: dragOffset > 0 ? 0.4 + (dragOffset / threshold) * 0.6 : 0.2,
-              }}
-            >
-              Accept
-            </span>
-          </div>
-          <div
-            className="absolute top-1 w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md transition-transform duration-75"
-            style={{
-              left: `calc(50% - 28px + ${dragOffset}px)`,
-              backgroundColor:
-                dragOffset >= threshold * 0.3
-                  ? "#22c55e"
-                  : dragOffset <= -threshold * 0.3
-                    ? "#ef4444"
-                    : "#D4813B",
-            }}
-          >
-            ⇄
-          </div>
-        </div>
+          Reject
+        </button>
+        <button
+          type="button"
+          onClick={onAccept}
+          disabled={disabled}
+          className="flex-1 py-3 rounded-xl font-semibold text-white bg-green-600 hover:bg-green-500 disabled:opacity-50"
+        >
+          Accept
+        </button>
       </div>
     </div>
   );
