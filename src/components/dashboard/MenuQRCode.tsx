@@ -178,6 +178,7 @@ export function MenuQRCode({
   };
 
   const { gold, dark, white } = theme.brand;
+  const mutedGray = '#6b7280';
 
   const qrSize = compact ? 180 : 200;
   const logoSize = compact ? 60 : 72;
@@ -188,6 +189,24 @@ export function MenuQRCode({
   const initials = vendor?.name ? getInitials(vendor.name) : '?';
   const fallbackBg = vendor?.name ? colorFromName(vendor.name) : gold;
 
+  /* 4"×6" body, 0.5" golden border inside, white content area. On small screens scale by width, keep aspect ratio. */
+  const cardOuterStyle: React.CSSProperties = {
+    width: '4in',
+    maxWidth: 'min(4in, calc(100vw - 32px))',
+    aspectRatio: '4 / 6',
+    height: 'auto',
+    boxSizing: 'border-box',
+    border: `0.5in solid ${gold}`,
+    borderRadius: 8,
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    flexShrink: 0,
+    margin: '0 auto',
+    minWidth: 0,
+  };
+
   return (
     <div
       className="flex flex-col items-center gap-4 w-full min-w-0"
@@ -195,90 +214,96 @@ export function MenuQRCode({
     >
       <div
         ref={qrCodeRef}
-        className="rounded-xl w-full overflow-hidden flex flex-col items-center flex-shrink-0 mx-auto min-w-0"
-        style={{
-          backgroundColor: dark,
-          padding: cardPadding,
-          boxSizing: 'border-box',
-          maxWidth: compact ? 'min(100%, calc(100vw - 32px))' : 'min(100%, 360px)',
-        }}
+        className="rounded-lg flex flex-col items-center flex-shrink-0 mx-auto min-w-0"
+        style={cardOuterStyle}
       >
-        {/* Circular logo with gold ring */}
+        {/* Inner content area: white background, 3"×5" equivalent (flex fills inside border) */}
         <div
-          className="flex items-center justify-center rounded-full flex-shrink-0 mb-4"
+          className="w-full flex-1 flex flex-col items-center overflow-hidden rounded-sm"
           style={{
-            width: logoSize,
-            height: logoSize,
-            border: `3px solid ${white}`,
-            backgroundColor: dark,
-            overflow: 'hidden',
-          }}
-        >
-          {vendor.logo_url ? (
-            <img
-              src={vendor.logo_url}
-              alt={vendor.name}
-              className="w-full h-full object-cover"
-              style={{ width: '100%', height: '100%' }}
-            />
-          ) : (
-            <div
-              className="w-full h-full flex items-center justify-center text-white font-bold"
-              style={{ backgroundColor: fallbackBg, fontSize: compact ? '20px' : '24px' }}
-            >
-              {initials}
-            </div>
-          )}
-        </div>
-        {/* Title - vendor name */}
-        <h1
-          className="text-center font-bold uppercase tracking-wider mb-0.5"
-          style={{ color: white, fontSize: compact ? '18px' : '22px', letterSpacing: '0.15em', marginBottom: 2 }}
-        >
-          {vendor?.name || 'My Cafe'}
-        </h1>
-        {/* Subtitle */}
-        <p
-          className="text-center uppercase tracking-widest mb-3"
-          style={{ color: 'rgba(255,255,255,0.9)', letterSpacing: '0.2em', fontSize: compact ? 9 : 10 }}
-        >
-          Menu QR Code
-        </p>
-        {/* Scan & Order Now - call to action */}
-        <p
-          className="text-center font-semibold tracking-wide mb-3"
-          style={{ color: gold, fontSize: compact ? 14 : 16, letterSpacing: '0.05em' }}
-        >
-          Scan &amp; Order Now
-        </p>
-        {/* QR code with gold border - fixed size so it doesn't reflow or zoom */}
-        <div
-          className="flex justify-center items-center rounded-lg flex-shrink-0"
-          style={{
-            padding: 8,
-            border: `3px solid ${gold}`,
-            borderRadius: 8,
             backgroundColor: white,
+            padding: cardPadding,
+            boxSizing: 'border-box',
+            minHeight: 0,
           }}
         >
-          <div style={{ width: qrSize, height: qrSize }}>
-            <QRCode
-              value={menuUrl}
-              size={qrSize}
-              level="H"
-              style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
-              fgColor="#000000"
-              bgColor={white}
-            />
+          {/* Circular logo with gold ring */}
+          <div
+            className="flex items-center justify-center rounded-full flex-shrink-0 mb-4"
+            style={{
+              width: logoSize,
+              height: logoSize,
+              border: `3px solid ${gold}`,
+              backgroundColor: white,
+              overflow: 'hidden',
+            }}
+          >
+            {vendor.logo_url ? (
+              <img
+                src={vendor.logo_url}
+                alt={vendor.name}
+                className="w-full h-full object-cover"
+                style={{ width: '100%', height: '100%' }}
+              />
+            ) : (
+              <div
+                className="w-full h-full flex items-center justify-center text-white font-bold"
+                style={{ backgroundColor: fallbackBg, fontSize: compact ? '20px' : '24px' }}
+              >
+                {initials}
+              </div>
+            )}
           </div>
+          {/* Title - vendor name */}
+          <h1
+            className="text-center font-bold uppercase tracking-wider mb-0.5"
+            style={{ color: dark, fontSize: compact ? '18px' : '22px', letterSpacing: '0.15em', marginBottom: 2 }}
+          >
+            {vendor?.name || 'My Cafe'}
+          </h1>
+          {/* Subtitle */}
+          <p
+            className="text-center uppercase tracking-widest mb-3"
+            style={{ color: mutedGray, letterSpacing: '0.2em', fontSize: compact ? 9 : 10 }}
+          >
+            Menu QR Code
+          </p>
+          {/* Scan & Order Now - call to action */}
+          <p
+            className="text-center font-semibold tracking-wide mb-3"
+            style={{ color: gold, fontSize: compact ? 14 : 16, letterSpacing: '0.05em' }}
+          >
+            Scan &amp; Order Now
+          </p>
+          {/* QR code with gold border - fixed size so it doesn't reflow or zoom */}
+          <div
+            className="flex justify-center items-center rounded-lg flex-shrink-0"
+            style={{
+              padding: 8,
+              border: `3px solid ${gold}`,
+              borderRadius: 8,
+              backgroundColor: white,
+            }}
+          >
+            <div style={{ width: qrSize, height: qrSize }}>
+              <QRCode
+                value={menuUrl}
+                size={qrSize}
+                level="H"
+                style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
+                fgColor="#000000"
+                bgColor={white}
+              />
+            </div>
+          </div>
+          {/* Footer */}
+          <p
+            className="text-center mt-4"
+            style={{ color: mutedGray, fontSize: compact ? 9 : 10 }}
+          >
+            © 2025 {vendor?.name || 'My Cafe'} | All Rights Reserved
+          </p>
         </div>
-        {/* Footer */}
-        <p
-          className="text-center mt-4"
-          style={{ color: 'rgba(255,255,255,0.7)', fontSize: compact ? 9 : 10 }}
-        >
-          © 2025 {vendor?.name || 'My Cafe'} | All Rights Reserved
-        </p>
       </div>
       {!blockOnly && (
         <>
