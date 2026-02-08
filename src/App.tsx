@@ -96,8 +96,8 @@ import WhatsAppNotificationView from "./pages/whatsapp-notifications/WhatsAppNot
 // Payment
 import PaymentStatus from "./pages/payment/PaymentStatus";
 
-// Menu (public)
-import MenuPage from "./pages/menu/MenuPage";
+// Menu (public; with panel layout + back when vendor logged in on own menu)
+import MenuPageRoute from "./pages/menu/MenuPageRoute";
 
 // QR page (public - no auth)
 import QRPage from "./pages/qr/QRPage";
@@ -333,7 +333,7 @@ const App = () => (
             <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
             <Route path="/verify-otp" element={<PublicRoute><OTPVerification /></PublicRoute>} />
             <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
-            <Route path="/menu/:vendorPhone" element={<MenuPage />} />
+            <Route path="/menu/:vendorPhone" element={<MenuPageRoute />} />
             <Route path="/qr/:vendorPhone" element={<QRPage />} />
             <Route path="/invoice/public/:orderId/:token" element={<PublicInvoicePage />} />
 
