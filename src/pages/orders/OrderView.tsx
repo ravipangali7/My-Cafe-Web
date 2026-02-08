@@ -305,8 +305,10 @@ export default function OrderView() {
           <DetailRow label="Order ID" value={<span className="font-bold text-lg">#{order.id}</span>} />
           <DetailRow label="Customer Name" value={order.name} />
           <DetailRow label="Phone" value={order.phone} />
-          <DetailRow label="Table No" value={order.table_no || '—'} />
           <DetailRow label="Order Type" value={order.order_type ? order.order_type.charAt(0).toUpperCase() + order.order_type.slice(1) : 'Table'} />
+          {(order.order_type === 'table' || order.order_type === 'packing') && (
+            <DetailRow label="Table No" value={order.table_no || '—'} />
+          )}
           {order.order_type === 'delivery' && order.address && (
             <DetailRow label="Address" value={order.address} />
           )}

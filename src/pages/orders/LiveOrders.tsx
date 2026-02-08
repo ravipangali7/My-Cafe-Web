@@ -75,21 +75,26 @@ type DateFilter = 'today' | 'yesterday' | 'last7days' | 'all';
 function getDateRange(filter: DateFilter): { start_date?: string; end_date?: string } {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
-  const formatDate = (date: Date) => date.toISOString().split('T')[0];
-  
+
+  const formatDateLocal = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
   switch (filter) {
     case 'today':
-      return { start_date: formatDate(today), end_date: formatDate(today) };
+      return { start_date: formatDateLocal(today), end_date: formatDateLocal(today) };
     case 'yesterday': {
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
-      return { start_date: formatDate(yesterday), end_date: formatDate(yesterday) };
+      return { start_date: formatDateLocal(yesterday), end_date: formatDateLocal(yesterday) };
     }
     case 'last7days': {
       const weekAgo = new Date(today);
       weekAgo.setDate(weekAgo.getDate() - 7);
-      return { start_date: formatDate(weekAgo), end_date: formatDate(today) };
+      return { start_date: formatDateLocal(weekAgo), end_date: formatDateLocal(today) };
     }
     case 'all':
     default:
@@ -159,10 +164,12 @@ function LiveOrderCard({
               <span>Address: {order.address}</span>
             </div>
           )}
-          <div className="flex items-center gap-2 col-span-2">
-            <UtensilsCrossed className="h-4 w-4 text-muted-foreground" />
-            <span>Table: {order.table_no || '—'}</span>
-          </div>
+          {(order.order_type === 'table' || order.order_type === 'packing') && (
+            <div className="flex items-center gap-2 col-span-2">
+              <UtensilsCrossed className="h-4 w-4 text-muted-foreground" />
+              <span>Table: {order.table_no || '—'}</span>
+            </div>
+          )}
         </div>
 
         {/* Items */}

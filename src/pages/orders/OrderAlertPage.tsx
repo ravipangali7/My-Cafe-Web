@@ -301,6 +301,12 @@ export default function OrderAlertPage() {
                     : "Table"}
               </span>
             </p>
+            {(order.order_type === "table" || order.order_type === "packing") && (
+              <p className="pt-0.5">
+                <span className="text-white/65">Table:</span>{" "}
+                <span className="font-medium text-white">{order.table_no || "—"}</span>
+              </p>
+            )}
             {order.order_type === "delivery" && order.address && (
               <p className="pt-0.5">
                 <span className="text-white/65">Address:</span>{" "}
