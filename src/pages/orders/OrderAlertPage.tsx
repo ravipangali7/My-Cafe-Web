@@ -23,6 +23,8 @@ interface OrderDisplay {
   total: string;
   itemsCount: string;
   items: IncomingOrderItem[];
+  order_type?: string;
+  address?: string;
 }
 
 function parseIncomingItems(itemsRaw: string | undefined): IncomingOrderItem[] {
@@ -47,6 +49,8 @@ function getOrderFromWindow(): OrderDisplay | null {
     total: w.total ?? "0",
     itemsCount: w.items_count ?? String(items.length),
     items,
+    order_type: w.order_type ?? undefined,
+    address: w.address ?? undefined,
   };
 }
 
@@ -64,9 +68,10 @@ export default function OrderAlertPage() {
 
   const orderId = order?.orderId ?? orderIdFromUrl ?? null;
 
-  const fetchOrder = useCallback(async () => {
-    if (!orderId) return;
-    const response = await api.get<{ order: any }>(`/api/orders/${orderId}/`);
+  const fetchOrder = useCallback(async (orderIdOverride?: string) => {
+    const id = orderIdOverride ?? orderId;
+    if (!id) return;
+    const response = await api.get<{ order: any }>(`/api/orders/${id}/`);
     if (response.error || !response.data) {
       setError("Order not found");
       setLoading(false);
@@ -89,6 +94,8 @@ export default function OrderAlertPage() {
       total: String(o.total ?? 0),
       itemsCount: String((o.items || []).length),
       items,
+      order_type: o.order_type ?? undefined,
+      address: o.address ?? undefined,
     });
     setLoading(false);
   }, [orderId]);
@@ -101,6 +108,7 @@ export default function OrderAlertPage() {
       if (!orderIdFromUrl) {
         navigate(`/order-alert?orderId=${fromWindow.orderId}`, { replace: true });
       }
+      fetchOrder(fromWindow.orderId);
       return;
     }
     if (orderIdFromUrl) {
@@ -277,12 +285,28 @@ export default function OrderAlertPage() {
                 {order.phone || "—"}
               </span>
             </p>
-            <p>
-              <span className="text-white/65">Table:</span>{" "}
-              <span className="font-medium text-white">
-                {order.table_no || "—"}
+            <p className="flex items-center gap-2 flex-wrap">
+              <span
+                className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold shrink-0"
+                style={{
+                  backgroundColor: "rgba(212, 129, 59, 0.35)",
+                  color: "#F5E6D3",
+                  border: "1px solid rgba(212, 129, 59, 0.6)",
+                }}
+              >
+                {order.order_type === "delivery"
+                  ? "Delivery"
+                  : order.order_type === "packing"
+                    ? "Packing"
+                    : "Table"}
               </span>
             </p>
+            {order.order_type === "delivery" && order.address && (
+              <p className="pt-0.5">
+                <span className="text-white/65">Address:</span>{" "}
+                <span className="font-medium text-white">{order.address}</span>
+              </p>
+            )}
           </div>
         </div>
 

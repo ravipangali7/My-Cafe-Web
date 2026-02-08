@@ -125,6 +125,8 @@ declare global {
       total?: string;
       items_count?: string;
       items?: string;
+      order_type?: string;
+      address?: string;
     };
   }
 }
