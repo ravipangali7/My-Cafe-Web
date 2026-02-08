@@ -1,6 +1,7 @@
 // User type with new balance and shareholder fields
 export interface User {
   id: number;
+  username?: string;
   name: string;
   phone: string;
   country_code: string;
@@ -78,6 +79,7 @@ export interface Transaction {
   user_info?: {
     id: number;
     name: string;
+    username?: string;
     phone: string;
     logo_url: string | null;
   } | null;
@@ -193,6 +195,7 @@ export interface ShareholderWithdrawal {
 export interface VendorDue {
   id: number;
   name: string;
+  username?: string;
   phone: string;
   country_code: string;
   logo_url: string | null;
@@ -219,6 +222,7 @@ export interface Order {
   vendor: {
     id: number;
     name: string;
+    username?: string;
     phone: string;
     logo_url: string | null;
   } | null;
@@ -251,6 +255,7 @@ export interface QRStandOrder {
   vendor_info?: {
     id: number;
     name: string;
+    username?: string;
     phone: string;
     logo_url: string | null;
   } | null;
@@ -343,6 +348,7 @@ export interface PendingQROrder {
   vendor_info?: {
     id: number;
     name: string;
+    username?: string;
     phone: string;
     logo_url: string | null;
   } | null;
@@ -455,6 +461,7 @@ export interface FinancialTrendPoint {
 export interface TopVendor {
   id: number;
   name: string;
+  username?: string;
   phone: string;
   logo_url: string | null;
   total_revenue: number;
@@ -465,6 +472,7 @@ export interface TopVendor {
 export interface PendingKYCRequest {
   id: number;
   name: string;
+  username?: string;
   phone: string;
   country_code: string;
   kyc_status: string;
@@ -542,6 +550,7 @@ export interface SystemDashboardData {
   users_overview?: Array<{
     id: number;
     name: string;
+    username?: string;
     phone: string;
     is_active: boolean;
     is_superuser: boolean;

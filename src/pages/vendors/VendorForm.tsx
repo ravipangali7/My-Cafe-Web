@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,17 @@ import { requestFileFromFlutter, filePayloadToFile, type WebViewFilePayload } fr
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
+function slugFromName(name: string): string {
+  return name
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/gi, '')
+    .toLowerCase()
+    .replace(/^-+|-+$/g, '') || '';
+}
+
+type UsernameCheckStatus = 'idle' | 'checking' | 'available' | 'taken';
+
 export default function VendorForm() {
   const navigate = useNavigate();
   const { id } = useParams<{ id?: string }>();
@@ -20,6 +31,12 @@ export default function VendorForm() {
   const isEditMode = !isCreateMode;
 
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
+  const [usernameCheckStatus, setUsernameCheckStatus] = useState<UsernameCheckStatus>('idle');
+  const [usernameSuggestion, setUsernameSuggestion] = useState<string | null>(null);
+  const usernameCheckAbortRef = useRef<AbortController | null>(null);
+  const lastSuggestedSlugRef = useRef<string>('');
+  const userHasEditedUsernameRef = useRef(false);
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
@@ -48,6 +65,7 @@ export default function VendorForm() {
       }
       const vendorData = response.data.user;
       setName(vendorData.name || '');
+      setUsername(vendorData.username || '');
       setPhone(vendorData.phone || '');
       setEmail(vendorData.email || '');
       setLogoPreview(vendorData.logo_url || null);
@@ -56,6 +74,7 @@ export default function VendorForm() {
       setUgApi(vendorData.ug_api ?? '');
       setIsActive(vendorData.is_active ?? true);
       setIsSuperuser(vendorData.is_superuser ?? false);
+      userHasEditedUsernameRef.current = false;
     } else if (user.is_superuser) {
       // Superuser editing another vendor
       const response = await api.get<{ vendor: any }>(`/api/vendors/${id}/`);
@@ -66,6 +85,7 @@ export default function VendorForm() {
       }
       const vendorData = response.data.vendor;
       setName(vendorData.name || '');
+      setUsername(vendorData.username || '');
       setPhone(vendorData.phone || '');
       setEmail(vendorData.email || '');
       setLogoPreview(vendorData.logo_url || null);
@@ -74,10 +94,69 @@ export default function VendorForm() {
       setUgApi(vendorData.ug_api ?? '');
       setIsActive(vendorData.is_active ?? true);
       setIsSuperuser(vendorData.is_superuser ?? false);
+      userHasEditedUsernameRef.current = false;
     } else {
       navigate('/vendors');
     }
   }, [user, id, isCreateMode, navigate]);
+
+  // Auto-suggest username from name (create mode only; when user hasn't manually edited username)
+  useEffect(() => {
+    if (!isCreateMode) return;
+    const slug = slugFromName(name);
+    if (!slug) return;
+    if (!userHasEditedUsernameRef.current && (username === '' || username === lastSuggestedSlugRef.current)) {
+      lastSuggestedSlugRef.current = slug;
+      setUsername(slug);
+      setUsernameCheckStatus('idle');
+      setUsernameSuggestion(null);
+    }
+  }, [name, isCreateMode, username]);
+
+  // Live username availability check (debounced)
+  useEffect(() => {
+    const value = username.trim().toLowerCase();
+    if (!value) {
+      setUsernameCheckStatus('idle');
+      setUsernameSuggestion(null);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      if (usernameCheckAbortRef.current) {
+        usernameCheckAbortRef.current.abort();
+      }
+      usernameCheckAbortRef.current = new AbortController();
+      setUsernameCheckStatus('checking');
+      setUsernameSuggestion(null);
+      try {
+        const excludeParam = isEditMode && id ? `&exclude_user_id=${id}` : '';
+        const res = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL || ''}/api/vendors/check-username/?username=${encodeURIComponent(value)}${excludeParam}`,
+          { credentials: 'include', signal: usernameCheckAbortRef.current.signal }
+        );
+        const data = await res.json();
+        if (data.available) {
+          setUsernameCheckStatus('available');
+          setUsernameSuggestion(null);
+        } else {
+          setUsernameCheckStatus('taken');
+          setUsernameSuggestion(data.suggestion || null);
+        }
+      } catch (err) {
+        if ((err as Error).name === 'AbortError') return;
+        setUsernameCheckStatus('idle');
+        setUsernameSuggestion(null);
+      } finally {
+        usernameCheckAbortRef.current = null;
+      }
+    }, 400);
+    return () => {
+      clearTimeout(timer);
+      if (usernameCheckAbortRef.current) {
+        usernameCheckAbortRef.current.abort();
+      }
+    };
+  }, [username, isEditMode, id]);
 
   useEffect(() => {
     if (user) {
@@ -139,6 +218,7 @@ export default function VendorForm() {
 
         const formData = new FormData();
         formData.append('name', name);
+        formData.append('username', username.trim());
         formData.append('phone', phone);
         formData.append('password', password);
         if (email) {
@@ -172,6 +252,7 @@ export default function VendorForm() {
         // Update existing vendor
         const formData = new FormData();
         formData.append('name', name);
+        formData.append('username', username.trim());
         formData.append('phone', phone);
         if (password) {
           formData.append('password', password);
@@ -259,6 +340,46 @@ export default function VendorForm() {
                 placeholder="Cafe Name"
                 required
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                value={username}
+                onChange={(e) => {
+                  userHasEditedUsernameRef.current = true;
+                  setUsername(e.target.value);
+                }}
+                placeholder="my-cafe"
+                required
+              />
+              {username.trim() && (
+                <p className="text-xs text-muted-foreground">
+                  {usernameCheckStatus === 'checking' && 'Checking...'}
+                  {usernameCheckStatus === 'available' && 'Available'}
+                  {usernameCheckStatus === 'taken' && (
+                    <>
+                      Taken.
+                      {usernameSuggestion && (
+                        <>
+                          {' '}
+                          <button
+                            type="button"
+                            className="underline hover:no-underline"
+                            onClick={() => {
+                              setUsername(usernameSuggestion);
+                              setUsernameSuggestion(null);
+                              setUsernameCheckStatus('idle');
+                            }}
+                          >
+                            Use {usernameSuggestion}
+                          </button>
+                        </>
+                      )}
+                    </>
+                  )}
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Phone</Label>
@@ -380,7 +501,15 @@ export default function VendorForm() {
               </div>
             )}
             <div className="flex gap-3 pt-4">
-              <Button type="submit" disabled={loading}>
+              <Button
+                type="submit"
+                disabled={
+                  loading ||
+                  !username.trim() ||
+                  usernameCheckStatus === 'checking' ||
+                  (username.trim() && usernameCheckStatus === 'taken')
+                }
+              >
                 {loading ? 'Saving...' : isCreateMode ? 'Create Vendor' : 'Update Profile'}
               </Button>
               <Button type="button" variant="outline" onClick={() => navigate('/vendors')}>

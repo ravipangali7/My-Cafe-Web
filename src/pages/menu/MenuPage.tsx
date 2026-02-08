@@ -59,9 +59,11 @@ interface CartItem {
 }
 
 export default function MenuPage() {
-  const { vendorPhone } = useParams<{ vendorPhone: string }>();
+  const { vendorPhone: vendorIdentifier } = useParams<{ vendorPhone: string }>();
   const { vendor } = useVendor();
-  const isVendorView = !!vendor && vendor.phone === (vendorPhone || '');
+  const isVendorView =
+    !!vendor &&
+    (vendor.username === vendorIdentifier || vendor.phone === vendorIdentifier);
   const [menuData, setMenuData] = useState<MenuData | null>(null);
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -84,15 +86,15 @@ export default function MenuPage() {
   }, []);
 
   const fetchMenu = useCallback(async () => {
-    if (!vendorPhone) {
-      toast.error('Vendor phone is required');
+    if (!vendorIdentifier) {
+      toast.error('Vendor identifier is required');
       setLoading(false);
       return;
     }
 
     setLoading(true);
     try {
-      const response = await api.get<MenuData>(`/api/menu/${vendorPhone}/`);
+      const response = await api.get<MenuData>(`/api/menu/${vendorIdentifier}/`);
       if (response.error) {
         toast.error(response.error || 'Failed to load menu');
       } else if (response.data) {
@@ -103,7 +105,7 @@ export default function MenuPage() {
     } finally {
       setLoading(false);
     }
-  }, [vendorPhone]);
+  }, [vendorIdentifier]);
 
   useEffect(() => {
     fetchMenu();
@@ -417,7 +419,7 @@ export default function MenuPage() {
           <div className="sticky top-24">
             <OrderPanel
               cart={cart}
-              vendorPhone={vendorPhone || ''}
+              vendorPhone={menuData.vendor.phone}
               vendor={menuData.vendor}
               isVendorView={isVendorView}
               onOrderPlaced={() => {
@@ -465,7 +467,7 @@ export default function MenuPage() {
             <div className="px-4 pb-6">
               <OrderPanel
                 cart={cart}
-                vendorPhone={vendorPhone || ''}
+                vendorPhone={menuData.vendor.phone}
                 vendor={menuData.vendor}
                 isVendorView={isVendorView}
                 onOrderPlaced={() => {

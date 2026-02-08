@@ -181,9 +181,9 @@ export default function Dashboard() {
   // Redirect to QR page when opened from external browser (e.g. ?openQr=1 from Flutter WebView)
   useEffect(() => {
     if (searchParams.get('openQr') === '1' && vendor?.phone) {
-      navigate(`/qr/${vendor.phone}`);
+      navigate(`/qr/${vendor.username || vendor.phone}`);
     }
-  }, [searchParams, vendor?.phone, navigate]);
+  }, [searchParams, vendor?.username, vendor?.phone, navigate]);
 
   // Transform legacy vendor data to new format
   const transformVendorData = useCallback((data: LegacyVendorDashboardData): VendorDashboardData => {

@@ -11,6 +11,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 export interface MenuQRCodeVendor {
   id: number;
   name: string;
+  username?: string;
   phone: string;
   logo_url: string | null;
 }

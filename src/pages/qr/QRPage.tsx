@@ -18,7 +18,7 @@ export default function QRPage() {
 
   const fetchVendor = useCallback(async () => {
     if (!vendorPhone) {
-      setError('Vendor phone is required');
+      setError('Vendor identifier is required');
       setLoading(false);
       return;
     }
@@ -43,6 +43,7 @@ export default function QRPage() {
         setVendor({
           id: v.id,
           name: v.name,
+          username: v.username ?? undefined,
           phone: v.phone,
           logo_url: v.logo_url ?? null,
         });
@@ -101,7 +102,10 @@ export default function QRPage() {
     );
   }
 
-  const menuUrl = typeof window !== 'undefined' ? `${window.location.origin}/menu/${vendor.phone}` : '';
+  const menuUrl =
+    typeof window !== 'undefined'
+      ? `${window.location.origin}/menu/${vendor.username || vendor.phone}`
+      : '';
 
   return (
     <div

@@ -161,11 +161,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     </Link>
                     {vendor?.phone && (
                       <Link
-                        to={`/menu/${vendor.phone}`}
+                        to={`/menu/${vendor.username || vendor.phone}`}
                         onClick={() => setSidebarOpen(false)}
                         className={cn(
                           "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                          location.pathname === `/menu/${vendor.phone}` 
+                          location.pathname === `/menu/${vendor.username || vendor.phone}` 
                             ? "bg-primary text-primary-foreground" 
                             : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                         )}

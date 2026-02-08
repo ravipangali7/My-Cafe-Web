@@ -5,6 +5,7 @@ import { useAuth } from './AuthContext';
 interface Vendor {
   id: number;
   name: string;
+  username?: string;
   phone: string;
   logo_url: string | null;
   expire_date: string | null;
