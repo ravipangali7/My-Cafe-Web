@@ -4,6 +4,7 @@ import { ShoppingCart, Search, Store } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
+import { useVendor } from '@/contexts/VendorContext';
 import { getFirebaseMessaging } from '@/lib/firebase-config';
 import { onMessage } from 'firebase/messaging';
 import { toast } from 'sonner';
@@ -59,6 +60,8 @@ interface CartItem {
 
 export default function MenuPage() {
   const { vendorPhone } = useParams<{ vendorPhone: string }>();
+  const { vendor } = useVendor();
+  const isVendorView = !!vendor && vendor.phone === (vendorPhone || '');
   const [menuData, setMenuData] = useState<MenuData | null>(null);
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -416,6 +419,7 @@ export default function MenuPage() {
               cart={cart}
               vendorPhone={vendorPhone || ''}
               vendor={menuData.vendor}
+              isVendorView={isVendorView}
               onOrderPlaced={() => {
                 setCart([]);
               }}
@@ -463,6 +467,7 @@ export default function MenuPage() {
                 cart={cart}
                 vendorPhone={vendorPhone || ''}
                 vendor={menuData.vendor}
+                isVendorView={isVendorView}
                 onOrderPlaced={() => {
                   setCart([]);
                   setShowMobileCart(false);

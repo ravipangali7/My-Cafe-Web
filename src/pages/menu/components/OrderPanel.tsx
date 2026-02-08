@@ -6,7 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getFCMTokenOnly } from '@/lib/fcm';
 import { toast } from 'sonner';
+import { api } from '@/lib/api';
 import { initiateOrderPaymentFromPayload, redirectToPayment, redirectToNepalGateway } from '@/services/paymentService';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 interface ProductVariant {
   id: number;
@@ -41,10 +43,14 @@ interface Vendor {
   is_online?: boolean;
 }
 
+type OrderType = 'table' | 'packing' | 'delivery';
+type PaymentMethod = 'cash' | 'online';
+
 interface OrderPanelProps {
   cart: CartItem[];
   vendorPhone: string;
   vendor: Vendor;
+  isVendorView: boolean;
   onOrderPlaced: () => void;
   onUpdateQuantity: (productId: number, variantId: number, delta: number) => void;
   onRemoveFromCart: (productId: number, variantId: number) => void;
@@ -56,6 +62,7 @@ export function OrderPanel({
   cart,
   vendorPhone,
   vendor,
+  isVendorView,
   onOrderPlaced,
   onUpdateQuantity,
   onRemoveFromCart,
@@ -66,6 +73,9 @@ export function OrderPanel({
   const [guestPhone, setGuestPhone] = useState('');
   const [guestCountryCode, setGuestCountryCode] = useState('91');
   const [tableNo, setTableNo] = useState('');
+  const [orderType, setOrderType] = useState<OrderType>('table');
+  const [address, setAddress] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('online');
   const [submitting, setSubmitting] = useState(false);
   const [fcmToken, setFcmToken] = useState<string | null>(null);
 
@@ -106,27 +116,60 @@ export function OrderPanel({
       toast.error('Please enter your name');
       return;
     }
-
     if (!guestPhone.trim()) {
       toast.error('Please enter your phone number');
       return;
     }
-
     if (cart.length === 0) {
       toast.error('Your cart is empty');
       return;
     }
+    if (orderType === 'delivery' && !address.trim()) {
+      toast.error('Please enter delivery address');
+      return;
+    }
+
+    const digits = (guestPhone || '').replace(/\D/g, '');
+    const phoneWithCode = digits ? `+${guestCountryCode}${digits}` : guestPhone;
 
     setSubmitting(true);
     try {
-      const digits = (guestPhone || '').replace(/\D/g, '');
-      const phoneWithCode = digits ? `+${guestCountryCode}${digits}` : guestPhone;
-      // Initiate order payment without creating order first. Order is created only on payment success.
+      if (isVendorView && paymentMethod === 'cash') {
+        const response = await api.post<{ order: unknown; message?: string }>('/api/orders/create/', {
+          name: guestName,
+          phone: phoneWithCode,
+          table_no: tableNo || '',
+          vendor_phone: vendorPhone,
+          total: subtotal.toFixed(2),
+          items: JSON.stringify(
+            cart.map((item) => ({
+              product_id: item.product.id,
+              product_variant_id: item.variant.id,
+              quantity: item.quantity,
+              price: item.variant.discounted_price || item.variant.price,
+            }))
+          ),
+          order_type: orderType,
+          address: address.trim(),
+          payment_method: 'cash',
+          ...(fcmToken ? { fcm_token: fcmToken } : {}),
+        });
+        if (response.error) {
+          toast.error(response.error || 'Failed to place order');
+          return;
+        }
+        toast.success('Order placed successfully (cash).');
+        onOrderPlaced();
+        return;
+      }
+
       toast.info('Initiating payment...');
       const paymentResult = await initiateOrderPaymentFromPayload({
         name: guestName,
         phone: phoneWithCode,
         table_no: tableNo || '',
+        order_type: orderType,
+        address: address.trim(),
         vendor_phone: vendorPhone,
         total: subtotal.toFixed(2),
         items: JSON.stringify(
@@ -312,6 +355,41 @@ export function OrderPanel({
             </div>
           </div>
           <div>
+            <Label className="text-sm text-gray-600">Order Type</Label>
+            <RadioGroup
+              value={orderType}
+              onValueChange={(v) => setOrderType(v as OrderType)}
+              className="mt-1 flex flex-wrap gap-3"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="table" id="orderType-table" />
+                <Label htmlFor="orderType-table" className="font-normal cursor-pointer">Table</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="packing" id="orderType-packing" />
+                <Label htmlFor="orderType-packing" className="font-normal cursor-pointer">Packing</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="delivery" id="orderType-delivery" />
+                <Label htmlFor="orderType-delivery" className="font-normal cursor-pointer">Delivery</Label>
+              </div>
+            </RadioGroup>
+          </div>
+          {orderType === 'delivery' && (
+            <div>
+              <Label htmlFor="address" className="text-sm text-gray-600">
+                Delivery Address <span className="text-coral-500">*</span>
+              </Label>
+              <Input
+                id="address"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Enter delivery address"
+                className="mt-1"
+              />
+            </div>
+          )}
+          <div>
             <Label htmlFor="tableNo" className="text-sm text-gray-600">
               Table Number <span className="text-gray-400">(Optional)</span>
             </Label>
@@ -323,6 +401,25 @@ export function OrderPanel({
               className="mt-1"
             />
           </div>
+          {isVendorView && (
+            <div>
+              <Label className="text-sm text-gray-600">Payment Method</Label>
+              <RadioGroup
+                value={paymentMethod}
+                onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}
+                className="mt-1 flex flex-wrap gap-3"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="cash" id="payment-cash" />
+                  <Label htmlFor="payment-cash" className="font-normal cursor-pointer">Cash</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="online" id="payment-online" />
+                  <Label htmlFor="payment-online" className="font-normal cursor-pointer">Online</Label>
+                </div>
+              </RadioGroup>
+            </div>
+          )}
         </div>
 
         {/* Place Order Button */}
@@ -342,6 +439,8 @@ export function OrderPanel({
             </>
           ) : vendorOffline ? (
             'Restaurant closed'
+          ) : isVendorView && paymentMethod === 'cash' ? (
+            'Place Order'
           ) : (
             'Place Order & Pay'
           )}

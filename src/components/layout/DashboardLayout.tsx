@@ -1,5 +1,6 @@
 import { ReactNode, useState, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Fragment } from 'react';
 import { 
   LayoutDashboard, 
   Users, 
@@ -12,6 +13,7 @@ import {
   Receipt, 
   Settings,
   Menu,
+  UtensilsCrossed,
   X,
   LogOut,
   FileText,
@@ -141,6 +143,40 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               const isActive = location.pathname === item.path || 
                 (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
 
+              if (item.path === '/dashboard') {
+                return (
+                  <Fragment key={item.path}>
+                    <Link
+                      to={item.path}
+                      onClick={() => setSidebarOpen(false)}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                        isActive 
+                          ? "bg-primary text-primary-foreground" 
+                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      )}
+                    >
+                      <item.icon className="h-5 w-5" />
+                      {item.label}
+                    </Link>
+                    {vendor?.phone && (
+                      <Link
+                        to={`/menu/${vendor.phone}`}
+                        onClick={() => setSidebarOpen(false)}
+                        className={cn(
+                          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                          location.pathname === `/menu/${vendor.phone}` 
+                            ? "bg-primary text-primary-foreground" 
+                            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                        )}
+                      >
+                        <UtensilsCrossed className="h-5 w-5" />
+                        Menu
+                      </Link>
+                    )}
+                  </Fragment>
+                );
+              }
               if (hasChildren && item.children) {
                 const subItems = item.children as { path: string; label: string }[];
                 return (

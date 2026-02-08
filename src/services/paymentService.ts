@@ -151,6 +151,8 @@ export interface InitiateOrderPaymentPayload {
   name: string;
   phone: string;
   table_no?: string;
+  order_type?: string;
+  address?: string;
   vendor_phone: string;
   total: string;
   items: string;
@@ -160,7 +162,18 @@ export interface InitiateOrderPaymentPayload {
 export async function initiateOrderPaymentFromPayload(
   payload: InitiateOrderPaymentPayload
 ): Promise<{ data?: InitiatePaymentResponse; error?: string }> {
-  const response = await api.post<InitiatePaymentResponse>('/api/payment/initiate-order/', payload);
+  const body: Record<string, unknown> = {
+    name: payload.name,
+    phone: payload.phone,
+    table_no: payload.table_no ?? '',
+    vendor_phone: payload.vendor_phone,
+    total: payload.total,
+    items: payload.items,
+  };
+  if (payload.order_type) body.order_type = payload.order_type;
+  if (payload.address !== undefined) body.address = payload.address;
+  if (payload.fcm_token) body.fcm_token = payload.fcm_token;
+  const response = await api.post<InitiatePaymentResponse>('/api/payment/initiate-order/', body);
   if (response.error) {
     return { error: response.error };
   }

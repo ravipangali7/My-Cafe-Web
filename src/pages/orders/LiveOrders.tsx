@@ -6,6 +6,7 @@ import {
   User, 
   Hash, 
   UtensilsCrossed,
+  MapPin,
   X,
   Check,
   Play,
@@ -58,6 +59,8 @@ interface Order {
   name: string;
   phone: string;
   table_no: string;
+  order_type?: string;
+  address?: string | null;
   status: string;
   payment_status: string;
   total: string;
@@ -148,7 +151,17 @@ function LiveOrderCard({
           </div>
           <div className="flex items-center gap-2 col-span-2">
             <UtensilsCrossed className="h-4 w-4 text-muted-foreground" />
-            <span>Table: {order.table_no}</span>
+            <span>Order type: {order.order_type ? order.order_type.charAt(0).toUpperCase() + order.order_type.slice(1) : 'Table'}</span>
+          </div>
+          {order.order_type === 'delivery' && order.address && (
+            <div className="flex items-start gap-2 col-span-2">
+              <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+              <span>Address: {order.address}</span>
+            </div>
+          )}
+          <div className="flex items-center gap-2 col-span-2">
+            <UtensilsCrossed className="h-4 w-4 text-muted-foreground" />
+            <span>Table: {order.table_no || '—'}</span>
           </div>
         </div>
 
