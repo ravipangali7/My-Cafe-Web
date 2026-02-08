@@ -124,18 +124,35 @@ export default function OrderAlertPage() {
       setProcessingFalse: () => void
     ) => {
       window.StopOrderAlertSound?.postMessage?.("");
+      const isMultiple = pendingOrders.length > 1;
+      const remaining = pendingOrders.filter((o) => o.orderId !== targetOrderId);
+
       if (status === "accepted") {
         toast.success("Order accepted");
-        navigate(`/orders/${targetOrderId}`, { replace: true });
       } else {
         toast.success("Order rejected");
-        const remaining = pendingOrders.filter((o) => o.orderId !== targetOrderId);
-        if (remaining.length === 0) {
-          navigate("/orders", { replace: true });
+      }
+
+      if (!isMultiple) {
+        // Single order: close immediately (navigate away)
+        if (status === "accepted") {
+          navigate(`/orders/${targetOrderId}`, { replace: true });
         } else {
-          setPendingOrders(remaining);
-          setProcessingFalse();
+          navigate("/orders", { replace: true });
         }
+        return;
+      }
+
+      // Multiple orders: stay on screen until list is empty
+      if (remaining.length === 0) {
+        if (status === "accepted") {
+          navigate(`/orders/${targetOrderId}`, { replace: true });
+        } else {
+          navigate("/orders", { replace: true });
+        }
+      } else {
+        setPendingOrders(remaining);
+        setProcessingFalse();
       }
     },
     [navigate, pendingOrders]
@@ -459,7 +476,7 @@ export default function OrderAlertPage() {
       className="min-h-screen flex flex-col text-white"
       style={backgroundStyle}
     >
-      <div className="flex-1 overflow-auto p-4 pb-8">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth p-4 pb-8">
         <div className="flex items-center justify-center gap-2 mb-4">
           <span className="text-2xl">🍽️</span>
           <h1 className="text-xl font-semibold text-white/95">
