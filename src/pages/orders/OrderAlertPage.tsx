@@ -106,6 +106,8 @@ export default function OrderAlertPage() {
     };
   }, []);
 
+  // Alert screen is notification-triggered only: show only when window.__INCOMING_ORDER__
+  // is set (by Flutter on notification tap). Otherwise redirect and do not show the alert.
   useEffect(() => {
     const fromWindow = getOrderFromWindow();
     if (fromWindow) {
