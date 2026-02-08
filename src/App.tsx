@@ -274,7 +274,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   // Skip checks for superusers
   if (user.is_superuser) {
-    return <VendorProvider>{children}</VendorProvider>;
+    return <>{children}</>;
   }
 
   // Check KYC status - allow access to /kyc route even if not approved
@@ -296,7 +296,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/pay-dues" replace />;
   }
 
-  return <VendorProvider>{children}</VendorProvider>;
+  return <>{children}</>;
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
@@ -320,10 +320,11 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <FlutterBackHandler />
-          <OpenOrderDetailHandler />
-          <HandleIncomingOrderActionHandler />
-          <Routes>
+          <VendorProvider>
+            <FlutterBackHandler />
+            <OpenOrderDetailHandler />
+            <HandleIncomingOrderActionHandler />
+            <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
@@ -423,6 +424,7 @@ const App = () => (
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </VendorProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
