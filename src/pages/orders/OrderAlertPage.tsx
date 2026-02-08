@@ -101,6 +101,12 @@ export default function OrderAlertPage() {
   }, [orderId]);
 
   useEffect(() => {
+    return () => {
+      window.__INCOMING_ORDER__ = undefined;
+    };
+  }, []);
+
+  useEffect(() => {
     const fromWindow = getOrderFromWindow();
     if (fromWindow) {
       setOrder(fromWindow);
@@ -112,11 +118,11 @@ export default function OrderAlertPage() {
       return;
     }
     if (orderIdFromUrl) {
-      fetchOrder();
-    } else {
-      setError("No order specified");
-      setLoading(false);
+      navigate(`/orders/${orderIdFromUrl}`, { replace: true });
+      return;
     }
+    setError("No order specified");
+    setLoading(false);
   }, [orderIdFromUrl, fetchOrder, navigate]);
 
   const performAction = useCallback(
@@ -142,7 +148,7 @@ export default function OrderAlertPage() {
         } else {
           toast.success("Order rejected");
         }
-        navigate(`/orders/${orderId}`);
+        navigate(`/orders/${orderId}`, { replace: true });
       } catch (err) {
         toast.error(
           err instanceof Error ? err.message : "Failed to update order"
@@ -234,7 +240,7 @@ export default function OrderAlertPage() {
         <p className="text-white/80">{error ?? "No order specified"}</p>
         <button
           type="button"
-          onClick={() => navigate("/orders")}
+          onClick={() => navigate("/orders", { replace: true })}
           className="px-4 py-2 rounded-lg bg-white/20 text-white"
         >
           Back to Orders
