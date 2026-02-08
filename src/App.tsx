@@ -160,7 +160,7 @@ function OpenOrderDetailHandler() {
     if (registered.current) return;
     registered.current = true;
     window.openOrderDetail = (orderId: string) => {
-      if (orderId) navigate(`/orders/${orderId}`);
+      if (orderId) navigate(`/orders/${orderId}`, { replace: true });
     };
   }, [navigate]);
   return null;
@@ -184,7 +184,7 @@ function HandleIncomingOrderActionHandler() {
         } else {
           if (action === "accepted") {
             toast.success("Order accepted");
-            navigate(`/orders/${orderId}`);
+            navigate(`/orders/${orderId}`, { replace: true });
           } else {
             toast.success("Order rejected");
           }
