@@ -88,13 +88,6 @@ export default function Login() {
                 Forgot Password?
               </Link>
             </div>
-            
-            <div className="text-center text-sm text-muted-foreground">
-              Don't have an account?{' '}
-              <Link to="/register" className="text-primary hover:underline">
-                Sign Up
-              </Link>
-            </div>
           </form>
         </CardContent>
       </Card>
