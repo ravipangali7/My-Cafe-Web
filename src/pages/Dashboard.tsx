@@ -155,6 +155,20 @@ interface LegacySuperAdminDashboardData {
 
 const VALID_RANGE_VALUES = new Set(DASHBOARD_DATE_FILTER_OPTIONS.map((o) => o.value));
 
+// Order summary stats (same shape as /api/stats/orders/); used so Dashboard Overview matches Order List page
+interface OrderStats {
+  total: number;
+  revenue: string;
+}
+function getTodayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+function getYesterdayISO(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
 function getRangeFromSearchParams(searchParams: URLSearchParams): DashboardDateFilter {
   const range = searchParams.get('range');
   if (range && VALID_RANGE_VALUES.has(range as DashboardDateFilter)) {
@@ -177,6 +191,14 @@ export default function Dashboard() {
   // Super admin dashboard data
   const [superAdminData, setSuperAdminData] = useState<SystemDashboardData | null>(null);
   const [superAdminLoading, setSuperAdminLoading] = useState(true);
+
+  // Order summary stats (Today / Yesterday / All Time) — same source as Order List page
+  const [orderSummaryStats, setOrderSummaryStats] = useState<{
+    today: OrderStats | null;
+    yesterday: OrderStats | null;
+    allTime: OrderStats | null;
+  } | null>(null);
+  const [loadingOrderSummaryStats, setLoadingOrderSummaryStats] = useState(false);
 
   // Redirect to QR page when opened from external browser (e.g. ?openQr=1 from Flutter WebView)
   useEffect(() => {
@@ -315,6 +337,35 @@ export default function Dashboard() {
     }
   }, [user, transformVendorData]);
 
+  // Fetch order summary stats (Today / Yesterday / All Time) — same API as Order List page
+  const fetchOrderSummaryStats = useCallback(async () => {
+    if (!user || user.is_superuser) return;
+
+    setLoadingOrderSummaryStats(true);
+    try {
+      const todayISO = getTodayISO();
+      const yesterdayISO = getYesterdayISO();
+      const [todayRes, yesterdayRes, allTimeRes] = await Promise.all([
+        api.get<OrderStats>(
+          `/api/stats/orders/${api.buildQueryString({ start_date: todayISO, end_date: todayISO })}`
+        ),
+        api.get<OrderStats>(
+          `/api/stats/orders/${api.buildQueryString({ start_date: yesterdayISO, end_date: yesterdayISO })}`
+        ),
+        api.get<OrderStats>(`/api/stats/orders/${api.buildQueryString({})}`),
+      ]);
+      setOrderSummaryStats({
+        today: todayRes.data ?? null,
+        yesterday: yesterdayRes.data ?? null,
+        allTime: allTimeRes.data ?? null,
+      });
+    } catch (error) {
+      console.error('Failed to fetch order summary stats:', error);
+    } finally {
+      setLoadingOrderSummaryStats(false);
+    }
+  }, [user]);
+
   // Fetch super admin dashboard data
   const fetchSuperAdminData = useCallback(async (dateFilter: DashboardDateFilter) => {
     if (!user || !user.is_superuser) return;
@@ -341,9 +392,11 @@ export default function Dashboard() {
       fetchVendorData(range);
       if (user.is_superuser) {
         fetchSuperAdminData(range);
+      } else {
+        fetchOrderSummaryStats();
       }
     }
-  }, [user, range, fetchVendorData, fetchSuperAdminData]);
+  }, [user, range, fetchVendorData, fetchSuperAdminData, fetchOrderSummaryStats]);
 
   // Refetch dashboard when user returns to tab/app (real-time feel)
   useEffect(() => {
@@ -352,11 +405,12 @@ export default function Dashboard() {
       if (document.visibilityState === 'visible') {
         fetchVendorData(range);
         if (user.is_superuser) fetchSuperAdminData(range);
+        else fetchOrderSummaryStats();
       }
     };
     document.addEventListener('visibilitychange', onVisibilityChange);
     return () => document.removeEventListener('visibilitychange', onVisibilityChange);
-  }, [user, range, fetchVendorData, fetchSuperAdminData]);
+  }, [user, range, fetchVendorData, fetchSuperAdminData, fetchOrderSummaryStats]);
 
   // Optional polling: refetch every 90s while dashboard is visible
   useEffect(() => {
@@ -369,6 +423,7 @@ export default function Dashboard() {
         if (document.visibilityState !== 'visible') return;
         fetchVendorData(range);
         if (user.is_superuser) fetchSuperAdminData(range);
+        else fetchOrderSummaryStats();
       }, POLL_INTERVAL_MS);
     };
     const onVisibilityChange = () => {
@@ -554,6 +609,8 @@ export default function Dashboard() {
             data={vendorData}
             vendorPhone={vendor?.phone}
             loading={vendorLoading}
+            orderSummaryStats={orderSummaryStats}
+            loadingOrderSummaryStats={loadingOrderSummaryStats}
           />
         ) : vendorLoading ? (
           <DashboardSkeleton />

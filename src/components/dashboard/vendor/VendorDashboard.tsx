@@ -63,10 +63,23 @@ function deriveSummaryFromVendorData(data: VendorDashboardData): {
 
 const DASHBOARD_TABLE_LIMIT = 5;
 
+/** Same shape as /api/stats/orders/ response (subset used for Overview card) */
+export interface OrderSummaryStatsItem {
+  revenue: string;
+  total: number;
+}
+
 interface VendorDashboardProps {
   data: VendorDashboardData;
   vendorPhone?: string;
   loading?: boolean;
+  /** When set, Overview card uses this (same source as Order List page); otherwise derived from data */
+  orderSummaryStats?: {
+    today: OrderSummaryStatsItem | null;
+    yesterday: OrderSummaryStatsItem | null;
+    allTime: OrderSummaryStatsItem | null;
+  } | null;
+  loadingOrderSummaryStats?: boolean;
 }
 
 function Section({ title, children, className, viewAllHref }: { title: string; children: React.ReactNode; className?: string; viewAllHref?: string }) {
@@ -94,9 +107,34 @@ export function VendorDashboard({
   data,
   vendorPhone,
   loading = false,
+  orderSummaryStats = null,
+  loadingOrderSummaryStats = false,
 }: VendorDashboardProps) {
   const isMobile = useIsMobile();
   const { vendor, refetch, loading: vendorLoading } = useVendor();
+
+  const overviewSummary = useMemo(() => {
+    if (orderSummaryStats?.today != null || orderSummaryStats?.yesterday != null || orderSummaryStats?.allTime != null) {
+      return {
+        firstRow: {
+          label: 'Today',
+          amount: orderSummaryStats.today?.revenue ?? '0',
+          orders: orderSummaryStats.today?.total ?? 0,
+        },
+        secondRowLeft: {
+          label: 'Yesterday',
+          amount: orderSummaryStats.yesterday?.revenue ?? '0',
+          orders: orderSummaryStats.yesterday?.total ?? 0,
+        },
+        secondRowRight: {
+          label: 'All Time',
+          amount: orderSummaryStats.allTime?.revenue ?? '0',
+          orders: orderSummaryStats.allTime?.total ?? 0,
+        },
+      };
+    }
+    return deriveSummaryFromVendorData(data);
+  }, [data, orderSummaryStats]);
 
   return (
     <div className={cn('space-y-8', isMobile && 'space-y-10')}>
@@ -137,11 +175,11 @@ export function VendorDashboard({
         )}
       </div>
 
-      {/* Overview - Stats */}
+      {/* Overview - Stats (same source as Order List page when orderSummaryStats is provided) */}
       <Section title="Overview">
         <SummaryStatsCard
-          {...useMemo(() => deriveSummaryFromVendorData(data), [data])}
-          loading={loading}
+          {...overviewSummary}
+          loading={loading || loadingOrderSummaryStats}
           className="mb-4"
         />
         <VendorStatsCards
