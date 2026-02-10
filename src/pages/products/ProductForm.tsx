@@ -361,7 +361,7 @@ export default function ProductForm() {
 
         <div className={cn(
           'flex gap-3',
-          isMobile && 'sticky bottom-24 z-20 mt-6 pt-4 pb-2 -mx-4 px-4 bg-background/95 backdrop-blur border-t border-border safe-area-bottom md:static md:mx-0 md:px-0 md:pt-0 md:pb-0 md:bg-transparent md:border-0'
+          isMobile && 'z-20 mt-6 pt-4 pb-2 -mx-4 px-4 bg-background/95 backdrop-blur border-t border-border safe-area-bottom md:static md:mx-0 md:px-0 md:pt-0 md:pb-0 md:bg-transparent md:border-0'
         )}>
           <Button type="submit" disabled={loading}>
             {loading ? 'Saving...' : isEdit ? 'Update Product' : 'Create Product'}
