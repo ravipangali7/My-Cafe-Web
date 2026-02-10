@@ -158,14 +158,21 @@ function LiveOrderCard({
               <span className="font-bold text-lg">Order #{order.id}</span>
               <StatusBadge status={order.status} variant={getOrderStatusVariant(order.status)} />
             </div>
-            <p className="text-xs text-muted-foreground">
-              {formatTime(order.created_at)}
+            <div className="flex flex-wrap items-center gap-2 mt-1">
+              <p className="text-xs text-muted-foreground">{formatTime(order.created_at)}</p>
               {showElapsedTime && (
-                <span className="ml-2 font-medium">
-                  · Time: {formatElapsed(order.created_at, now)}
+                <span
+                  className="inline-flex items-center rounded-full px-4 py-2 text-base font-bold tabular-nums"
+                  style={{
+                    backgroundColor: 'rgba(249, 115, 22, 0.2)',
+                    color: 'rgb(234, 88, 12)',
+                    border: '2px solid rgba(249, 115, 22, 0.6)',
+                  }}
+                >
+                  Time: {formatElapsed(order.created_at, now)}
                 </span>
               )}
-            </p>
+            </div>
           </div>
           <div className="text-right">
             <p className="font-bold text-lg">₹{order.total}</p>
