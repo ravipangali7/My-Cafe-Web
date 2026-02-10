@@ -38,6 +38,64 @@ function parseIncomingItems(itemsRaw: string | undefined): IncomingOrderItem[] {
   }
 }
 
+/** Order type label and distinct badge style for Table / Packing / Delivery */
+function getOrderTypeBadge(orderType: string | undefined): {
+  label: string;
+  className: string;
+  style: React.CSSProperties;
+} {
+  const t = orderType ?? "table";
+  if (t === "delivery") {
+    return {
+      label: "Delivery",
+      className: "",
+      style: {
+        backgroundColor: "rgba(34, 197, 94, 0.4)",
+        color: "#bbf7d0",
+        border: "2px solid rgba(34, 197, 94, 0.8)",
+        padding: "10px 20px",
+        fontSize: "1.125rem",
+        fontWeight: 700,
+        borderRadius: 12,
+        textAlign: "center" as const,
+        display: "block",
+      },
+    };
+  }
+  if (t === "packing") {
+    return {
+      label: "Packing",
+      className: "",
+      style: {
+        backgroundColor: "rgba(59, 130, 246, 0.4)",
+        color: "#bfdbfe",
+        border: "2px solid rgba(59, 130, 246, 0.8)",
+        padding: "10px 20px",
+        fontSize: "1.125rem",
+        fontWeight: 700,
+        borderRadius: 12,
+        textAlign: "center" as const,
+        display: "block",
+      },
+    };
+  }
+  return {
+    label: "Table",
+    className: "",
+    style: {
+      backgroundColor: "rgba(212, 129, 59, 0.45)",
+      color: "#F5E6D3",
+      border: "2px solid rgba(212, 129, 59, 0.75)",
+      padding: "10px 20px",
+      fontSize: "1.125rem",
+      fontWeight: 700,
+      borderRadius: 12,
+      textAlign: "center" as const,
+      display: "block",
+    },
+  };
+}
+
 function getOrderFromWindow(): OrderDisplay | null {
   const w = window.__INCOMING_ORDER__;
   if (!w?.order_id) return null;
@@ -325,6 +383,12 @@ export default function OrderAlertPage() {
           </div>
 
           <div className="rounded-2xl bg-[#4A3328] p-4 shadow-lg mb-4">
+            <div
+              className="mb-4"
+              style={getOrderTypeBadge(order.order_type).style}
+            >
+              {getOrderTypeBadge(order.order_type).label}
+            </div>
             <p className="text-xs font-bold text-white/70 tracking-wide mb-3">
               CUSTOMER
             </p>
@@ -339,22 +403,6 @@ export default function OrderAlertPage() {
                 <span className="text-white/65">Phone:</span>{" "}
                 <span className="font-medium text-white">
                   {order.phone || "—"}
-                </span>
-              </p>
-              <p className="flex items-center gap-2 flex-wrap">
-                <span
-                  className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold shrink-0"
-                  style={{
-                    backgroundColor: "rgba(212, 129, 59, 0.35)",
-                    color: "#F5E6D3",
-                    border: "1px solid rgba(212, 129, 59, 0.6)",
-                  }}
-                >
-                  {order.order_type === "delivery"
-                    ? "Delivery"
-                    : order.order_type === "packing"
-                      ? "Packing"
-                      : "Table"}
                 </span>
               </p>
               {(order.order_type === "table" ||
@@ -511,8 +559,12 @@ function OrderAlertCard({
   onReject: () => void;
   disabled: boolean;
 }) {
+  const badge = getOrderTypeBadge(order.order_type);
   return (
     <div className="rounded-2xl bg-[#4A3328] p-4 shadow-lg">
+      <div className="mb-3" style={badge.style}>
+        {badge.label}
+      </div>
       <div className="rounded-xl bg-[#3d2a1f] p-3 mb-3">
         <p className="text-xs font-bold text-white/70 tracking-wide mb-2">
           CUSTOMER
@@ -523,9 +575,17 @@ function OrderAlertCard({
         <p className="text-sm text-white/90">
           <span className="text-white/65">Phone:</span> {order.phone || "—"}
         </p>
-        <p className="text-sm text-white/90">
-          <span className="text-white/65">Table:</span> {order.table_no || "—"}
-        </p>
+        {(order.order_type === "table" || order.order_type === "packing") && (
+          <p className="text-sm text-white/90">
+            <span className="text-white/65">Table:</span>{" "}
+            {order.table_no || "—"}
+          </p>
+        )}
+        {order.order_type === "delivery" && order.address && (
+          <p className="text-sm text-white/90">
+            <span className="text-white/65">Address:</span> {order.address}
+          </p>
+        )}
       </div>
 
       <p className="text-base font-bold text-white mb-2">

@@ -111,13 +111,32 @@ function formatTime(dateString: string): string {
   });
 }
 
+/** Format elapsed time from createdAt to now as "Xs", "Xm Ys", or "Xh Ym". */
+function formatElapsed(createdAt: string, now: Date): string {
+  const start = new Date(createdAt).getTime();
+  const elapsedMs = Math.max(0, now.getTime() - start);
+  const totalSeconds = Math.floor(elapsedMs / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+  if (minutes > 0) {
+    return `${minutes}m ${seconds}s`;
+  }
+  return `${seconds}s`;
+}
+
 function LiveOrderCard({ 
   order, 
   onAccept, 
   onReject, 
   onRunning, 
   onReady,
-  isUpdating 
+  isUpdating,
+  showElapsedTime = false,
+  now = new Date(),
 }: { 
   order: Order;
   onAccept?: () => void;
@@ -125,6 +144,8 @@ function LiveOrderCard({
   onRunning?: () => void;
   onReady?: () => void;
   isUpdating: boolean;
+  showElapsedTime?: boolean;
+  now?: Date;
 }) {
   return (
     <Card className="mb-4 border-l-4 border-l-primary">
@@ -137,7 +158,14 @@ function LiveOrderCard({
               <span className="font-bold text-lg">Order #{order.id}</span>
               <StatusBadge status={order.status} variant={getOrderStatusVariant(order.status)} />
             </div>
-            <p className="text-xs text-muted-foreground">{formatTime(order.created_at)}</p>
+            <p className="text-xs text-muted-foreground">
+              {formatTime(order.created_at)}
+              {showElapsedTime && (
+                <span className="ml-2 font-medium">
+                  · Time: {formatElapsed(order.created_at, now)}
+                </span>
+              )}
+            </p>
           </div>
           <div className="text-right">
             <p className="font-bold text-lg">₹{order.total}</p>
@@ -272,6 +300,13 @@ export default function LiveOrders() {
   const [rejectingOrder, setRejectingOrder] = useState<Order | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [tick, setTick] = useState(() => new Date());
+
+  // Update every second so running order elapsed time stays live
+  useEffect(() => {
+    const interval = setInterval(() => setTick(new Date()), 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const fetchOrders = useCallback(async () => {
     if (!user) return;
@@ -490,6 +525,8 @@ export default function LiveOrders() {
                         order={order}
                         onReady={() => handleReady(order.id)}
                         isUpdating={updatingOrderId === order.id}
+                        showElapsedTime
+                        now={tick}
                       />
                     ))
                   )}
