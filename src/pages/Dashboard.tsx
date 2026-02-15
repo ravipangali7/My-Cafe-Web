@@ -21,6 +21,7 @@ import {
   DASHBOARD_DATE_FILTER_OPTIONS,
 } from '@/lib/types';
 import { DateFilterBar } from '@/components/dashboard/DateFilterBar';
+import { getLocalDateString } from '@/lib/dateUtils';
 
 // API response interfaces (for transforming legacy API data)
 interface LegacyVendorDashboardData {
@@ -161,12 +162,12 @@ interface OrderStats {
   revenue: string;
 }
 function getTodayISO(): string {
-  return new Date().toISOString().slice(0, 10);
+  return getLocalDateString(new Date());
 }
 function getYesterdayISO(): string {
   const d = new Date();
   d.setDate(d.getDate() - 1);
-  return d.toISOString().slice(0, 10);
+  return getLocalDateString(d);
 }
 
 function getRangeFromSearchParams(searchParams: URLSearchParams): DashboardDateFilter {

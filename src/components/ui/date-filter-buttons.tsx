@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getLocalDateString } from '@/lib/dateUtils';
 
 export type DateFilterType = 'today' | 'yesterday' | 'week' | 'month' | 'year' | 'custom' | 'all';
 
@@ -23,30 +24,28 @@ interface DateFilterButtonsProps {
 export function getDateRange(filter: DateFilterType): { startDate?: string; endDate?: string } {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
-  const formatDate = (date: Date) => date.toISOString().split('T')[0];
-  
+
   switch (filter) {
     case 'today':
-      return { startDate: formatDate(today), endDate: formatDate(today) };
+      return { startDate: getLocalDateString(today), endDate: getLocalDateString(today) };
     case 'yesterday': {
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
-      return { startDate: formatDate(yesterday), endDate: formatDate(yesterday) };
+      return { startDate: getLocalDateString(yesterday), endDate: getLocalDateString(yesterday) };
     }
     case 'week': {
       const weekAgo = new Date(today);
       weekAgo.setDate(weekAgo.getDate() - 7);
-      return { startDate: formatDate(weekAgo), endDate: formatDate(today) };
+      return { startDate: getLocalDateString(weekAgo), endDate: getLocalDateString(today) };
     }
     case 'month': {
       const monthAgo = new Date(today);
       monthAgo.setMonth(monthAgo.getMonth() - 1);
-      return { startDate: formatDate(monthAgo), endDate: formatDate(today) };
+      return { startDate: getLocalDateString(monthAgo), endDate: getLocalDateString(today) };
     }
     case 'year': {
       const startOfYear = new Date(today.getFullYear(), 0, 1);
-      return { startDate: formatDate(startOfYear), endDate: formatDate(today) };
+      return { startDate: getLocalDateString(startOfYear), endDate: getLocalDateString(today) };
     }
     case 'all':
     default:

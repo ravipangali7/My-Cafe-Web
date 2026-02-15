@@ -19,6 +19,7 @@ import { api, fetchPaginated, getPublicInvoiceUrl, openInBrowser, isWebView } fr
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { canEditItem, canDeleteOrder } from '@/lib/permissions';
+import { getLocalDateString } from '@/lib/dateUtils';
 import { toast } from 'sonner';
 
 interface Order {
@@ -186,11 +187,11 @@ export default function OrdersList() {
     }
   }, [user, appliedUserId, appliedStartDate, appliedEndDate]);
 
-  const getTodayISO = () => new Date().toISOString().slice(0, 10);
+  const getTodayISO = () => getLocalDateString(new Date());
   const getYesterdayISO = () => {
     const d = new Date();
     d.setDate(d.getDate() - 1);
-    return d.toISOString().slice(0, 10);
+    return getLocalDateString(d);
   };
 
   const fetchSummaryStats = useCallback(async () => {

@@ -15,14 +15,15 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Store } from 'lucide-react';
 import { VendorOnlineToggle } from './VendorOnlineToggle';
+import { getLocalDateString } from '@/lib/dateUtils';
 
 function getTodayISO(): string {
-  return new Date().toISOString().slice(0, 10);
+  return getLocalDateString(new Date());
 }
 function getYesterdayISO(): string {
   const d = new Date();
   d.setDate(d.getDate() - 1);
-  return d.toISOString().slice(0, 10);
+  return getLocalDateString(d);
 }
 
 function deriveSummaryFromVendorData(data: VendorDashboardData): {
